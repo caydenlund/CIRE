@@ -6,13 +6,6 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(lib)
 add_subdirectory(tests)
 
-add_executable(trial src/trial.cpp)
-target_link_libraries(trial PUBLIC
-        Node
-        ibex)
-target_include_directories(trial PUBLIC
-        include)
-
 add_executable(cire src/cire.cpp)
 target_link_libraries(cire PUBLIC
         Node

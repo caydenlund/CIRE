@@ -1,5 +1,4 @@
 #include <iostream>
-#include "Node.h"
 #include "trial.cpp"
 
 using namespace std;
@@ -12,6 +11,8 @@ namespace cire {
     cout << "x+y = " << x + y << endl;
     return 0;
   }
+
+
 }
 
 int main(int argc, char * argv[]) {
