@@ -12,7 +12,12 @@ id [a-zA-Z][a-zA-Z0-9]*
 "OUTPUTS" { return OUTPUTS; }
 "EXPRS" { return EXPRS; }
 
-{num}  { yylval.num = atoi(yytext); return NUMBER; }
+{num}  { yylval.num.type = Number::INTEGER;
+        yylval.num.ival = atoi(yytext);
+        return INTEGER; }
+-?([0-9]*\.[0-9]+([eE][-+]?[0-9]+)?) { yylval.num.type = Number::FPTYPE;
+                                        yylval.num.fval = atof(yytext);
+                                        return FPTYPE;}
 {id} { return ID; }
 
 

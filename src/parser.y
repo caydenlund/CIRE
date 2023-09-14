@@ -7,17 +7,30 @@
     int yyerror(char *s);
 %}
 
-%union {
-  int num;
-  char sym;
+%code requires {
+    struct Number {
+        enum { INTEGER, FPTYPE } type;
+        union {
+            int ival;
+            double fval;
+        };
+    };
+    typedef struct Number Number;
+}
+
+%union value {
+    Number num;
+    char op;
 }
 
 %token EOL
-%token<num> NUMBER
+%token<num> INTEGER
+%token<num> FPTYPE
+%type<num> number
 
-%token ADD SUB MUL DIV
+%token<op> ADD SUB MUL DIV
 %token INPUTS OUTPUTS EXPRS
-%token MINUS
+%token<op> MINUS
 %token SIN COS TAN
 %token ASIN
 %token COT
@@ -27,31 +40,41 @@
 %token COMMA COLON SEMICOLON ASSIGN
 %token ID
 
-%type<num> arith_exp;
-%type<num> arith_term;
-%type<num> arith_fact;
+%type<num> arith_exp arith_term arith_fact;
 
 /* rules */
 %%
 
-input:
-        | stmt input
+program: exprs
         ;
 
-stmt:   ID ASSIGN arith_exp SEMICOLON { printf("%d\n", $3); }
-        | EOL;
+exprs:  EXPRS LBRACE stmts RBRACE
+        ;
 
-arith_fact: NUMBER { $$ = $1; }
-            | LOG arith_fact
-            | ID
+stmts:  assign_exp stmts
+        |
+        ;
+
+assign_exp: ID ASSIGN arith_exp SEMICOLON { printf("%lf\n", $3.fval); }
+        | EOL
+        ;
+
+number: INTEGER { $$ = $1; }
+        | FPTYPE { $$ = $1; }
+        ;
+
+
+arith_fact: number { $$ = $1; }
+            ;
 
 arith_term: arith_fact { $$ = $1; }
-            | arith_term MUL arith_fact { $$ = $1 * $3; }
-            | arith_term DIV arith_fact { $$ = $1 / $3; }
+            | arith_term MUL arith_fact { }
+            | arith_term DIV arith_fact { }
+            ;
 
 arith_exp:  arith_term { $$ = $1; }
-            | arith_exp ADD arith_term { $$ = $1 + $3; }
-            | arith_exp SUB arith_term { $$ = $1 - $3; }
+            | arith_exp ADD arith_term { }
+            | arith_exp SUB arith_term { }
             ;
 
 
