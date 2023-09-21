@@ -12,21 +12,20 @@ id [a-zA-Z][a-zA-Z0-9]*
 "OUTPUTS" { return OUTPUTS; }
 "EXPRS" { return EXPRS; }
 
+"fl64" {
+        return FPTYPE; }
+
 {num}  { yylval.num.type = Number::INTEGER;
         yylval.num.ival = atoi(yytext);
         return INTEGER; }
--?([0-9]*\.[0-9]+([eE][-+]?[0-9]+)?) { yylval.num.type = Number::FPTYPE;
+-?([0-9]*\.[0-9]+([eE][-+]?[0-9]+)?) { yylval.num.type = Number::FP;
                                         yylval.num.fval = atof(yytext);
-                                        return FPTYPE;}
-{id} { return ID; }
-
+                                        return FP;}
 
 "+" { return ADD; }
 "-" { return SUB; }
 "*" { return MUL; }
 "/" { return DIV; }
-
-"-" { return MINUS; }
 
 "sin" { return SIN; }
 "asin" { return ASIN; }
@@ -50,6 +49,8 @@ id [a-zA-Z][a-zA-Z0-9]*
 ";" {return SEMICOLON; }
 ":" {return COLON; }
 "=" {return ASSIGN; }
+
+{id} { return ID; }
 
 \n+ { return EOL; }
 . {}
