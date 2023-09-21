@@ -1,15 +1,17 @@
 %{
     /* definitions */
     #include<iostream>
-    #include<string>
     int yylex();
     extern FILE *yyin;
     int yyerror(char *s);
+    #define YYDEBUG 1
 %}
 
 %code requires {
+    #include <string>
+    using namespace std;
     struct Number {
-        enum { INTEGER, FPTYPE } type;
+        enum { INTEGER, FP } type;
         union {
             int ival;
             double fval;
@@ -20,17 +22,18 @@
 
 %union value {
     Number num;
-    char op;
+
 }
 
 %token EOL
 %token<num> INTEGER
-%token<num> FPTYPE
+%token<num> FP
 %type<num> number
 
-%token<op> ADD SUB MUL DIV
+%token FPTYPE
+%token ADD SUB MUL DIV
 %token INPUTS OUTPUTS EXPRS
-%token<op> MINUS
+%token MINUS
 %token SIN COS TAN
 %token ASIN
 %token COT
@@ -45,14 +48,41 @@
 /* rules */
 %%
 
-program: exprs
+program: inputs EOL exprs
+        ;
+
+intv_factor:    INTEGER
+        | FP
+        | ID
+        ;
+
+intv_term:  intv_factor
+        | intv_term MUL intv_factor
+        | intv_term DIV intv_factor
+        ;
+
+intv_expr:  intv_term
+        | intv_expr ADD intv_term
+        | intv_expr SUB intv_term
+        ;
+
+interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON
+        | EOL
+        ;
+
+interval_list: interval_list interval
+        | EOL
+        ;
+
+inputs: INPUTS LBRACE interval_list RBRACE
+        | EOL
         ;
 
 exprs:  EXPRS LBRACE stmts RBRACE
         ;
 
 stmts:  assign_exp stmts
-        |
+        | EOL
         ;
 
 assign_exp: ID ASSIGN arith_exp SEMICOLON { printf("%lf\n", $3.fval); }
@@ -60,7 +90,7 @@ assign_exp: ID ASSIGN arith_exp SEMICOLON { printf("%lf\n", $3.fval); }
         ;
 
 number: INTEGER { $$ = $1; }
-        | FPTYPE { $$ = $1; }
+        | FP { $$ = $1; }
         ;
 
 
@@ -81,6 +111,7 @@ arith_exp:  arith_term { $$ = $1; }
 %%
 
 int main(int argc, char *argv[]) {
+    yydebug = 1;
     yyin = fopen(argv[1], "r");
     if(!yyin) {
        std::cout << "Bad Input.Non-existant file" << std::endl;
