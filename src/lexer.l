@@ -73,5 +73,5 @@ id [a-zA-Z][a-zA-Z0-9]*
 
 %%
 
-int yywrap() { return 0; }
+int yywrap() { return 1; }
 

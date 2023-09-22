@@ -167,6 +167,7 @@ int main(int argc, char *argv[]) {
        return -1;
     }
     do {
+       std::cout << "Parsing..." << std::endl;
        yyparse();
     } while (!feof(yyin));
 
