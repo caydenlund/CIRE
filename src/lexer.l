@@ -3,14 +3,19 @@
     #include "parser.h"
 
 %}
-num [1-9][0-9]*
+num [0-9][0-9]*
 id [a-zA-Z][a-zA-Z0-9]*
 
 /* rules */
 %%
 "INPUTS" { return INPUTS; }
 "OUTPUTS" { return OUTPUTS; }
+"CONSTRAINTS" { return CONSTRAINTS; }
 "EXPRS" { return EXPRS; }
+"if" { return IF; }
+"then" { return THEN; }
+"else" { return ELSE; }
+"endif" { return ENDIF; }
 
 "fl64" {
         return FPTYPE; }
@@ -26,6 +31,17 @@ id [a-zA-Z][a-zA-Z0-9]*
 "-" { return SUB; }
 "*" { return MUL; }
 "/" { return DIV; }
+
+"==" { return EQ; }
+"!=" { return NEQ; }
+"<=" { return LEQ; }
+"<" { return LT; }
+">=" { return GEQ; }
+">" { return GT; }
+
+"&&" { return AND; }
+"||" { return OR; }
+"!" { return NOT; }
 
 "sin" { return SIN; }
 "asin" { return ASIN; }

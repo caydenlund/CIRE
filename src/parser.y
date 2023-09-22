@@ -32,7 +32,10 @@
 
 %token FPTYPE
 %token ADD SUB MUL DIV
-%token INPUTS OUTPUTS EXPRS
+%token EQ NEQ LEQ LT GEQ GT
+%token AND OR NOT
+%token INPUTS OUTPUTS CONSTRAINTS EXPRS
+%token IF THEN ELSE ENDIF
 %token MINUS
 %token SIN COS TAN
 %token ASIN
@@ -48,7 +51,8 @@
 /* rules */
 %%
 
-program: inputs EOL exprs
+program: inputs EOL outputs EOL constraints EOL exprs
+        | inputs EOL outputs EOL exprs
         ;
 
 intv_factor:    INTEGER
@@ -71,22 +75,52 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON
         ;
 
 interval_list: interval_list interval
-        | EOL
+        | interval
         ;
 
 inputs: INPUTS LBRACE interval_list RBRACE
         | EOL
         ;
 
+output: ID SEMICOLON
+        | EOL
+        ;
+
+output_list:    output_list output
+        | output
+        ;
+
+outputs: OUTPUTS LBRACE output_list RBRACE
+        | EOL
+        ;
+
+cond_term:  LPAREN cond_expr RPAREN
+        | arith_exp EQ arith_exp
+        | arith_exp NEQ arith_exp
+        | arith_exp LEQ arith_exp
+        | arith_exp LT arith_exp
+        | arith_exp GEQ arith_exp
+        | arith_exp GT arith_exp
+        ;
+
+cond_expr:  cond_term
+        | cond_expr AND cond_term
+        | cond_expr OR cond_term
+        ;
+
+assign_constraint_expr: ID COLON cond_expr SEMICOLON
+                        | EOL
+                        ;
+
+constraint_list:    constraint_list assign_constraint_expr
+                | assign_constraint_expr
+                ;
+
+constraints:    CONSTRAINTS LBRACE constraint_list RBRACE
+            | EOL
+            ;
+
 exprs:  EXPRS LBRACE stmts RBRACE
-        ;
-
-stmts:  assign_exp stmts
-        | EOL
-        ;
-
-assign_exp: ID ASSIGN arith_exp SEMICOLON { printf("%lf\n", $3.fval); }
-        | EOL
         ;
 
 number: INTEGER { $$ = $1; }
@@ -95,6 +129,7 @@ number: INTEGER { $$ = $1; }
 
 
 arith_fact: number { $$ = $1; }
+            | ID
             ;
 
 arith_term: arith_fact { $$ = $1; }
@@ -106,6 +141,20 @@ arith_exp:  arith_term { $$ = $1; }
             | arith_exp ADD arith_term { }
             | arith_exp SUB arith_term { }
             ;
+
+assign_exp: ID ASSIGN arith_exp SEMICOLON { }
+        | EOL
+        ;
+
+if_block: IF cond_expr THEN stmts ELSE stmts ENDIF
+    | IF cond_expr THEN stmts ENDIF
+    ;
+
+stmts:  stmts assign_exp
+        | stmts if_block
+        | assign_exp
+        | if_block
+        ;
 
 
 %%
