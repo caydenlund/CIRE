@@ -2,17 +2,19 @@
     /* definitions */
     #include<iostream>
 
-
     int yylex();
     extern FILE *yyin;
+
+
     int yyerror(char *s);
     #define YYDEBUG 1
 %}
 
 %code requires {
-    #include "../include/Node.h"
+    #include "../include/Graph.h"
     #include <ibex.h>
 
+    extern Graph *graph;
     struct Number {
         enum { INT, FP } type;
         union {
@@ -54,7 +56,7 @@
 %token<str> ID
 
 %type<interval> interval;
-%type<interval_vector> interval_list;
+%type<interval_vector> interval_list inputs;
 %type<node> arith_exp arith_term arith_fact;
 %type<num> intv_expr intv_term intv_factor;
 
@@ -64,7 +66,9 @@
 program: inputs EOL outputs EOL constraints EOL exprs {
 
         }
-        | inputs EOL outputs EOL exprs
+        | inputs EOL outputs EOL exprs {
+
+        }
         ;
 
 intv_factor:    FP { $$ = $1; }
@@ -91,30 +95,37 @@ intv_expr:  intv_term { $$ = $1; }
         ;
 
 interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
-                $$ = new ibex::Interval($5.fval, $7.fval);
-                std::cout << *$$ << std::endl;
+                /* $$ = new ibex::Interval($5.fval, $7.fval);
+                std::cout << *$$ << std::endl; */
+
+                graph->inputs[new ibex::Variable($1)] = new ibex::Interval($5.fval, $7.fval);
+                std::cout << *graph << std::endl;
             }
             | EOL {  }
             ;
 
 interval_list: interval_list interval {
-            if ($1 != NULL) {
+            /*if ($1 != NULL) {
                 $1->resize($1->size() + 1);
                 $1[$1->size() - 1] = *$2;
             }
 
-            $$ = $1;
+            $$ = $1;*/
         }
         | interval {
-            if ($1 != NULL) {
+            /*if ($1 != NULL) {
                 $$ = new ibex::IntervalVector(*$1);
                 std::cout << *$$ << std::endl;
-            }
+            }*/
         }
         ;
 
-inputs: INPUTS LBRACE interval_list RBRACE
-        | EOL
+inputs: INPUTS LBRACE interval_list RBRACE {
+            if ($3 != NULL) {
+                $$ = $3;
+            }
+        }
+        | EOL {}
         ;
 
 output: ID SEMICOLON
@@ -222,6 +233,8 @@ stmts:  stmts assign_exp
 %%
 
 int main(int argc, char *argv[]) {
+    graph = new Graph();
+
     yydebug = 1;
     yyin = fopen(argv[1], "r");
     if(!yyin) {
@@ -234,6 +247,7 @@ int main(int argc, char *argv[]) {
        yyparse();
     } while (!feof(yyin));
 
+    free(graph);
     return 0;
 }
 

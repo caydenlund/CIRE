@@ -8,7 +8,7 @@ add_subdirectory(tests)
 
 add_executable(cire src/cire.cpp)
 target_link_libraries(cire PUBLIC
-        Node
+        Graph
         ibex)
 target_include_directories(cire PUBLIC
         include)
@@ -24,7 +24,7 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 add_executable(Foo
         ${BISON_MyParser_OUTPUTS}
         ${FLEX_MyScanner_OUTPUTS})
-target_link_libraries(Foo ${FLEX_LIBRARIES} Node ibex)
+target_link_libraries(Foo ${FLEX_LIBRARIES} Graph ibex)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}
                     /usr/local/include/ibex
