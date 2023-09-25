@@ -70,7 +70,8 @@ id [a-zA-Z][a-zA-Z0-9]*
 ":" {return COLON; }
 "=" {return ASSIGN; }
 
-{id} { return ID; }
+{id} { yylval.str = strdup(yytext);
+        return ID; }
 
 \n+ { return EOL; }
 . {}
