@@ -18,15 +18,24 @@ enum NodeType {
 };
 
 class Node {
-private:
-  int id = 0;
-protected:
+public:
+
   enum RoundingType {
     CONST,
     INT,
     FL32,
     FL64,
   };
+
+protected:
+
+
+public:
+  static int NODE_COUNTER;
+  int id = NODE_COUNTER++;
+  int depth = 0;
+  NodeType type = DEFAULT;
+  RoundingType rounding = INT;
 
 // The amount of rounding to be applied
   std::map<RoundingType, double> RoundingAmount = {
@@ -35,11 +44,8 @@ protected:
     {FL32, pow(2, -24+53)},
     {FL64, 1.0},};
 
-  int depth = 0;
-  NodeType type = DEFAULT;
-  RoundingType rounding = INT;
 
-public:
+
   Node() = default;
   ~Node() = default;
 
@@ -51,8 +57,9 @@ public:
 
 class Integer : public Node {
 private:
-  int value = 0;
+
 public:
+  int value = 0;
   Integer() = default;
   Integer(int value);
   ~Integer() = default;
@@ -63,8 +70,9 @@ public:
 
 class Float : public Node {
 private:
-  float value = 0.0;
+
 public:
+  float value = 0.0;
   Float() = default;
   Float(float value);
   ~Float() = default;
@@ -75,8 +83,9 @@ public:
 
 class Double : public Node {
 private:
-  double value = 0.0;
+
 public:
+  double value = 0.0;
   Double() = default;
   Double(double value);
   ~Double() = default;
@@ -88,8 +97,9 @@ public:
 // Represents Input variables
 class FreeVariable : public Node {
 private:
-  ibex::Interval var;
+
 public:
+  ibex::Interval var;
   FreeVariable() = default;
   FreeVariable(ibex::Interval var);
   ~FreeVariable() = default;
@@ -101,8 +111,8 @@ public:
 // Represents assigned variables
 class VariableNode : public Node {
 private:
-  string name;
 public:
+  string name;
   VariableNode() = default;
   VariableNode(string name);
   ~VariableNode() = default;
@@ -113,8 +123,8 @@ public:
 
 class UnaryOp : public Node {
 private:
-  Node* Operand;
 public:
+  Node* Operand;
   UnaryOp() = default;
   UnaryOp(Node* Operand);
   ~UnaryOp() = default;
@@ -124,12 +134,20 @@ public:
 };
 
 class BinaryOp : public Node {
-private:
+public:
+  enum Op {
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+  };
+//private:
   Node* leftOperand;
   Node* rightOperand;
+  Op op;
 public:
   BinaryOp() = default;
-  BinaryOp(Node* leftOperand, Node* rightOperand);
+  BinaryOp(Node* leftOperand, Node* rightOperand, Op op);
   ~BinaryOp() = default;
 
   // Prints string representation of this node
@@ -138,10 +156,11 @@ public:
 
 class TernaryOp : public Node {
 private:
+
+public:
   Node* leftOperand;
   Node* middleOperand;
   Node* rightOperand;
-public:
   TernaryOp() = default;
   TernaryOp(Node* leftOperand, Node* middleOperand, Node* rightOperand);
   ~TernaryOp() = default;

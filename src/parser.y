@@ -1,6 +1,8 @@
 %{
     /* definitions */
     #include<iostream>
+
+
     int yylex();
     extern FILE *yyin;
     int yyerror(char *s);
@@ -8,10 +10,11 @@
 %}
 
 %code requires {
-    #include <string>
-    using namespace std;
+    #include "../include/Node.h"
+    #include <ibex.h>
+
     struct Number {
-        enum { INTEGER, FP } type;
+        enum { INT, FP } type;
         union {
             int ival;
             double fval;
@@ -20,15 +23,19 @@
     typedef struct Number Number;
 }
 
-%union value {
+%union {
     Number num;
-
+    char *str;
+    Node *node;
+    ibex::Interval *interval;
+    ibex::IntervalVector *interval_vector;
 }
 
 %token EOL
-%token<num> INTEGER
+%token<num> INT
 %token<num> FP
-%type<num> number
+
+%type<node> number
 
 %token FPTYPE
 %token ADD SUB MUL DIV
@@ -44,38 +51,66 @@
 %token SQRT EXP LOG
 %token LBRACE RBRACE LPAREN RPAREN LBRACKET RBRACKET
 %token COMMA COLON SEMICOLON ASSIGN
-%token ID
+%token<str> ID
 
-%type<num> arith_exp arith_term arith_fact;
+%type<interval> interval;
+%type<interval_vector> interval_list;
+%type<node> arith_exp arith_term arith_fact;
+%type<num> intv_expr intv_term intv_factor;
 
 /* rules */
 %%
 
-program: inputs EOL outputs EOL constraints EOL exprs
+program: inputs EOL outputs EOL constraints EOL exprs {
+
+        }
         | inputs EOL outputs EOL exprs
         ;
 
-intv_factor:    INTEGER
-        | FP
-        | ID
+intv_factor:    FP { $$ = $1; }
+                ;
+
+intv_term:  intv_factor { $$ = $1; }
+        | intv_term MUL intv_factor {
+            $$ = $1;
+            $$.fval = $1.fval * $3.fval; }
+        | intv_term DIV intv_factor {
+            $$ = $1;
+            $$.fval = $1.fval / $3.fval; }
         ;
 
-intv_term:  intv_factor
-        | intv_term MUL intv_factor
-        | intv_term DIV intv_factor
+intv_expr:  intv_term { $$ = $1; }
+        | intv_expr ADD intv_term {
+            $$ = $1;
+            $$.fval = $1.fval + $3.fval;
+        }
+        | intv_expr SUB intv_term {
+            $$ = $1;
+            $$.fval = $1.fval - $3.fval;
+        }
         ;
 
-intv_expr:  intv_term
-        | intv_expr ADD intv_term
-        | intv_expr SUB intv_term
-        ;
+interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
+                $$ = new ibex::Interval($5.fval, $7.fval);
+                std::cout << *$$ << std::endl;
+            }
+            | EOL {  }
+            ;
 
-interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON
-        | EOL
-        ;
+interval_list: interval_list interval {
+            if ($1 != NULL) {
+                $1->resize($1->size() + 1);
+                $1[$1->size() - 1] = *$2;
+            }
 
-interval_list: interval_list interval
-        | interval
+            $$ = $1;
+        }
+        | interval {
+            if ($1 != NULL) {
+                $$ = new ibex::IntervalVector(*$1);
+                std::cout << *$$ << std::endl;
+            }
+        }
         ;
 
 inputs: INPUTS LBRACE interval_list RBRACE
@@ -123,26 +158,53 @@ constraints:    CONSTRAINTS LBRACE constraint_list RBRACE
 exprs:  EXPRS LBRACE stmts RBRACE
         ;
 
-number: INTEGER { $$ = $1; }
-        | FP { $$ = $1; }
+number: INT {
+            $$ = new Integer($1.ival);
+            std::cout << *$$ << std::endl;
+        }
+        | FP {
+            $$ = new Float($1.fval);
+            std::cout << *$$ << std::endl;
+        }
         ;
 
 
 arith_fact: number { $$ = $1; }
-            | ID
+            | ID {
+                $$ = new VariableNode($1);
+                std::cout << *$$ << std::endl;
+            }
             ;
 
-arith_term: arith_fact { $$ = $1; }
-            | arith_term MUL arith_fact { }
-            | arith_term DIV arith_fact { }
+arith_term: arith_fact {
+                $$ = $1;
+            }
+            | arith_term MUL arith_fact {
+                $$ = new BinaryOp($1, $3, BinaryOp::MUL);
+                std::cout << *$$ << std::endl;
+            }
+            | arith_term DIV arith_fact {
+                $$ = new BinaryOp($1, $3, BinaryOp::DIV);
+                std::cout << *$$ << std::endl;
+            }
             ;
 
-arith_exp:  arith_term { $$ = $1; }
-            | arith_exp ADD arith_term { }
-            | arith_exp SUB arith_term { }
+arith_exp:  arith_term {
+                $$ = $1;
+            }
+            | arith_exp ADD arith_term {
+                $$ = new BinaryOp($1, $3, BinaryOp::ADD);
+                std::cout << *$$ << std::endl;
+            }
+            | arith_exp SUB arith_term {
+                $$ = new BinaryOp($1, $3, BinaryOp::SUB);
+                std::cout << *$$ << std::endl;
+            }
             ;
 
-assign_exp: ID ASSIGN arith_exp SEMICOLON { }
+assign_exp: ID ASSIGN arith_exp SEMICOLON {
+
+        }
         | EOL
         ;
 
@@ -166,6 +228,7 @@ int main(int argc, char *argv[]) {
        std::cout << "Bad Input.Non-existant file" << std::endl;
        return -1;
     }
+
     do {
        std::cout << "Parsing..." << std::endl;
        yyparse();
@@ -175,7 +238,7 @@ int main(int argc, char *argv[]) {
 }
 
 int yyerror(char *s) {
-    printf("ERROR: %s\n", s);
+    std::cout << "ERROR: " << s << std::endl;
 
     return 0;
 }
