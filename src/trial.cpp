@@ -1,5 +1,5 @@
 #include <iostream>
-#include "Node.h"
+#include "Graph.h"
 
 using namespace std;
 using namespace ibex;
@@ -15,13 +15,8 @@ namespace trial {
     cout << "x+y = " << x + y << endl;
     cout << "m = " << m << endl;
 
-    Float a(4.2);
-    Float b(3.1);
-    BinaryOp c(&a, &b, BinaryOp::ADD);
-
-    Node *temp = &c;
-
-    cout << "a+b = " << *temp << endl;
+    Graph g;
+    g.inputs.
 
 
     return 0;

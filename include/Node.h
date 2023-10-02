@@ -45,11 +45,12 @@ public:
     {FL64, 1.0},};
 
 
-
   Node() = default;
   ~Node() = default;
 
   virtual void write(std::ostream &os) const;
+
+  virtual ibex::ExprNode *getExprNode() const;
 
   // Prints string representation of this node
   friend std::ostream& operator<<(std::ostream& os, const Node &node);
@@ -59,39 +60,43 @@ class Integer : public Node {
 private:
 
 public:
-  int value = 0;
+  const ibex::ExprConstant *value = nullptr;
   Integer() = default;
-  Integer(int value);
+  Integer(const ibex::ExprConstant &value);
   ~Integer() = default;
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+
+  ibex::ExprNode *getExprNode() const override;
 };
 
 class Float : public Node {
 private:
 
 public:
-  float value = 0.0;
+  const ibex::ExprConstant *value = nullptr;
   Float() = default;
-  Float(float value);
+  Float(const ibex::ExprConstant &value);
   ~Float() = default;
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  ibex::ExprNode *getExprNode() const override;
 };
 
 class Double : public Node {
 private:
 
 public:
-  double value = 0.0;
+  const ibex::ExprConstant *value = nullptr;
   Double() = default;
-  Double(double value);
+  Double(const ibex::ExprConstant &value);
   ~Double() = default;
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  ibex::ExprNode *getExprNode() const override;
 };
 
 // Represents Input variables
@@ -112,21 +117,38 @@ public:
 class VariableNode : public Node {
 private:
 public:
-  string name;
+  const ibex::ExprSymbol *variable ;
   VariableNode() = default;
-  VariableNode(string name);
+  VariableNode(const ibex::ExprSymbol& name);
   ~VariableNode() = default;
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  ibex::ExprNode *getExprNode() const override;
 };
 
 class UnaryOp : public Node {
 private:
 public:
+  enum Op {
+    SIN,
+    COS,
+    TAN,
+    SINH,
+    COSH,
+    TANH,
+    ASIN,
+    ACOS,
+    ATAN,
+    LOG,
+    SQRT,
+    EXP,
+  };
   Node* Operand;
+  Op op;
+  const ibex::ExprUnaryOp* expr;
   UnaryOp() = default;
-  UnaryOp(Node* Operand);
+  UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr);
   ~UnaryOp() = default;
 
   // Prints string representation of this node
@@ -145,9 +167,10 @@ public:
   Node* leftOperand;
   Node* rightOperand;
   Op op;
+  const ibex::ExprBinaryOp* expr;
 public:
   BinaryOp() = default;
-  BinaryOp(Node* leftOperand, Node* rightOperand, Op op);
+  BinaryOp(Node* leftOperand, Node* rightOperand, Op op, const ibex::ExprBinaryOp &expr);
   ~BinaryOp() = default;
 
   // Prints string representation of this node

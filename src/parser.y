@@ -13,6 +13,7 @@
 %code requires {
     #include "../include/Graph.h"
     #include <ibex.h>
+    #include <ibex_Expr.h>
 
     extern Graph *graph;
     struct Number {
@@ -98,7 +99,8 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                 /* $$ = new ibex::Interval($5.fval, $7.fval);
                 std::cout << *$$ << std::endl; */
 
-                graph->inputs[new ibex::Variable($1)] = new ibex::Interval($5.fval, $7.fval);
+                graph->inputs[new VariableNode(ibex::ExprSymbol::new_($1))] =
+                                        new ibex::Interval($5.fval, $7.fval);
                 std::cout << *graph << std::endl;
             }
             | EOL {  }
@@ -170,11 +172,11 @@ exprs:  EXPRS LBRACE stmts RBRACE
         ;
 
 number: INT {
-            $$ = new Integer($1.ival);
+            $$ = new Integer(ibex::ExprConstant::new_scalar($1.ival));
             std::cout << *$$ << std::endl;
         }
         | FP {
-            $$ = new Float($1.fval);
+            $$ = new Double(ibex::ExprConstant::new_scalar($1.fval));
             std::cout << *$$ << std::endl;
         }
         ;
@@ -182,7 +184,12 @@ number: INT {
 
 arith_fact: number { $$ = $1; }
             | ID {
-                $$ = new VariableNode($1);
+                if(graph->inputs.find(new VariableNode(ibex::ExprSymbol::new_($1))) == graph->inputs.end()) {
+                    $$ = new VariableNode(ibex::ExprSymbol::new_($1));
+                    graph->inputs[(VariableNode*)$$] = new ibex::Interval(0.0, 0.0);
+                } else {
+
+                }
                 std::cout << *$$ << std::endl;
             }
             ;
@@ -191,11 +198,21 @@ arith_term: arith_fact {
                 $$ = $1;
             }
             | arith_term MUL arith_fact {
-                $$ = new BinaryOp($1, $3, BinaryOp::MUL);
+                ibex::ExprNode *a = $1->getExprNode();
+                ibex::ExprNode *b = $3->getExprNode();
+
+                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprMul::new_(*a, *b);
+
+                $$ = new BinaryOp($1, $3, BinaryOp::MUL, *c);
                 std::cout << *$$ << std::endl;
             }
             | arith_term DIV arith_fact {
-                $$ = new BinaryOp($1, $3, BinaryOp::DIV);
+                ibex::ExprNode *a = $1->getExprNode();
+                ibex::ExprNode *b = $3->getExprNode();
+
+                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprDiv::new_(*a, *b);
+
+                $$ = new BinaryOp($1, $3, BinaryOp::DIV, *c);
                 std::cout << *$$ << std::endl;
             }
             ;
@@ -204,11 +221,21 @@ arith_exp:  arith_term {
                 $$ = $1;
             }
             | arith_exp ADD arith_term {
-                $$ = new BinaryOp($1, $3, BinaryOp::ADD);
+                ibex::ExprNode *a = $1->getExprNode();
+                ibex::ExprNode *b = $3->getExprNode();
+
+                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprAdd::new_(*a, *b);
+
+                $$ = new BinaryOp($1, $3, BinaryOp::ADD, *c);
                 std::cout << *$$ << std::endl;
             }
             | arith_exp SUB arith_term {
-                $$ = new BinaryOp($1, $3, BinaryOp::SUB);
+                ibex::ExprNode *a = $1->getExprNode();
+                ibex::ExprNode *b = $3->getExprNode();
+
+                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprSub::new_(*a, *b);
+
+                $$ = new BinaryOp($1, $3, BinaryOp::SUB, *c);
                 std::cout << *$$ << std::endl;
             }
             ;

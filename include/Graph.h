@@ -6,7 +6,7 @@
 class Graph {
 private:
 public:
-  std::map<ibex::Variable*, ibex::Interval*> inputs;
+  std::map<VariableNode*, ibex::Interval*> inputs;
   std::vector<Node *> outputs;
 
   Graph() = default;

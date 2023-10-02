@@ -30,8 +30,12 @@ void Node::write(std::ostream &os) const {
   os << "\tRounding:" << rounding << std::endl;
 }
 
-Integer::Integer(int value) {
-  this->value = value;
+ibex::ExprNode *Node::getExprNode() const {
+
+}
+
+Integer::Integer(const ibex::ExprConstant &value) {
+  this->value = &value;
   this->type = INTEGER;
 }
 
@@ -43,8 +47,12 @@ void Integer::write(std::ostream &os) const {
   os << "\tValue:" << value << std::endl;
 }
 
-Float::Float(float value) {
-  this->value = value;
+ibex::ExprNode *Integer::getExprNode() const {
+  return (ibex::ExprNode*)this->value;
+}
+
+Float::Float(const ibex::ExprConstant &value) {
+  this->value = &value;
   this->type = FLOAT;
 }
 
@@ -56,8 +64,12 @@ void Float::write(std::ostream &os) const {
   os << "\tValue:" << value << std::endl;
 }
 
-Double::Double(double value) {
-  this->value = value;
+ibex::ExprNode *Float::getExprNode() const {
+  return (ibex::ExprNode*)this->value;
+}
+
+Double::Double(const ibex::ExprConstant &value) {
+  this->value = &value;
   this->type = DOUBLE;
 }
 
@@ -67,6 +79,10 @@ void Double::write(std::ostream &os) const {
 
   // Print remaining data
   os << "\tValue:" << value << std::endl;
+}
+
+ibex::ExprNode *Double::getExprNode() const {
+  return (ibex::ExprNode*)this->value;
 }
 
 FreeVariable::FreeVariable(ibex::Interval var) {
@@ -82,8 +98,8 @@ void FreeVariable::write(std::ostream &os) const {
   os << "\tValue:" << var << std::endl;
 }
 
-VariableNode::VariableNode(string name) {
-  this->name = name;
+VariableNode::VariableNode(const ibex::ExprSymbol& variable) {
+  this->variable = &variable;
   this->type = VARIABLE;
 }
 
@@ -92,12 +108,19 @@ void VariableNode::write(std::ostream &os) const {
   Node::write(os);
 
   // Print remaining data
-  os << "\tValue:" << name << std::endl;
+  os << "\tVariable:" << *variable << std::endl;
 }
 
-UnaryOp::UnaryOp(Node* Operand) {
-  this->Operand = Operand;
+ibex::ExprNode *VariableNode::getExprNode() const {
+  return (ibex::ExprNode*)this->variable;
+}
+
+UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr) {
+  this->depth = Operand->depth + 1;
   this->type = UNARY_OP;
+  this->Operand = Operand;
+  this->op = op;
+  this->expr = &expr;
 }
 
 void UnaryOp::write(std::ostream &os) const {
@@ -105,14 +128,16 @@ void UnaryOp::write(std::ostream &os) const {
   Node::write(os);
 
   // Print remaining data
-  os << "\tOperand: [" << *Operand << "]" << std::endl;
+  os << "\tOperand: [" << (Node)*Operand << "]" << std::endl;
 }
 
-BinaryOp::BinaryOp(Node* Left, Node* Right, Op op) {
+BinaryOp::BinaryOp(Node* Left, Node* Right, Op op, const ibex::ExprBinaryOp &expr) {
+  this->depth = std::max(Left->depth, Right->depth) + 1;
+  this->type = BINARY_OP;
   this->leftOperand = Left;
   this->rightOperand = Right;
   this->op = op;
-  this->type = BINARY_OP;
+  this->expr = &expr;
 }
 
 void BinaryOp::write(std::ostream &os) const {
@@ -136,10 +161,11 @@ void BinaryOp::write(std::ostream &os) const {
 }
 
 TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right) {
+  this->depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
+  this->type = TERNARY_OP;
   this->leftOperand = Left;
   this->middleOperand = Middle;
   this->rightOperand = Right;
-  this->type = TERNARY_OP;
 }
 
 void TernaryOp::write(std::ostream &os) const {
