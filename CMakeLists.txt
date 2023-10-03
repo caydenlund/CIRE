@@ -6,15 +6,18 @@ set(CMAKE_CXX_STANDARD 17)
 add_subdirectory(lib)
 add_subdirectory(tests)
 
-add_executable(cire src/cire.cpp)
-target_link_libraries(cire PUBLIC
+# Building lib_tester
+add_executable(lib_tester src/lib_tester.cpp)
+target_link_libraries(lib_tester PUBLIC
         Graph
         ibex)
-target_include_directories(cire PUBLIC
+target_include_directories(lib_tester PUBLIC
         include)
 
-find_package(BISON)
-find_package(FLEX)
+
+# Building Scanner and Parser
+find_package(BISON REQUIRED)
+find_package(FLEX REQUIRED)
 
 BISON_TARGET(MyParser src/parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
         DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
@@ -24,7 +27,16 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 add_executable(Foo
         ${BISON_MyParser_OUTPUTS}
         ${FLEX_MyScanner_OUTPUTS})
-target_link_libraries(Foo ${FLEX_LIBRARIES} Graph ibex)
+target_link_libraries(Foo Graph ibex)
+
+
+# Building CIRE
+add_executable(CIRE src/CIRE.cpp
+        ${BISON_MyParser_OUTPUTS}
+        ${FLEX_MyScanner_OUTPUTS})
+target_link_libraries(CIRE PUBLIC Graph ibex)
+target_include_directories(CIRE PUBLIC
+        include)
 
 include_directories(${CMAKE_CURRENT_BINARY_DIR}
                     /usr/local/include/ibex

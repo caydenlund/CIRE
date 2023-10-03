@@ -54,6 +54,8 @@ public:
 
   // Prints string representation of this node
   friend std::ostream& operator<<(std::ostream& os, const Node &node);
+
+  bool operator==(const Node &other) const;
 };
 
 class Integer : public Node {
@@ -67,8 +69,8 @@ public:
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
-
   ibex::ExprNode *getExprNode() const override;
+  bool operator==(const Integer &other) const;
 };
 
 class Float : public Node {
@@ -83,6 +85,7 @@ public:
   // Prints string representation of this node
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
+  bool operator==(const Float &other) const;
 };
 
 class Double : public Node {
@@ -97,6 +100,7 @@ public:
   // Prints string representation of this node
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
+  bool operator==(const Double &other) const;
 };
 
 // Represents Input variables
@@ -111,6 +115,7 @@ public:
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  bool operator==(const FreeVariable &other) const;
 };
 
 // Represents assigned variables
@@ -125,6 +130,7 @@ public:
   // Prints string representation of this node
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
+  bool operator==(const VariableNode &other) const;
 };
 
 class UnaryOp : public Node {
@@ -153,6 +159,7 @@ public:
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  bool operator==(const UnaryOp &other) const;
 };
 
 class BinaryOp : public Node {
@@ -175,6 +182,7 @@ public:
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  bool operator==(const BinaryOp &other) const;
 };
 
 class TernaryOp : public Node {
@@ -190,6 +198,7 @@ public:
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  bool operator==(const TernaryOp &other) const;
 };
 
 std::ostream &operator<<(std::ostream &os, const Node &node);

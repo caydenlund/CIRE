@@ -4,11 +4,6 @@
 
 int Node::NODE_COUNTER = 0;
 
-std::ostream &operator<<(std::ostream &os, const Node &node) {
-  node.write(os);
-  return os;
-}
-
 void Node::write(std::ostream &os) const {
   os << "\nID:" << id << std::endl;
   os << "\tDepth:" << depth << std::endl;
@@ -30,8 +25,20 @@ void Node::write(std::ostream &os) const {
   os << "\tRounding:" << rounding << std::endl;
 }
 
+std::ostream &operator<<(std::ostream &os, const Node &node) {
+  node.write(os);
+  return os;
+}
+
 ibex::ExprNode *Node::getExprNode() const {
 
+}
+
+bool Node::operator==(const Node &other) const {
+  return this->id == other.id &&
+         this->depth == other.depth &&
+         this->type == other.type &&
+         this->rounding == other.rounding;
 }
 
 Integer::Integer(const ibex::ExprConstant &value) {
@@ -51,6 +58,11 @@ ibex::ExprNode *Integer::getExprNode() const {
   return (ibex::ExprNode*)this->value;
 }
 
+bool Integer::operator==(const Integer &other) const {
+  return Node::operator==(other) &&
+         this->value == other.value;
+}
+
 Float::Float(const ibex::ExprConstant &value) {
   this->value = &value;
   this->type = FLOAT;
@@ -68,6 +80,11 @@ ibex::ExprNode *Float::getExprNode() const {
   return (ibex::ExprNode*)this->value;
 }
 
+bool Float::operator==(const Float &other) const {
+  return Node::operator==(other) &&
+         this->value == other.value;
+}
+
 Double::Double(const ibex::ExprConstant &value) {
   this->value = &value;
   this->type = DOUBLE;
@@ -83,6 +100,11 @@ void Double::write(std::ostream &os) const {
 
 ibex::ExprNode *Double::getExprNode() const {
   return (ibex::ExprNode*)this->value;
+}
+
+bool Double::operator==(const Double &other) const {
+  return Node::operator==(other) &&
+         this->value == other.value;
 }
 
 FreeVariable::FreeVariable(ibex::Interval var) {
@@ -115,6 +137,11 @@ ibex::ExprNode *VariableNode::getExprNode() const {
   return (ibex::ExprNode*)this->variable;
 }
 
+bool VariableNode::operator==(const VariableNode &other) const {
+  return Node::operator==(other) &&
+         this->variable == other.variable;
+}
+
 UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr) {
   this->depth = Operand->depth + 1;
   this->type = UNARY_OP;
@@ -129,6 +156,12 @@ void UnaryOp::write(std::ostream &os) const {
 
   // Print remaining data
   os << "\tOperand: [" << (Node)*Operand << "]" << std::endl;
+}
+
+bool UnaryOp::operator==(const UnaryOp &other) const {
+  return Node::operator==(other) &&
+          this->Operand == other.Operand &&
+          this->op == other.op;
 }
 
 BinaryOp::BinaryOp(Node* Left, Node* Right, Op op, const ibex::ExprBinaryOp &expr) {
@@ -160,6 +193,13 @@ void BinaryOp::write(std::ostream &os) const {
   os << "\tRight Operand: [" << (Node)*rightOperand << "]" << std::endl;
 }
 
+bool BinaryOp::operator==(const BinaryOp &other) const {
+  return Node::operator==(other) &&
+          this->leftOperand == other.leftOperand &&
+          this->rightOperand == other.rightOperand &&
+          this->op == other.op;
+}
+
 TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right) {
   this->depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
   this->type = TERNARY_OP;
@@ -176,4 +216,11 @@ void TernaryOp::write(std::ostream &os) const {
   os << "\tLeft Operand: [" << (Node)*leftOperand << "]" << std::endl;
   os << "\tMiddle Operand: [" << (Node)*middleOperand << "]" << std::endl;
   os << "\tRight Operand: [" << (Node)*rightOperand << "]" << std::endl;
+}
+
+bool TernaryOp::operator==(const TernaryOp &other) const {
+  return Node::operator==(other) &&
+          this->leftOperand == other.leftOperand &&
+          this->middleOperand == other.middleOperand &&
+          this->rightOperand == other.rightOperand;
 }

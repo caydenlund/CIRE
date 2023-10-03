@@ -1,21 +1,22 @@
 %{
     /* definitions */
-    #include<iostream>
-
-    int yylex();
-    extern FILE *yyin;
-
-
-    int yyerror(char *s);
     #define YYDEBUG 1
 %}
 
 %code requires {
     #include "../include/Graph.h"
+    #include "../include/CIRE.h"
+    #include<iostream>
     #include <ibex.h>
     #include <ibex_Expr.h>
 
-    extern Graph *graph;
+    extern FILE *yyin;
+    extern int yydebug;
+
+    int yylex(Graph *graph);
+    int yyerror(Graph *graph, char *s);
+
+
     struct Number {
         enum { INT, FP } type;
         union {
@@ -25,6 +26,8 @@
     };
     typedef struct Number Number;
 }
+
+%param { Graph *graph }
 
 %union {
     Number num;
@@ -96,41 +99,26 @@ intv_expr:  intv_term { $$ = $1; }
         ;
 
 interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
-                /* $$ = new ibex::Interval($5.fval, $7.fval);
-                std::cout << *$$ << std::endl; */
-
                 graph->inputs[new VariableNode(ibex::ExprSymbol::new_($1))] =
                                         new ibex::Interval($5.fval, $7.fval);
-                std::cout << *graph << std::endl;
+                // std::cout << *graph << std::endl;
             }
             | EOL {  }
             ;
 
-interval_list: interval_list interval {
-            /*if ($1 != NULL) {
-                $1->resize($1->size() + 1);
-                $1[$1->size() - 1] = *$2;
-            }
-
-            $$ = $1;*/
-        }
-        | interval {
-            /*if ($1 != NULL) {
-                $$ = new ibex::IntervalVector(*$1);
-                std::cout << *$$ << std::endl;
-            }*/
-        }
+interval_list: interval_list interval { }
+        | interval { }
         ;
 
-inputs: INPUTS LBRACE interval_list RBRACE {
-            if ($3 != NULL) {
-                $$ = $3;
-            }
-        }
-        | EOL {}
+inputs: INPUTS LBRACE interval_list RBRACE { }
+        | EOL { }
         ;
 
-output: ID SEMICOLON
+output: ID SEMICOLON {
+
+            graph->outputs.push_back(new VariableNode());
+            std::cout << *graph << std::endl;
+        }
         | EOL
         ;
 
@@ -259,26 +247,8 @@ stmts:  stmts assign_exp
 
 %%
 
-int main(int argc, char *argv[]) {
-    graph = new Graph();
 
-    yydebug = 1;
-    yyin = fopen(argv[1], "r");
-    if(!yyin) {
-       std::cout << "Bad Input.Non-existant file" << std::endl;
-       return -1;
-    }
-
-    do {
-       std::cout << "Parsing..." << std::endl;
-       yyparse();
-    } while (!feof(yyin));
-
-    free(graph);
-    return 0;
-}
-
-int yyerror(char *s) {
+int yyerror(Graph *graph, char *s) {
     std::cout << "ERROR: " << s << std::endl;
 
     return 0;

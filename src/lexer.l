@@ -1,7 +1,8 @@
 %{
+    // Includes for the forward declarations
     /* definitions */
     #include "parser.h"
-
+    #include "../include/CIRE.h"
 %}
 num [0-9][0-9]*
 id [a-zA-Z][a-zA-Z0-9]*
