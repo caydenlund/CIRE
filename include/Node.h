@@ -36,6 +36,7 @@ public:
   int depth = 0;
   NodeType type = DEFAULT;
   RoundingType rounding = INT;
+  std::set<Node *> parents;
 
 // The amount of rounding to be applied
   std::map<RoundingType, double> RoundingAmount = {
@@ -56,6 +57,9 @@ public:
   friend std::ostream& operator<<(std::ostream& os, const Node &node);
 
   bool operator==(const Node &other) const;
+  friend Node *operator+(Node &x, Node *y);
+  virtual Node *operator+(Node &other) const;
+  virtual ibex::ExprNode &generateSymExpr();
 };
 
 class Integer : public Node {
@@ -71,6 +75,8 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const Integer &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 class Float : public Node {
@@ -86,6 +92,8 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const Float &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 class Double : public Node {
@@ -101,6 +109,8 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const Double &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 // Represents Input variables
@@ -108,14 +118,16 @@ class FreeVariable : public Node {
 private:
 
 public:
-  ibex::Interval var;
+  const ibex::Interval *var = nullptr;
   FreeVariable() = default;
-  FreeVariable(ibex::Interval var);
+  FreeVariable(const ibex::Interval &var);
   ~FreeVariable() = default;
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
   bool operator==(const FreeVariable &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 // Represents assigned variables
@@ -131,6 +143,8 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const VariableNode &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 class UnaryOp : public Node {
@@ -159,7 +173,10 @@ public:
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  ibex::ExprNode *getExprNode() const override;
   bool operator==(const UnaryOp &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 class BinaryOp : public Node {
@@ -170,6 +187,7 @@ public:
     MUL,
     DIV,
   };
+
 //private:
   Node* leftOperand;
   Node* rightOperand;
@@ -177,12 +195,15 @@ public:
   const ibex::ExprBinaryOp* expr;
 public:
   BinaryOp() = default;
-  BinaryOp(Node* leftOperand, Node* rightOperand, Op op, const ibex::ExprBinaryOp &expr);
+  BinaryOp(Node* leftOperand, Node* rightOperand, Op op);
   ~BinaryOp() = default;
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  ibex::ExprNode *getExprNode() const override;
   bool operator==(const BinaryOp &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 class TernaryOp : public Node {
@@ -198,9 +219,13 @@ public:
 
   // Prints string representation of this node
   void write(std::ostream& os) const override;
+  ibex::ExprNode *getExprNode() const override;
   bool operator==(const TernaryOp &other) const;
+  Node *operator+(Node &other) const override;
+  ibex::ExprNode &generateSymExpr() override;
 };
 
 std::ostream &operator<<(std::ostream &os, const Node &node);
+Node *operator+(Node &x, Node *y);
 
 #endif //CIRE_NODE_H

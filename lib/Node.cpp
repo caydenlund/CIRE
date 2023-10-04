@@ -23,22 +23,32 @@ void Node::write(std::ostream &os) const {
   }
   os << "\tType:" << type_string << std::endl;
   os << "\tRounding:" << rounding << std::endl;
-}
-
-std::ostream &operator<<(std::ostream &os, const Node &node) {
-  node.write(os);
-  return os;
+  os << "\tParents: [" << std::endl;
+  for (auto parent : parents) {
+    os << "\t" << parent->id << ", ";
+  }
+  os << "]" << std::endl;
 }
 
 ibex::ExprNode *Node::getExprNode() const {
-
+  std::cout << "ERROR: Base class getExprNode called" << std::endl;
+  return nullptr;
 }
 
 bool Node::operator==(const Node &other) const {
-  return this->id == other.id &&
-         this->depth == other.depth &&
+  return this->depth == other.depth &&
          this->type == other.type &&
          this->rounding == other.rounding;
+}
+
+Node *Node::operator+(Node &other) const {
+  std::cout << "ERROR: Base class operator+ called" << std::endl;
+  exit(1);
+}
+
+ibex::ExprNode &Node::generateSymExpr() {
+  std::cout << "ERROR: Base class generateSymExpr called" << std::endl;
+  exit(1);
 }
 
 Integer::Integer(const ibex::ExprConstant &value) {
@@ -63,9 +73,23 @@ bool Integer::operator==(const Integer &other) const {
          this->value == other.value;
 }
 
+Node *Integer::operator+(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+
+  return new Integer(*c);
+}
+
+ibex::ExprNode &Integer::generateSymExpr() {
+  exit(1);
+}
+
 Float::Float(const ibex::ExprConstant &value) {
   this->value = &value;
   this->type = FLOAT;
+
 }
 
 void Float::write(std::ostream &os) const {
@@ -83,6 +107,19 @@ ibex::ExprNode *Float::getExprNode() const {
 bool Float::operator==(const Float &other) const {
   return Node::operator==(other) &&
          this->value == other.value;
+}
+
+Node *Float::operator+(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+
+  return new Float(*c);
+}
+
+ibex::ExprNode &Float::generateSymExpr() {
+  exit(1);
 }
 
 Double::Double(const ibex::ExprConstant &value) {
@@ -107,8 +144,21 @@ bool Double::operator==(const Double &other) const {
          this->value == other.value;
 }
 
-FreeVariable::FreeVariable(ibex::Interval var) {
-  this->var = var;
+Node *Double::operator+(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+
+  return new Double(*c);
+}
+
+ibex::ExprNode &Double::generateSymExpr() {
+  return Node::generateSymExpr();
+}
+
+FreeVariable::FreeVariable(const ibex::Interval &var) {
+  this->var = &var;
   this->type = FREE_VARIABLE;
 }
 
@@ -117,7 +167,20 @@ void FreeVariable::write(std::ostream &os) const {
   Node::write(os);
 
   // Print remaining data
-  os << "\tValue:" << var << std::endl;
+  os << "\tValue:" << *var << std::endl;
+}
+
+Node *FreeVariable::operator+(Node &other) const {
+  assert(other.type == FREE_VARIABLE);
+  const ibex::Interval *a = this->var;
+  const ibex::Interval *b = ((FreeVariable*)&other)->var;
+  const ibex::Interval *c = new ibex::Interval(*a+*b);
+
+  return new FreeVariable(*c);
+}
+
+ibex::ExprNode &FreeVariable::generateSymExpr() {
+  return Node::generateSymExpr();
 }
 
 VariableNode::VariableNode(const ibex::ExprSymbol& variable) {
@@ -142,12 +205,26 @@ bool VariableNode::operator==(const VariableNode &other) const {
          this->variable == other.variable;
 }
 
+Node *VariableNode::operator+(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprAdd::new_(*a, *b);
+
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD, *c);
+}
+
+ibex::ExprNode &VariableNode::generateSymExpr() {
+  return Node::generateSymExpr();
+}
+
 UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr) {
   this->depth = Operand->depth + 1;
   this->type = UNARY_OP;
   this->Operand = Operand;
   this->op = op;
   this->expr = &expr;
+  this->Operand->parents.insert(this);
 }
 
 void UnaryOp::write(std::ostream &os) const {
@@ -164,13 +241,27 @@ bool UnaryOp::operator==(const UnaryOp &other) const {
           this->op == other.op;
 }
 
-BinaryOp::BinaryOp(Node* Left, Node* Right, Op op, const ibex::ExprBinaryOp &expr) {
+Node *UnaryOp::operator+(Node &other) const {
+  return Node::operator+(other);
+}
+
+ibex::ExprNode *UnaryOp::getExprNode() const {
+  return (ibex::ExprNode*)this->expr;
+}
+
+ibex::ExprNode &UnaryOp::generateSymExpr() {
+  return Node::generateSymExpr();
+}
+
+BinaryOp::BinaryOp(Node* Left, Node* Right, Op op) {
   this->depth = std::max(Left->depth, Right->depth) + 1;
   this->type = BINARY_OP;
   this->leftOperand = Left;
   this->rightOperand = Right;
   this->op = op;
-  this->expr = &expr;
+  this->expr = nullptr;
+  this->leftOperand->parents.insert(this);
+  this->rightOperand->parents.insert(this);
 }
 
 void BinaryOp::write(std::ostream &os) const {
@@ -200,12 +291,29 @@ bool BinaryOp::operator==(const BinaryOp &other) const {
           this->op == other.op;
 }
 
+ibex::ExprNode *BinaryOp::getExprNode() const {
+  return (ibex::ExprNode*)this->expr;
+}
+
+ibex::ExprNode &BinaryOp::generateSymExpr() {
+  switch (op) {
+    case ADD: return (ibex::ExprNode &) ibex::ExprAdd::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
+    case SUB: return (ibex::ExprNode &) ibex::ExprSub::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
+    case MUL: return (ibex::ExprNode &) ibex::ExprMul::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
+    case DIV: return (ibex::ExprNode &) ibex::ExprDiv::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
+    default: return (ibex::ExprNode &) ibex::ExprAdd::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
+  }
+}
+
 TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right) {
   this->depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
   this->type = TERNARY_OP;
   this->leftOperand = Left;
   this->middleOperand = Middle;
   this->rightOperand = Right;
+  this->leftOperand->parents.insert(this);
+  this->middleOperand->parents.insert(this);
+  this->rightOperand->parents.insert(this);
 }
 
 void TernaryOp::write(std::ostream &os) const {
@@ -223,4 +331,25 @@ bool TernaryOp::operator==(const TernaryOp &other) const {
           this->leftOperand == other.leftOperand &&
           this->middleOperand == other.middleOperand &&
           this->rightOperand == other.rightOperand;
+}
+
+Node *TernaryOp::operator+(Node &other) const {
+  return Node::operator+(other);
+}
+
+ibex::ExprNode *TernaryOp::getExprNode() const {
+  return Node::getExprNode();
+}
+
+ibex::ExprNode &TernaryOp::generateSymExpr() {
+  return Node::generateSymExpr();
+}
+
+std::ostream &operator<<(std::ostream &os, const Node &node) {
+  node.write(os);
+  return os;
+}
+
+Node *operator+(Node &x, Node *y) {
+  return x+*y;
 }

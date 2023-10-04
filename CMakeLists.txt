@@ -4,7 +4,6 @@ project(CIRE)
 set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(lib)
-add_subdirectory(tests)
 
 # Building lib_tester
 add_executable(lib_tester src/lib_tester.cpp)

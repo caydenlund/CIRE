@@ -99,8 +99,11 @@ intv_expr:  intv_term { $$ = $1; }
         ;
 
 interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
-                graph->inputs[new VariableNode(ibex::ExprSymbol::new_($1))] =
-                                        new ibex::Interval($5.fval, $7.fval);
+                if(Node *VarNode = graph->findVarNode(&ibex::ExprSymbol::new_($1))) {
+                    assert(VarNode->type == NodeType::FREE_VARIABLE);
+                } else {
+                    graph->inputs[&ibex::ExprSymbol::new_($1)] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
+                }
                 // std::cout << *graph << std::endl;
             }
             | EOL {  }
@@ -115,8 +118,7 @@ inputs: INPUTS LBRACE interval_list RBRACE { }
         ;
 
 output: ID SEMICOLON {
-
-            graph->outputs.push_back(new VariableNode());
+            graph->outputs.push_back(&ibex::ExprSymbol::new_($1));
             std::cout << *graph << std::endl;
         }
         | EOL
@@ -172,11 +174,10 @@ number: INT {
 
 arith_fact: number { $$ = $1; }
             | ID {
-                if(graph->inputs.find(new VariableNode(ibex::ExprSymbol::new_($1))) == graph->inputs.end()) {
-                    $$ = new VariableNode(ibex::ExprSymbol::new_($1));
-                    graph->inputs[(VariableNode*)$$] = new ibex::Interval(0.0, 0.0);
+                if($$ = graph->findVarNode(&ibex::ExprSymbol::new_($1))) {
+                    assert($$->type == NodeType::VARIABLE);
                 } else {
-
+                    $$ = graph->variables[&ibex::ExprSymbol::new_($1)] = new VariableNode(ibex::ExprSymbol::new_($1));
                 }
                 std::cout << *$$ << std::endl;
             }
@@ -209,12 +210,13 @@ arith_exp:  arith_term {
                 $$ = $1;
             }
             | arith_exp ADD arith_term {
-                ibex::ExprNode *a = $1->getExprNode();
+                /*ibex::ExprNode *a = $1->getExprNode();
                 ibex::ExprNode *b = $3->getExprNode();
 
                 const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprAdd::new_(*a, *b);
 
-                $$ = new BinaryOp($1, $3, BinaryOp::ADD, *c);
+                $$ = new BinaryOp($1, $3, BinaryOp::ADD, *c);*/
+                $$ = *$1+$3;
                 std::cout << *$$ << std::endl;
             }
             | arith_exp SUB arith_term {
