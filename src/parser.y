@@ -192,7 +192,7 @@ arith_term: arith_fact {
 
                 const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprMul::new_(*a, *b);
 
-                $$ = new BinaryOp($1, $3, BinaryOp::MUL, *c);
+                $$ = new BinaryOp($1, $3, BinaryOp::MUL);
                 std::cout << *$$ << std::endl;
             }
             | arith_term DIV arith_fact {
@@ -201,7 +201,7 @@ arith_term: arith_fact {
 
                 const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprDiv::new_(*a, *b);
 
-                $$ = new BinaryOp($1, $3, BinaryOp::DIV, *c);
+                $$ = new BinaryOp($1, $3, BinaryOp::DIV);
                 std::cout << *$$ << std::endl;
             }
             ;
@@ -210,22 +210,11 @@ arith_exp:  arith_term {
                 $$ = $1;
             }
             | arith_exp ADD arith_term {
-                /*ibex::ExprNode *a = $1->getExprNode();
-                ibex::ExprNode *b = $3->getExprNode();
-
-                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprAdd::new_(*a, *b);
-
-                $$ = new BinaryOp($1, $3, BinaryOp::ADD, *c);*/
                 $$ = *$1+$3;
                 std::cout << *$$ << std::endl;
             }
             | arith_exp SUB arith_term {
-                ibex::ExprNode *a = $1->getExprNode();
-                ibex::ExprNode *b = $3->getExprNode();
-
-                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprSub::new_(*a, *b);
-
-                $$ = new BinaryOp($1, $3, BinaryOp::SUB, *c);
+                $$ = *$1-$3;
                 std::cout << *$$ << std::endl;
             }
             ;

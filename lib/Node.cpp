@@ -9,7 +9,7 @@ void Node::write(std::ostream &os) const {
   os << "\tDepth:" << depth << std::endl;
 
   // Print type
-  std::string type_string = "";
+  std::string type_string;
   switch(type) {
     case INTEGER: type_string = "INTEGER"; break;
     case FLOAT: type_string = "FLOAT"; break;
@@ -42,6 +42,21 @@ bool Node::operator==(const Node &other) const {
 }
 
 Node *Node::operator+(Node &other) const {
+  std::cout << "ERROR: Base class operator+ called" << std::endl;
+  exit(1);
+}
+
+Node *Node::operator-(Node &other) const {
+  std::cout << "ERROR: Base class operator+ called" << std::endl;
+  exit(1);
+}
+
+Node *Node::operator*(Node &other) const {
+  std::cout << "ERROR: Base class operator+ called" << std::endl;
+  exit(1);
+}
+
+Node *Node::operator/(Node &other) const {
   std::cout << "ERROR: Base class operator+ called" << std::endl;
   exit(1);
 }
@@ -82,9 +97,37 @@ Node *Integer::operator+(Node &other) const {
   return new Integer(*c);
 }
 
+Node *Integer::operator-(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+
+  return new Integer(*c);
+}
+
+Node *Integer::operator*(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+
+  return new Integer(*c);
+}
+
+Node *Integer::operator/(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+
+  return new Integer(*c);
+}
+
 ibex::ExprNode &Integer::generateSymExpr() {
   exit(1);
 }
+
 
 Float::Float(const ibex::ExprConstant &value) {
   this->value = &value;
@@ -114,6 +157,33 @@ Node *Float::operator+(Node &other) const {
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+
+  return new Float(*c);
+}
+
+Node *Float::operator-(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+
+  return new Float(*c);
+}
+
+Node *Float::operator*(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+
+  return new Float(*c);
+}
+
+Node *Float::operator/(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
 
   return new Float(*c);
 }
@@ -153,6 +223,33 @@ Node *Double::operator+(Node &other) const {
   return new Double(*c);
 }
 
+Node *Double::operator-(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+
+  return new Double(*c);
+}
+
+Node *Double::operator*(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+
+  return new Double(*c);
+}
+
+Node *Double::operator/(Node &other) const {
+  ibex::ExprNode *a = this->getExprNode();
+  ibex::ExprNode *b = other.getExprNode();
+
+  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+
+  return new Double(*c);
+}
+
 ibex::ExprNode &Double::generateSymExpr() {
   return Node::generateSymExpr();
 }
@@ -175,6 +272,33 @@ Node *FreeVariable::operator+(Node &other) const {
   const ibex::Interval *a = this->var;
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a+*b);
+
+  return new FreeVariable(*c);
+}
+
+Node *FreeVariable::operator-(Node &other) const {
+  assert(other.type == FREE_VARIABLE);
+  const ibex::Interval *a = this->var;
+  const ibex::Interval *b = ((FreeVariable*)&other)->var;
+  const ibex::Interval *c = new ibex::Interval(*a-*b);
+
+  return new FreeVariable(*c);
+}
+
+Node *FreeVariable::operator*(Node &other) const {
+  assert(other.type == FREE_VARIABLE);
+  const ibex::Interval *a = this->var;
+  const ibex::Interval *b = ((FreeVariable*)&other)->var;
+  const ibex::Interval *c = new ibex::Interval(*a**b);
+
+  return new FreeVariable(*c);
+}
+
+Node *FreeVariable::operator/(Node &other) const {
+  assert(other.type == FREE_VARIABLE);
+  const ibex::Interval *a = this->var;
+  const ibex::Interval *b = ((FreeVariable*)&other)->var;
+  const ibex::Interval *c = new ibex::Interval(*a/(*b));
 
   return new FreeVariable(*c);
 }
@@ -206,12 +330,19 @@ bool VariableNode::operator==(const VariableNode &other) const {
 }
 
 Node *VariableNode::operator+(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+}
 
-  const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprAdd::new_(*a, *b);
+Node *VariableNode::operator-(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+}
 
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD, *c);
+Node *VariableNode::operator*(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+}
+
+Node *VariableNode::operator/(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 ibex::ExprNode &VariableNode::generateSymExpr() {
@@ -242,7 +373,19 @@ bool UnaryOp::operator==(const UnaryOp &other) const {
 }
 
 Node *UnaryOp::operator+(Node &other) const {
-  return Node::operator+(other);
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+}
+
+Node *UnaryOp::operator-(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+}
+
+Node *UnaryOp::operator*(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+}
+
+Node *UnaryOp::operator/(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 ibex::ExprNode *UnaryOp::getExprNode() const {
@@ -271,7 +414,7 @@ void BinaryOp::write(std::ostream &os) const {
   // Print remaining data
   os << "\tLeft Operand: [" << (Node)*leftOperand << "]" << std::endl;
   // Print operator
-  std::string operator_string = "";
+  std::string operator_string;
   switch(op) {
     case ADD: operator_string = "+"; break;
     case SUB: operator_string = "-"; break;
@@ -305,6 +448,22 @@ ibex::ExprNode &BinaryOp::generateSymExpr() {
   }
 }
 
+Node *BinaryOp::operator+(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+}
+
+Node *BinaryOp::operator-(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+}
+
+Node *BinaryOp::operator*(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+}
+
+Node *BinaryOp::operator/(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+}
+
 TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right) {
   this->depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
   this->type = TERNARY_OP;
@@ -334,7 +493,19 @@ bool TernaryOp::operator==(const TernaryOp &other) const {
 }
 
 Node *TernaryOp::operator+(Node &other) const {
-  return Node::operator+(other);
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+}
+
+Node *TernaryOp::operator-(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+}
+
+Node *TernaryOp::operator*(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+}
+
+Node *TernaryOp::operator/(Node &other) const {
+  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 ibex::ExprNode *TernaryOp::getExprNode() const {
@@ -352,4 +523,16 @@ std::ostream &operator<<(std::ostream &os, const Node &node) {
 
 Node *operator+(Node &x, Node *y) {
   return x+*y;
+}
+
+Node *operator-(Node &x, Node *y) {
+  return x-*y;
+}
+
+Node *operator*(Node &x, Node *y) {
+  return x**y;
+}
+
+Node *operator/(Node &x, Node *y) {
+  return x/(*y);
 }
