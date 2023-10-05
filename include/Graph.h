@@ -6,9 +6,10 @@
 class Graph {
 private:
 public:
-  std::map<const ibex::ExprSymbol *, FreeVariable *> inputs;
-  std::vector<const ibex::ExprSymbol *> outputs;
-  std::map<const ibex::ExprSymbol *, Node *> variables;
+  std::map<string, FreeVariable *> inputs;
+  std::vector<string> outputs;
+  std::map<string, Node *> variables;
+  std::set<Node *> nodes;
 
   Graph() = default;
   ~Graph() = default;
@@ -18,7 +19,11 @@ public:
   // Prints string representation of this node
   friend std::ostream& operator<<(std::ostream& os, const Graph &graph);
 
-  Node *findVarNode(const ibex::ExprSymbol *Expr) const;
+  void generateExprDriver();
+  void generateExpr(Node *node);
+
+  Node *findFreeVarNode(string Var) const;
+  Node *findVarNode(string Var) const;
 };
 
 #endif //CIRE_GRAPH_H

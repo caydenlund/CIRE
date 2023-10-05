@@ -62,7 +62,8 @@ Node *Node::operator/(Node &other) const {
 }
 
 ibex::ExprNode &Node::generateSymExpr() {
-  std::cout << "ERROR: Base class generateSymExpr called" << std::endl;
+  std::cout << "ERROR: Base class generateSymExpr called. Base class does not "
+               "have an Ibex Expression field"<< std::endl;
   exit(1);
 }
 
@@ -125,7 +126,9 @@ Node *Integer::operator/(Node &other) const {
 }
 
 ibex::ExprNode &Integer::generateSymExpr() {
-  exit(1);
+  assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Integer value should have been assigned while parsing/"
+                                   "node creation\n");
+  return *this->getExprNode();
 }
 
 
@@ -189,7 +192,9 @@ Node *Float::operator/(Node &other) const {
 }
 
 ibex::ExprNode &Float::generateSymExpr() {
-  exit(1);
+  assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Float value should have been assigned while parsing/"
+                                   "node creation\n");
+  return *this->getExprNode();
 }
 
 Double::Double(const ibex::ExprConstant &value) {
@@ -251,7 +256,9 @@ Node *Double::operator/(Node &other) const {
 }
 
 ibex::ExprNode &Double::generateSymExpr() {
-  return Node::generateSymExpr();
+  assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Double value should have been assigned while parsing/"
+                                   "node creation\n");
+  return *this->getExprNode();
 }
 
 FreeVariable::FreeVariable(const ibex::Interval &var) {
@@ -304,7 +311,9 @@ Node *FreeVariable::operator/(Node &other) const {
 }
 
 ibex::ExprNode &FreeVariable::generateSymExpr() {
-  return Node::generateSymExpr();
+  assert(this->var != nullptr && "ERROR: ibex::Interval with Interval value should have been assigned while parsing/"
+                                   "node creation\n");
+  exit(1);
 }
 
 VariableNode::VariableNode(const ibex::ExprSymbol& variable) {
@@ -346,7 +355,9 @@ Node *VariableNode::operator/(Node &other) const {
 }
 
 ibex::ExprNode &VariableNode::generateSymExpr() {
-  return Node::generateSymExpr();
+  assert(this->variable != nullptr && "ERROR: ibex::ExprSymbol with string literal should have been assigned while parsing/"
+                                   "node creation\n");
+  return *this->getExprNode();
 }
 
 UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr) {
@@ -393,6 +404,7 @@ ibex::ExprNode *UnaryOp::getExprNode() const {
 }
 
 ibex::ExprNode &UnaryOp::generateSymExpr() {
+  // TODO: Generate ibex expressions after adding an enum Op with Unary operations
   return Node::generateSymExpr();
 }
 
@@ -513,6 +525,7 @@ ibex::ExprNode *TernaryOp::getExprNode() const {
 }
 
 ibex::ExprNode &TernaryOp::generateSymExpr() {
+  // TODO: Generate ibex expressions after adding an enum Op with Unary operations
   return Node::generateSymExpr();
 }
 

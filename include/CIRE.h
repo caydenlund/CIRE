@@ -18,13 +18,14 @@ YY_DECL;
 class CIRE {
 public:
   Graph *graph;
+  // The name of the file being parsed.
+  std::string file;
+
   CIRE();
 
   // Run the parser on file F.  Return 0 on success.
   int parse (const char &f);
 
-  // The name of the file being parsed.
-  std::string file;
 };
 
 #endif //CIRE_CIRE_H

@@ -59,9 +59,8 @@
 %token COMMA COLON SEMICOLON ASSIGN
 %token<str> ID
 
-%type<interval> interval;
 %type<interval_vector> interval_list inputs;
-%type<node> arith_exp arith_term arith_fact;
+%type<node> arith_exp arith_term arith_fact interval assign_exp;
 %type<num> intv_expr intv_term intv_factor;
 
 /* rules */
@@ -99,10 +98,12 @@ intv_expr:  intv_term { $$ = $1; }
         ;
 
 interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
-                if(Node *VarNode = graph->findVarNode(&ibex::ExprSymbol::new_($1))) {
-                    assert(VarNode->type == NodeType::FREE_VARIABLE);
+                if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
+                    $$ = FreeVarNode;
+                    assert(FreeVarNode->type == NodeType::FREE_VARIABLE);
                 } else {
-                    graph->inputs[&ibex::ExprSymbol::new_($1)] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
+                    $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
+                    graph->nodes.insert($$);
                 }
                 // std::cout << *graph << std::endl;
             }
@@ -118,8 +119,7 @@ inputs: INPUTS LBRACE interval_list RBRACE { }
         ;
 
 output: ID SEMICOLON {
-            graph->outputs.push_back(&ibex::ExprSymbol::new_($1));
-            std::cout << *graph << std::endl;
+            graph->outputs.push_back($1);
         }
         | EOL
         ;
@@ -163,10 +163,12 @@ exprs:  EXPRS LBRACE stmts RBRACE
 
 number: INT {
             $$ = new Integer(ibex::ExprConstant::new_scalar($1.ival));
+            graph->nodes.insert($$);
             std::cout << *$$ << std::endl;
         }
         | FP {
             $$ = new Double(ibex::ExprConstant::new_scalar($1.fval));
+            graph->nodes.insert($$);
             std::cout << *$$ << std::endl;
         }
         ;
@@ -174,10 +176,11 @@ number: INT {
 
 arith_fact: number { $$ = $1; }
             | ID {
-                if($$ = graph->findVarNode(&ibex::ExprSymbol::new_($1))) {
-                    assert($$->type == NodeType::VARIABLE);
+                if(Node *VarNode = graph->findVarNode($1)) {
+                    $$ = VarNode;
                 } else {
-                    $$ = graph->variables[&ibex::ExprSymbol::new_($1)] = new VariableNode(ibex::ExprSymbol::new_($1));
+                    $$ = graph->variables[$1] = new VariableNode(ibex::ExprSymbol::new_($1));
+                    graph->nodes.insert($$);
                 }
                 std::cout << *$$ << std::endl;
             }
@@ -187,21 +190,13 @@ arith_term: arith_fact {
                 $$ = $1;
             }
             | arith_term MUL arith_fact {
-                ibex::ExprNode *a = $1->getExprNode();
-                ibex::ExprNode *b = $3->getExprNode();
-
-                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprMul::new_(*a, *b);
-
-                $$ = new BinaryOp($1, $3, BinaryOp::MUL);
+                $$ = *$1*$3;
+                graph->nodes.insert($$);
                 std::cout << *$$ << std::endl;
             }
             | arith_term DIV arith_fact {
-                ibex::ExprNode *a = $1->getExprNode();
-                ibex::ExprNode *b = $3->getExprNode();
-
-                const ibex::ExprBinaryOp *c = (ibex::ExprBinaryOp*)&ibex::ExprDiv::new_(*a, *b);
-
-                $$ = new BinaryOp($1, $3, BinaryOp::DIV);
+                $$ = *$1/$3;
+                graph->nodes.insert($$);
                 std::cout << *$$ << std::endl;
             }
             ;
@@ -211,23 +206,26 @@ arith_exp:  arith_term {
             }
             | arith_exp ADD arith_term {
                 $$ = *$1+$3;
+                graph->nodes.insert($$);
                 std::cout << *$$ << std::endl;
             }
             | arith_exp SUB arith_term {
                 $$ = *$1-$3;
+                graph->nodes.insert($$);
                 std::cout << *$$ << std::endl;
             }
             ;
 
 assign_exp: ID ASSIGN arith_exp SEMICOLON {
-
-        }
-        | EOL
-        ;
+                $$ = graph->variables[$1] = $3;
+                std::cout << *$$ << std::endl;
+            }
+            | EOL
+            ;
 
 if_block: IF cond_expr THEN stmts ELSE stmts ENDIF
-    | IF cond_expr THEN stmts ENDIF
-    ;
+        | IF cond_expr THEN stmts ENDIF
+        ;
 
 stmts:  stmts assign_exp
         | stmts if_block

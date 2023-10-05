@@ -18,7 +18,8 @@ int CIRE::parse(const char &f) {
     yyparse(graph);
   } while (!feof(yyin));
 
-  free(graph);
+  std::cout << *graph << std::endl;
+
   return 0;
 }
 
@@ -27,7 +28,8 @@ int main(int argc, char *argv[]) {
 
   cire.parse(*argv[1]);
 
+  cire.graph->generateExprDriver();
 
-
+  free(cire.graph);
   return 0;
 }
