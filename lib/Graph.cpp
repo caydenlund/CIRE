@@ -73,13 +73,13 @@ void Graph::generateExpr(Node *node) {
     case NodeType::UNARY_OP:
       generateExpr(((UnaryOp *)node)->Operand);
       ((UnaryOp *)node)->expr = (ibex::ExprUnaryOp *)&node->generateSymExpr();
-      std::cout << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
+//      std::cout << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
       break;
     case NodeType::BINARY_OP:
       generateExpr(((BinaryOp *)node)->leftOperand);
       generateExpr(((BinaryOp *)node)->rightOperand);
       ((BinaryOp *)node)->expr = (ibex::ExprBinaryOp *)&node->generateSymExpr();
-      std::cout << "BinaryOp: " << *((BinaryOp *)node)->expr << std::endl;
+//      std::cout << "BinaryOp: " << *((BinaryOp *)node)->expr << std::endl;
       break;
     case NodeType::TERNARY_OP:
       generateExpr(((TernaryOp *)node)->leftOperand);
@@ -92,6 +92,40 @@ void Graph::generateExpr(Node *node) {
       break;
   }
 }
+
+void Graph::generateErrExprDriver() {
+  std::vector<Node *> next_worklist;
+  int curr_depth = 0;
+  int next_depth = -1;
+
+  // Iterate all nodes in the worklist
+  while(!workList.empty()) {
+    Node *node = *workList.begin();
+    workList.erase(node);
+
+    int current_depth = node->depth;
+    next_depth = current_depth-1;
+    // If node contains a constant, add it to completed list as you cannot
+    // compute its derivative.
+    if(node->type == NodeType::INTEGER ||
+       node->type == NodeType::FLOAT ||
+       node->type == NodeType::DOUBLE) {
+      derivativeComputedNodes.insert(node);
+    } else if(derivativeComputedNodes.find(node) != derivativeComputedNodes.end()) {
+      // If derivative of node has already been computed, move on.
+
+    } // TODO: Add code to see if parents converge
+    else {
+
+    }
+  }
+}
+
+void Graph::generateErrExpr(Node *node) {
+
+}
+
+
 
 
 

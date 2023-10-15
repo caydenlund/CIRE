@@ -11,6 +11,9 @@ public:
   std::map<string, Node *> variables;
   std::set<Node *> nodes;
 
+  std::set<Node *> workList;
+  std::set<Node *> derivativeComputedNodes;
+
   Graph() = default;
   ~Graph() = default;
 
@@ -21,6 +24,8 @@ public:
 
   void generateExprDriver();
   void generateExpr(Node *node);
+  void generateErrExprDriver();
+  void generateErrExpr(Node *node);
 
   Node *findFreeVarNode(string Var) const;
   Node *findVarNode(string Var) const;

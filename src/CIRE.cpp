@@ -30,6 +30,11 @@ int main(int argc, char *argv[]) {
 
   cire.graph->generateExprDriver();
 
+  // Assuming there is only one output
+  // TODO: Change this for multiple outputs
+  cire.graph->workList.insert(cire.graph->variables[cire.graph->outputs[0]]);
+  cire.graph->generateErrExprDriver();
+
   free(cire.graph);
   return 0;
 }
