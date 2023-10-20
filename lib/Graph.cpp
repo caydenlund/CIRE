@@ -93,6 +93,10 @@ void Graph::generateExpr(Node *node) {
   }
 }
 
+bool Graph::parentsVisited(Node *node) {
+  return numParentsOfNode[node] >= node->parents.size();
+}
+
 void Graph::generateErrExprDriver() {
   std::vector<Node *> next_worklist;
   int curr_depth = 0;
@@ -107,23 +111,34 @@ void Graph::generateErrExprDriver() {
     next_depth = current_depth-1;
     // If node contains a constant, add it to completed list as you cannot
     // compute its derivative.
-    if(node->type == NodeType::INTEGER ||
+    if(derivativeComputedNodes[current_depth].find(node) != derivativeComputedNodes[current_depth].end()) {
+      // If derivative of node has already been computed, move on.
+    }
+    else if(node->type == NodeType::INTEGER ||
        node->type == NodeType::FLOAT ||
        node->type == NodeType::DOUBLE) {
-      derivativeComputedNodes.insert(node);
-    } else if(derivativeComputedNodes.find(node) != derivativeComputedNodes.end()) {
-      // If derivative of node has already been computed, move on.
-
-    } // TODO: Add code to see if parents converge
+      derivativeComputedNodes[current_depth].insert(node);
+    }
+    else if(parentsVisited(node)) {
+      generateErrExpr(node);
+    }
     else {
-
+      workList.insert(node);
     }
   }
 }
 
 void Graph::generateErrExpr(Node *node) {
-
+//  if(node->type == UnaryOp ||
+//  node->type == BinaryOp ||
+//  node->type == TernaryOp) {
+//    for(auto &derivMap: BwdDerivatives[node]) {
+//
+//    }
+//  }
 }
+
+
 
 
 

@@ -11,8 +11,16 @@ public:
   std::map<string, Node *> variables;
   std::set<Node *> nodes;
 
+  // Data structures for derivative computation
+  // Map from node to number of parents of node
+  std::map<Node *, int> numParentsOfNode;
+  // Nodes to compute derivative for
   std::set<Node *> workList;
-  std::set<Node *> derivativeComputedNodes;
+  // Map with derivative information (Contains maps of derivatives of expression corresponding to the node corresponding
+  // key in the inner map with respect to node corresponding key in outer map)
+  std::map<Node *, std::map<Node *, ibex::ExprNode *>> BwdDerivatives;
+  // Map from depth to nodes at that depth. Used to check if all nodes at a depth have been processed
+  std::map<int, std::set<Node *>> derivativeComputedNodes;
 
   Graph() = default;
   ~Graph() = default;
@@ -24,6 +32,9 @@ public:
 
   void generateExprDriver();
   void generateExpr(Node *node);
+
+  bool parentsVisited(Node *node);
+
   void generateErrExprDriver();
   void generateErrExpr(Node *node);
 

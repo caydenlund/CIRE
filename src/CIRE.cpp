@@ -18,7 +18,7 @@ int CIRE::parse(const char &f) {
     yyparse(graph);
   } while (!feof(yyin));
 
-  std::cout << *graph << std::endl;
+//  std::cout << *graph << std::endl;
 
   return 0;
 }
@@ -30,9 +30,15 @@ int main(int argc, char *argv[]) {
 
   cire.graph->generateExprDriver();
 
+  // Set up output
   // Assuming there is only one output
   // TODO: Change this for multiple outputs
   cire.graph->workList.insert(cire.graph->variables[cire.graph->outputs[0]]);
+  cire.graph->BwdDerivatives[cire.graph->variables[cire.graph->outputs[0]]][cire.graph->variables[cire.graph->outputs[0]]] =
+          (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+  cire.graph->numParentsOfNode[cire.graph->variables[cire.graph->outputs[0]]] =
+          cire.graph->variables[cire.graph->outputs[0]]->parents.size();
+
   cire.graph->generateErrExprDriver();
 
   free(cire.graph);

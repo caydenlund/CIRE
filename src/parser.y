@@ -164,12 +164,12 @@ exprs:  EXPRS LBRACE stmts RBRACE
 number: INT {
             $$ = new Integer(ibex::ExprConstant::new_scalar($1.ival));
             graph->nodes.insert($$);
-            std::cout << *$$ << std::endl;
+            // std::cout << *$$ << std::endl;
         }
         | FP {
             $$ = new Double(ibex::ExprConstant::new_scalar($1.fval));
             graph->nodes.insert($$);
-            std::cout << *$$ << std::endl;
+            // std::cout << *$$ << std::endl;
         }
         ;
 
@@ -182,7 +182,7 @@ arith_fact: number { $$ = $1; }
                     $$ = graph->variables[$1] = new VariableNode(ibex::ExprSymbol::new_($1));
                     graph->nodes.insert($$);
                 }
-                std::cout << *$$ << std::endl;
+                // std::cout << *$$ << std::endl;
             }
             ;
 
@@ -192,12 +192,12 @@ arith_term: arith_fact {
             | arith_term MUL arith_fact {
                 $$ = *$1*$3;
                 graph->nodes.insert($$);
-                std::cout << *$$ << std::endl;
+                // std::cout << *$$ << std::endl;
             }
             | arith_term DIV arith_fact {
                 $$ = *$1/$3;
                 graph->nodes.insert($$);
-                std::cout << *$$ << std::endl;
+                // std::cout << *$$ << std::endl;
             }
             ;
 
@@ -207,18 +207,18 @@ arith_exp:  arith_term {
             | arith_exp ADD arith_term {
                 $$ = *$1+$3;
                 graph->nodes.insert($$);
-                std::cout << *$$ << std::endl;
+                // std::cout << *$$ << std::endl;
             }
             | arith_exp SUB arith_term {
                 $$ = *$1-$3;
                 graph->nodes.insert($$);
-                std::cout << *$$ << std::endl;
+                // std::cout << *$$ << std::endl;
             }
             ;
 
 assign_exp: ID ASSIGN arith_exp SEMICOLON {
                 $$ = graph->variables[$1] = $3;
-                std::cout << *$$ << std::endl;
+                // std::cout << *$$ << std::endl;
             }
             | EOL
             ;
