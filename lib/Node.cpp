@@ -67,6 +67,12 @@ ibex::ExprNode &Node::generateSymExpr() {
   exit(1);
 }
 
+Node *Node::getChildNode(int index) const {
+  std::cout << "ERROR: Base class getChildNode called. Base class does not "
+               "have child nodes"<< std::endl;
+  exit(1);
+}
+
 Integer::Integer(const ibex::ExprConstant &value) {
   this->value = &value;
   this->type = INTEGER;
@@ -129,6 +135,11 @@ ibex::ExprNode &Integer::generateSymExpr() {
   assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Integer value should have been assigned while parsing/"
                                    "node creation\n");
   return *this->getExprNode();
+}
+
+Node *Integer::getChildNode(int index) const {
+  std::cout << "ERROR: Integer Class does not have child nodes" << std::endl;
+  exit(1);
 }
 
 
@@ -197,6 +208,11 @@ ibex::ExprNode &Float::generateSymExpr() {
   return *this->getExprNode();
 }
 
+Node *Float::getChildNode(int index) const {
+  std::cout << "ERROR: Float Class does not have child nodes" << std::endl;
+  exit(1);
+}
+
 Double::Double(const ibex::ExprConstant &value) {
   this->value = &value;
   this->type = DOUBLE;
@@ -261,6 +277,11 @@ ibex::ExprNode &Double::generateSymExpr() {
   return *this->getExprNode();
 }
 
+Node *Double::getChildNode(int index) const {
+  std::cout << "ERROR: Double Class does not have child nodes" << std::endl;
+  exit(1);
+}
+
 FreeVariable::FreeVariable(const ibex::Interval &var) {
   this->var = &var;
   this->type = FREE_VARIABLE;
@@ -316,6 +337,11 @@ ibex::ExprNode &FreeVariable::generateSymExpr() {
   exit(1);
 }
 
+Node *FreeVariable::getChildNode(int index) const {
+  std::cout << "ERROR: FreeVariable Class does not have child nodes" << std::endl;
+  exit(1);
+}
+
 VariableNode::VariableNode(const ibex::ExprSymbol& variable) {
   this->variable = &variable;
   this->type = VARIABLE;
@@ -358,6 +384,11 @@ ibex::ExprNode &VariableNode::generateSymExpr() {
   assert(this->variable != nullptr && "ERROR: ibex::ExprSymbol with string literal should have been assigned while parsing/"
                                    "node creation\n");
   return *this->getExprNode();
+}
+
+Node *VariableNode::getChildNode(int index) const {
+  std::cout << "ERROR: VariableNode Class does not have child nodes" << std::endl;
+  exit(1);
 }
 
 UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr) {
@@ -404,8 +435,32 @@ ibex::ExprNode *UnaryOp::getExprNode() const {
 }
 
 ibex::ExprNode &UnaryOp::generateSymExpr() {
-  // TODO: Generate ibex expressions after adding an enum Op with Unary operations
-  return Node::generateSymExpr();
+  switch (op) {
+    case SIN: return (ibex::ExprNode &) ibex::sin(*Operand->getExprNode());
+    case COS: return (ibex::ExprNode &) ibex::cos(*Operand->getExprNode());
+    case TAN: return (ibex::ExprNode &) ibex::tan(*Operand->getExprNode());
+    case SINH: return (ibex::ExprNode &) ibex::sinh(*Operand->getExprNode());
+    case COSH: return (ibex::ExprNode &) ibex::cosh(*Operand->getExprNode());
+    case TANH: return (ibex::ExprNode &) ibex::tanh(*Operand->getExprNode());
+    case ASIN: return (ibex::ExprNode &) ibex::asin(*Operand->getExprNode());
+    case ACOS: return (ibex::ExprNode &) ibex::acos(*Operand->getExprNode());
+    case ATAN: return (ibex::ExprNode &) ibex::atan(*Operand->getExprNode());
+    case LOG: return (ibex::ExprNode &) ibex::log(*Operand->getExprNode());
+    case SQRT: return (ibex::ExprNode &) ibex::sqrt(*Operand->getExprNode());
+    case EXP: return (ibex::ExprNode &) ibex::exp(*Operand->getExprNode());
+    default:
+      std::cout << "ERROR: Unknown operator" << std::endl;
+      exit(1);
+  }
+}
+
+Node *UnaryOp::getChildNode(int index) const {
+  if (index == 0) {
+    return this->Operand;
+  } else {
+    std::cout << "ERROR: UnaryOp Class has only one child node" << std::endl;
+    exit(1);
+  }
 }
 
 BinaryOp::BinaryOp(Node* Left, Node* Right, Op op) {
@@ -452,11 +507,11 @@ ibex::ExprNode *BinaryOp::getExprNode() const {
 
 ibex::ExprNode &BinaryOp::generateSymExpr() {
   switch (op) {
-    case ADD: return (ibex::ExprNode &) ibex::ExprAdd::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
-    case SUB: return (ibex::ExprNode &) ibex::ExprSub::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
-    case MUL: return (ibex::ExprNode &) ibex::ExprMul::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
-    case DIV: return (ibex::ExprNode &) ibex::ExprDiv::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
-    default: return (ibex::ExprNode &) ibex::ExprAdd::new_(*leftOperand->getExprNode(), *rightOperand->getExprNode());
+    case ADD: return (ibex::ExprNode &) (*leftOperand->getExprNode() + *rightOperand->getExprNode());
+    case SUB: return (ibex::ExprNode &) (*leftOperand->getExprNode() - *rightOperand->getExprNode());
+    case MUL: return (ibex::ExprNode &) (*leftOperand->getExprNode() * *rightOperand->getExprNode());
+    case DIV: return (ibex::ExprNode &) (*leftOperand->getExprNode() / *rightOperand->getExprNode());
+    default: return (ibex::ExprNode &) (*leftOperand->getExprNode() + *rightOperand->getExprNode());
   }
 }
 
@@ -474,6 +529,17 @@ Node *BinaryOp::operator*(Node &other) const {
 
 Node *BinaryOp::operator/(Node &other) const {
   return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+}
+
+Node *BinaryOp::getChildNode(int index) const {
+  if (index == 0) {
+    return this->leftOperand;
+  } else if (index == 1) {
+    return this->rightOperand;
+  } else {
+    std::cout << "ERROR: BinaryOp Class has only two child nodes" << std::endl;
+    exit(1);
+  }
 }
 
 TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right) {
@@ -527,6 +593,19 @@ ibex::ExprNode *TernaryOp::getExprNode() const {
 ibex::ExprNode &TernaryOp::generateSymExpr() {
   // TODO: Generate ibex expressions after adding an enum Op with Unary operations
   return Node::generateSymExpr();
+}
+
+Node *TernaryOp::getChildNode(int index) const {
+  if (index == 0) {
+    return this->leftOperand;
+  } else if (index == 1) {
+    return this->middleOperand;
+  } else if (index == 2) {
+    return this->rightOperand;
+  } else {
+    std::cout << "ERROR: TernaryOp Class has only three child nodes" << std::endl;
+    exit(1);
+  }
 }
 
 std::ostream &operator<<(std::ostream &os, const Node &node) {

@@ -8,5 +8,5 @@ OUTPUTS {
 }
 
 EXPRS {
-    res=x+y;
+    res=x-y+y;
 }

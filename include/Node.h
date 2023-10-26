@@ -66,6 +66,7 @@ public:
   virtual Node *operator*(Node &other) const;
   virtual Node *operator/(Node &other) const;
   virtual ibex::ExprNode &generateSymExpr();
+  virtual Node *getChildNode(int index) const;
 };
 
 class Integer : public Node {
@@ -86,6 +87,7 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
 class Float : public Node {
@@ -106,6 +108,7 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
 class Double : public Node {
@@ -126,9 +129,10 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
-// Represents Input variables
+// Represents Input Intervals
 class FreeVariable : public Node {
 private:
 
@@ -146,9 +150,10 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
-// Represents assigned variables
+// Represents interval assigned variables
 class VariableNode : public Node {
 private:
 public:
@@ -166,6 +171,7 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
 class UnaryOp : public Node {
@@ -201,6 +207,7 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
 class BinaryOp : public Node {
@@ -231,6 +238,7 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
 class TernaryOp : public Node {
@@ -253,6 +261,7 @@ public:
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
+  Node *getChildNode(int index) const override;
 };
 
 std::ostream &operator<<(std::ostream &os, const Node &node);

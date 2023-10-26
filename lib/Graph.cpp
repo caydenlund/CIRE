@@ -97,9 +97,7 @@ bool Graph::parentsVisited(Node *node) {
   return numParentsOfNode[node] >= node->parents.size();
 }
 
-void Graph::generateErrExprDriver() {
-  std::vector<Node *> next_worklist;
-  int curr_depth = 0;
+void Graph::derivativeComputingDriver() {
   int next_depth = -1;
 
   // Iterate all nodes in the worklist
@@ -120,28 +118,186 @@ void Graph::generateErrExprDriver() {
       derivativeComputedNodes[current_depth].insert(node);
     }
     else if(parentsVisited(node)) {
-      generateErrExpr(node);
+      derivativeComputing(node);
     }
     else {
       workList.insert(node);
     }
+
+    printBwdDerivativesIbexExprs();
+
+    std::copy_if(nextWorkList.begin(), nextWorkList.end(), std::inserter(workList, workList.end()), [&next_depth](
+            Node *node) { return node->depth == next_depth;});
   }
 }
 
-void Graph::generateErrExpr(Node *node) {
-//  if(node->type == UnaryOp ||
-//  node->type == BinaryOp ||
-//  node->type == TernaryOp) {
-//    for(auto &derivMap: BwdDerivatives[node]) {
-//
-//    }
-//  }
+void Graph::derivativeComputing(Node *node) {
+  std::vector<Node *> outputList = keys(BwdDerivatives[node]);
+
+  if(node->type == UNARY_OP ||
+  node->type == BINARY_OP ||
+  node->type == TERNARY_OP) {
+    switch (node->type) {
+      case UNARY_OP:
+        for (Node *outVar : outputList) {
+          auto *derivThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
+
+          BwdDerivatives[((UnaryOp *) node)->Operand][outVar] =
+                  (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((UnaryOp *) node)->Operand],
+                                                                 outVar,
+                                                                 (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
+                                                                 *derivThroughNode);
+
+          // Add child to nextWorkList
+          nextWorkList.insert(((UnaryOp *) node)->Operand);
+          // Increment number of parents of child that have been processed
+          numParentsOfNode[((UnaryOp *) node)->Operand]++;
+        }
+        break;
+      case BINARY_OP:
+        for (Node *outVar : outputList) {
+          // Computing the backward derivative of outVar with respect to node's children
+          auto *derivLeftThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
+
+          BwdDerivatives[((BinaryOp *) node)->leftOperand][outVar] =
+                  (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->leftOperand],
+                                                                 outVar,
+                                                                 (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
+                                       *derivLeftThroughNode);
+//          std::cout << *outVar->getExprNode() << " wrt "
+//                    << *((BinaryOp *) node)->leftOperand->getExprNode() << " : "
+//                    << *derivLeftThroughNode << std::endl;
+
+          auto *derivRightThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 1));
+          BwdDerivatives[((BinaryOp *) node)->rightOperand][outVar] =
+                  (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->rightOperand],
+                                                                 outVar,
+                                                                 (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
+                                       *derivRightThroughNode);
+//          std::cout << *outVar->getExprNode() << " wrt "
+//                    << *((BinaryOp *) node)->rightOperand->getExprNode() << " : "
+//                    << *derivRightThroughNode << std::endl;
+
+          // Add children to nextWorkList
+          nextWorkList.insert(((BinaryOp *) node)->leftOperand);
+          nextWorkList.insert(((BinaryOp *) node)->rightOperand);
+
+          // Increment number of parents of children that have been processed
+          numParentsOfNode[((BinaryOp *) node)->leftOperand]++;
+          numParentsOfNode[((BinaryOp *) node)->rightOperand]++;
+        }
+        break;
+      case TERNARY_OP:
+        // TODO: Complete this on adding ternary operations
+        break;
+    }
+
+    derivativeComputedNodes[node->depth].insert(node);
+  }
 }
 
+void Graph::printBwdDerivativesIbexExprs() {
+  std::cout << "Backward Derivatives: " << std::endl;
+  for (auto &wrtNode : this->BwdDerivatives) {
 
+    for (auto &outputNode : wrtNode.second) {
+      std::cout << *outputNode.first->getExprNode() << " wrt "
+      << *wrtNode.first->getExprNode() << " : "
+      << *outputNode.second << std::endl;
+    }
+  }
+}
 
+ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
+  Node *child = node->getChildNode(index);
 
+  switch (node->type) {
+    case NodeType::INTEGER:
+    case NodeType::FLOAT:
+    case NodeType::DOUBLE:
+    case NodeType::FREE_VARIABLE:
+    case NodeType::VARIABLE:
+      return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0);
+    case NodeType::UNARY_OP:
+      switch (((UnaryOp*) node)->op) {
+        case UnaryOp::SIN:
+          return (ibex::ExprNode *) &ibex::cos(*child->getExprNode());
+        case UnaryOp::COS:
+          return (ibex::ExprNode *) &ibex::sin(-*child->getExprNode());
+        case UnaryOp::TAN:
+          return (ibex::ExprNode *) &(1.0/ibex::sqr(ibex::cos(*child->getExprNode())));
+        case UnaryOp::SINH:
+          return (ibex::ExprNode *) &(ibex::exp(*child->getExprNode())-ibex::exp(-*child->getExprNode())/2.0);
+        case UnaryOp::COSH:
+          return (ibex::ExprNode *) &(ibex::exp(*child->getExprNode())+ibex::exp(-*child->getExprNode())/2.0);
+        case UnaryOp::TANH:
+          return (ibex::ExprNode *) &(ibex::sinh(*child->getExprNode())/ibex::cosh(*child->getExprNode()));
+          case UnaryOp::ASIN:
+          return (ibex::ExprNode *) &(1.0/ibex::sqrt(1.0-ibex::sqr(*child->getExprNode())));
+        case UnaryOp::ACOS:
+          return (ibex::ExprNode *) &(-1.0/ibex::sqrt(1.0-ibex::sqr(*child->getExprNode())));
+        case UnaryOp::ATAN:
+          return (ibex::ExprNode *) &(1.0/(1.0+ibex::sqr(*child->getExprNode())));
+        case UnaryOp::LOG:
+          return (ibex::ExprNode *) &(1.0/(*child->getExprNode()*ibex::log(10.0)));
+        case UnaryOp::SQRT:
+          return (ibex::ExprNode *) &(1.0/(2.0*ibex::sqrt(*child->getExprNode())));
+        case UnaryOp::EXP:
+          return child->getExprNode();
+      }
+      break;
+    case NodeType::BINARY_OP:
+      switch (((BinaryOp*) node)->op) {
+        case BinaryOp::ADD:
+          return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+        case BinaryOp::SUB:
+          if (index == 0) {
+            return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+          }
+          else {
+            return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(-1);
+          }
+        case BinaryOp::MUL:
+          if (index == 0) {
+            return ((BinaryOp*) node)->rightOperand->getExprNode();
+          }
+          else {
+            return ((BinaryOp*) node)->leftOperand->getExprNode();
+          }
+        case BinaryOp::DIV:
+          if (index == 0) {
+            return (ibex::ExprNode *) &(1.0 / *((BinaryOp*) node)->rightOperand->getExprNode());
+          } else if (index == 1) {
+            return (ibex::ExprNode *) &(-*((BinaryOp*) node)->leftOperand->getExprNode() /
+                                        ibex::sqr(*((BinaryOp*) node)->rightOperand->getExprNode()));
+          }
+      }
+      break;
+    case NodeType::TERNARY_OP:
+      break;
+    default:
+      std::cout << "Unknown node type" << std::endl;
+      exit(1);
+  }
+}
 
+template<class T1, class T2>
+std::vector<T1> keys(std::map<T1, T2> map) {
+  std::vector<T1> keys;
+  for (auto &key_value : map) {
+    keys.push_back(key_value.first);
+  }
+  return keys;
+}
 
-
-
+template<class T1, class T2>
+T2 findWithDefaultInsertion(std::map<T1, T2> map, T1 key, T2 defaultVal) {
+  auto it = map.find(key);
+  if (it != map.end()) {
+    return it->second;
+  }
+  else {
+    map[key] = defaultVal;
+    return defaultVal;
+  }
+}

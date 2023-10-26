@@ -7,7 +7,7 @@ CIRE::CIRE() {
 int CIRE::parse(const char &f) {
   std::ofstream myfile;
   yydebug = 0;
-  yyin = fopen(&f, "r");;
+  yyin = fopen(&f, "r");
   if(!yyin) {
     std::cout << "Bad Input.Non-existant file" << std::endl;
     return -1;
@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
 
   cire.graph->generateExprDriver();
 
+
   // Set up output
   // Assuming there is only one output
   // TODO: Change this for multiple outputs
@@ -39,7 +40,8 @@ int main(int argc, char *argv[]) {
   cire.graph->numParentsOfNode[cire.graph->variables[cire.graph->outputs[0]]] =
           cire.graph->variables[cire.graph->outputs[0]]->parents.size();
 
-  cire.graph->generateErrExprDriver();
+  cire.graph->derivativeComputingDriver();
+
 
   free(cire.graph);
   return 0;
