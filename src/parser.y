@@ -31,6 +31,7 @@
 
 %union {
     Number num;
+    Node::RoundingType rnd_type;
     char *str;
     Node *node;
     ibex::Interval *interval;
@@ -43,7 +44,7 @@
 
 %type<node> number
 
-%token FPTYPE
+%token<rnd_type> FPTYPE
 %token ADD SUB MUL DIV
 %token EQ NEQ LEQ LT GEQ GT
 %token AND OR NOT
@@ -103,6 +104,7 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                     assert(FreeVarNode->type == NodeType::FREE_VARIABLE);
                 } else {
                     $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
+                    $$->setRounding($2);
                     graph->nodes.insert($$);
                 }
                 // std::cout << *graph << std::endl;
@@ -220,7 +222,14 @@ assign_exp: ID ASSIGN arith_exp SEMICOLON {
                 $$ = graph->variables[$1] = $3;
                 // std::cout << *$$ << std::endl;
             }
-            | EOL
+            | ID FPTYPE ASSIGN arith_exp SEMICOLON {
+                $$ = graph->variables[$1] = $4;
+                $$->setRounding($2);
+                // std::cout << *$$ << std::endl;
+            }
+            | EOL {
+                $$ = nullptr;
+            }
             ;
 
 if_block: IF cond_expr THEN stmts ELSE stmts ENDIF

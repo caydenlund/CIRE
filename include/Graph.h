@@ -22,7 +22,7 @@ public:
   // Map with derivative information (Contains maps of derivatives of expression corresponding to the node corresponding
   // key in the inner map with respect to node corresponding key in outer map)
   std::map<Node *, std::map<Node *, ibex::ExprNode *>> BwdDerivatives;
-  // Map from depth to nodes at that depth. Used to check if all nodes at a depth have been processed
+  // Map from depth to nodes at that depth whose Backward derivative has been computed
   std::map<int, std::set<Node *>> derivativeComputedNodes;
 
   Graph() = default;

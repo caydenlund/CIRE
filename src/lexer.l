@@ -18,19 +18,19 @@ id [a-zA-Z][a-zA-Z0-9]*
 "else" { return ELSE; }
 "endif" { return ENDIF; }
 
-"fl16" { return FPTYPE; }
-"fl32" { return FPTYPE; }
-"fl64" { return FPTYPE; }
-"rnd16" { return FPTYPE; }
-"rnd32" { return FPTYPE; }
-"rnd64" { return FPTYPE; }
+"fl16" { yylval.rnd_type = Node::RoundingType::FL16;
+         return FPTYPE; }
+"fl32" { yylval.rnd_type = Node::RoundingType::FL32;
+         return FPTYPE; }
+"fl64" { yylval.rnd_type = Node::RoundingType::FL64;
+         return FPTYPE; }
 
 {num}  {yylval.num.type = Number::INT;
         yylval.num.ival = atoi(yytext);
         return INT; }
 -?([0-9]*\.[0-9]+([eE][-+]?[0-9]+)?) { yylval.num.type = Number::FP;
                                        yylval.num.fval = atof(yytext);
-                                       return FP;}
+                                       return FP; }
 
 "+" { return ADD; }
 "-" { return SUB; }

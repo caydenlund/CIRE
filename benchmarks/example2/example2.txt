@@ -8,5 +8,5 @@ OUTPUTS {
 }
 
 EXPRS {
-    res=x-y+y;
+    res fl32 = x-y+y;
 }

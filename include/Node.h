@@ -23,6 +23,7 @@ public:
   enum RoundingType {
     CONST,
     INT,
+    FL16,
     FL32,
     FL64,
   };
@@ -35,19 +36,22 @@ public:
   int id = NODE_COUNTER++;
   int depth = 0;
   NodeType type = DEFAULT;
-  RoundingType rounding = INT;
+  double rounding = 1.0;  // RoundingAmount[INT] by default
   std::set<Node *> parents;
 
 // The amount of rounding to be applied
   std::map<RoundingType, double> RoundingAmount = {
     {CONST, 0.0},
-    {INT, 0.0},
+    {INT, 1.0},
+    {FL16, pow(2, -10+53)},
     {FL32, pow(2, -24+53)},
     {FL64, 1.0},};
 
 
   Node() = default;
   ~Node() = default;
+
+  void setRounding(RoundingType rounding);
 
   virtual void write(std::ostream &os) const;
 

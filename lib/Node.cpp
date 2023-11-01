@@ -4,6 +4,10 @@
 
 int Node::NODE_COUNTER = 0;
 
+void Node::setRounding(Node::RoundingType rounding) {
+  this->rounding = rounding;
+}
+
 void Node::write(std::ostream &os) const {
   os << "\nID:" << id << std::endl;
   os << "\tDepth:" << depth << std::endl;

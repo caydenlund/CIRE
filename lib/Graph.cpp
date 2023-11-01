@@ -134,66 +134,70 @@ void Graph::derivativeComputingDriver() {
 void Graph::derivativeComputing(Node *node) {
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
 
-  if(node->type == UNARY_OP ||
-  node->type == BINARY_OP ||
-  node->type == TERNARY_OP) {
-    switch (node->type) {
-      case UNARY_OP:
-        for (Node *outVar : outputList) {
-          auto *derivThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
+  switch (node->type) {
+    case DEFAULT:
+    case INTEGER:
+    case FLOAT:
+    case DOUBLE:
+    case FREE_VARIABLE:
+    case VARIABLE:
+      break;
+    case UNARY_OP:
+      for (Node *outVar : outputList) {
+        auto *derivThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
 
-          BwdDerivatives[((UnaryOp *) node)->Operand][outVar] =
-                  (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((UnaryOp *) node)->Operand],
-                                                                 outVar,
-                                                                 (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
-                                                                 *derivThroughNode);
+        BwdDerivatives[((UnaryOp *) node)->Operand][outVar] =
+                (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((UnaryOp *) node)->Operand],
+                                                               outVar,
+                                                               (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
+                                                               *derivThroughNode);
 
-          // Add child to nextWorkList
-          nextWorkList.insert(((UnaryOp *) node)->Operand);
-          // Increment number of parents of child that have been processed
-          numParentsOfNode[((UnaryOp *) node)->Operand]++;
-        }
-        break;
-      case BINARY_OP:
-        for (Node *outVar : outputList) {
-          // Computing the backward derivative of outVar with respect to node's children
-          auto *derivLeftThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
+        // Add child to nextWorkList
+        nextWorkList.insert(((UnaryOp *) node)->Operand);
+        // Increment number of parents of child that have been processed
+        numParentsOfNode[((UnaryOp *) node)->Operand]++;
+      }
+      break;
+    case BINARY_OP:
+      for (Node *outVar : outputList) {
+        // Computing the backward derivative of outVar with respect to node's children
+        auto *derivLeftThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
 
-          BwdDerivatives[((BinaryOp *) node)->leftOperand][outVar] =
-                  (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->leftOperand],
-                                                                 outVar,
-                                                                 (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
-                                       *derivLeftThroughNode);
+        BwdDerivatives[((BinaryOp *) node)->leftOperand][outVar] =
+                (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->leftOperand],
+                                                               outVar,
+                                                               (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
+                                     *derivLeftThroughNode);
 //          std::cout << *outVar->getExprNode() << " wrt "
 //                    << *((BinaryOp *) node)->leftOperand->getExprNode() << " : "
 //                    << *derivLeftThroughNode << std::endl;
 
-          auto *derivRightThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 1));
-          BwdDerivatives[((BinaryOp *) node)->rightOperand][outVar] =
-                  (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->rightOperand],
-                                                                 outVar,
-                                                                 (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
-                                       *derivRightThroughNode);
+        auto *derivRightThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 1));
+        BwdDerivatives[((BinaryOp *) node)->rightOperand][outVar] =
+                (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->rightOperand],
+                                                               outVar,
+                                                               (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
+                                     *derivRightThroughNode);
 //          std::cout << *outVar->getExprNode() << " wrt "
 //                    << *((BinaryOp *) node)->rightOperand->getExprNode() << " : "
 //                    << *derivRightThroughNode << std::endl;
 
-          // Add children to nextWorkList
-          nextWorkList.insert(((BinaryOp *) node)->leftOperand);
-          nextWorkList.insert(((BinaryOp *) node)->rightOperand);
+        // Add children to nextWorkList
+        nextWorkList.insert(((BinaryOp *) node)->leftOperand);
+        nextWorkList.insert(((BinaryOp *) node)->rightOperand);
 
-          // Increment number of parents of children that have been processed
-          numParentsOfNode[((BinaryOp *) node)->leftOperand]++;
-          numParentsOfNode[((BinaryOp *) node)->rightOperand]++;
-        }
-        break;
-      case TERNARY_OP:
-        // TODO: Complete this on adding ternary operations
-        break;
-    }
+        // Increment number of parents of children that have been processed
+        numParentsOfNode[((BinaryOp *) node)->leftOperand]++;
+        numParentsOfNode[((BinaryOp *) node)->rightOperand]++;
+      }
+      break;
+    case TERNARY_OP:
+      // TODO: Complete this on adding ternary operations
+      break;
 
-    derivativeComputedNodes[node->depth].insert(node);
   }
+
+  derivativeComputedNodes[node->depth].insert(node);
 }
 
 void Graph::printBwdDerivativesIbexExprs() {
@@ -279,6 +283,8 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
       std::cout << "Unknown node type" << std::endl;
       exit(1);
   }
+
+  return nullptr;
 }
 
 template<class T1, class T2>
