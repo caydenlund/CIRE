@@ -1,4 +1,4 @@
-add_library(Graph Node.cpp Graph.cpp)
+add_library(Graph Node.cpp SymbolTable.cpp Graph.cpp)
 
 target_link_libraries(Graph PUBLIC ibex)
 

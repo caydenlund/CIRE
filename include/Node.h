@@ -30,21 +30,21 @@ public:
 
 protected:
 
-
 public:
   static int NODE_COUNTER;
   int id = NODE_COUNTER++;
   int depth = 0;
   NodeType type = DEFAULT;
   double rounding = 1.0;  // RoundingAmount[INT] by default
+  const ibex::ExprNode *absoluteError = nullptr;
   std::set<Node *> parents;
 
 // The amount of rounding to be applied
   std::map<RoundingType, double> RoundingAmount = {
     {CONST, 0.0},
     {INT, 1.0},
-    {FL16, pow(2, -10+53)},
-    {FL32, pow(2, -24+53)},
+    {FL16, pow(2, -11)},
+    {FL32, pow(2, -24)},
     {FL64, 1.0},};
 
 
@@ -52,6 +52,7 @@ public:
   ~Node() = default;
 
   void setRounding(RoundingType rounding);
+  void setAbsoluteError(const ibex::ExprNode *absoluteError);
 
   virtual void write(std::ostream &os) const;
 
@@ -69,6 +70,8 @@ public:
   virtual Node *operator-(Node &other) const;
   virtual Node *operator*(Node &other) const;
   virtual Node *operator/(Node &other) const;
+  virtual double getRounding();
+  virtual ibex::ExprNode &getAbsoluteError();
   virtual ibex::ExprNode &generateSymExpr();
   virtual Node *getChildNode(int index) const;
 };
@@ -111,6 +114,7 @@ public:
   Node *operator-(Node &other) const override;
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
+  ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
@@ -132,6 +136,7 @@ public:
   Node *operator-(Node &other) const override;
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
+  ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
@@ -153,6 +158,7 @@ public:
   Node *operator-(Node &other) const override;
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
+  ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
@@ -195,6 +201,22 @@ public:
     SQRT,
     EXP,
   };
+
+// The amount of error on these operations
+  std::map<Op, double> OpErrorULPs = {
+          {SIN, 2.0},
+          {COS, 2.0},
+          {TAN, 2.0},
+          {SINH, 2.0},
+          {COSH, 2.0},
+          {TANH, 2.0},
+          {ASIN, 2.0},  // Check whether 2.0 is correct
+          {ACOS, 2.0},  // Check whether 2.0 is correct
+          {ATAN, 2.0},  // Check whether 2.0 is correct
+          {LOG, 2.0},
+          {SQRT, 1.0},
+          {EXP, 2.0},};
+
   Node* Operand;
   Op op;
   const ibex::ExprUnaryOp* expr;
@@ -210,6 +232,7 @@ public:
   Node *operator-(Node &other) const override;
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
+  double getRounding() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
@@ -222,6 +245,13 @@ public:
     MUL,
     DIV,
   };
+
+  // The amount of error on these operations
+  std::map<Op, double> OpErrorULPs = {
+          {ADD, 1.0},
+          {SUB, 1.0},
+          {MUL, 1.0},
+          {DIV, 2.0},};
 
 //private:
   Node* leftOperand;
@@ -241,6 +271,7 @@ public:
   Node *operator-(Node &other) const override;
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
+  double getRounding() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
@@ -264,6 +295,7 @@ public:
   Node *operator-(Node &other) const override;
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
+  double getRounding() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };

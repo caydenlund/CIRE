@@ -2,6 +2,8 @@
 
 Graph *graph;
 
+int SymbolTable::SCOPE_COUNTER = 0;
+
 std::ostream &operator<<(std::ostream &os, const Graph &graph) {
   graph.write(os);
   return os;
@@ -26,6 +28,11 @@ os << "Graph:" << std::endl;
   for (auto &node : nodes) {
     os << "\t" << *node << std::endl;
   }
+}
+
+void Graph::createNewSymbolTable() {
+  currentScope = SymbolTable::SCOPE_COUNTER;
+  symbolTables[currentScope] = new SymbolTable();
 }
 
 Node *Graph::findFreeVarNode(string Var) const {
@@ -124,7 +131,7 @@ void Graph::derivativeComputingDriver() {
       workList.insert(node);
     }
 
-    printBwdDerivativesIbexExprs();
+//    printBwdDerivativesIbexExprs();
 
     std::copy_if(nextWorkList.begin(), nextWorkList.end(), std::inserter(workList, workList.end()), [&next_depth](
             Node *node) { return node->depth == next_depth;});
@@ -200,17 +207,90 @@ void Graph::derivativeComputing(Node *node) {
   derivativeComputedNodes[node->depth].insert(node);
 }
 
+void Graph::printBwdDerivative(Node *outNode, Node *WRTNode) {
+  std::cout << *outNode->getExprNode() << " wrt "
+            << *WRTNode->getExprNode() << " : "
+            << *this->BwdDerivatives[WRTNode][outNode] << std::endl;
+}
+
 void Graph::printBwdDerivativesIbexExprs() {
   std::cout << "Backward Derivatives: " << std::endl;
   for (auto &wrtNode : this->BwdDerivatives) {
-
     for (auto &outputNode : wrtNode.second) {
-      std::cout << *outputNode.first->getExprNode() << " wrt "
-      << *wrtNode.first->getExprNode() << " : "
-      << *outputNode.second << std::endl;
+      printBwdDerivative(outputNode.first, wrtNode.first);
     }
   }
 }
+
+void Graph::errorComputingDriver() {
+  for(auto &output : outputs) {
+    if(errorComputedNodes[findVarNode(output)->depth].find(variables[output]) ==
+    errorComputedNodes[findVarNode(output)->depth].end()) {
+      errorComputing(findVarNode(output));
+    }
+  }
+}
+
+void Graph::errorComputing(Node *node) {
+  switch (node->type) {
+    case DEFAULT:
+    case INTEGER:
+    case FLOAT:
+    case DOUBLE:
+    case FREE_VARIABLE:
+    case VARIABLE:
+      break;
+    case UNARY_OP:
+      if(errorComputedNodes[((UnaryOp *) node)->Operand->depth].find(((UnaryOp *) node)->Operand) ==
+         errorComputedNodes[((UnaryOp *) node)->Operand->depth].end()) {
+        errorComputing(((UnaryOp *) node)->Operand);
+      }
+      break;
+    case BINARY_OP:
+      if(errorComputedNodes[((BinaryOp *) node)->leftOperand->depth].find(((BinaryOp *) node)->leftOperand) ==
+         errorComputedNodes[((BinaryOp *) node)->leftOperand->depth].end()) {
+        errorComputing(((BinaryOp *) node)->leftOperand);
+      }
+      if(errorComputedNodes[((BinaryOp *) node)->rightOperand->depth].find(((BinaryOp *) node)->rightOperand) ==
+         errorComputedNodes[((BinaryOp *) node)->rightOperand->depth].end()) {
+        errorComputing(((BinaryOp *) node)->rightOperand);
+      }
+      break;
+    case TERNARY_OP:
+      // TODO: Complete this on adding ternary operations
+      break;
+  }
+
+  if(derivativeComputedNodes[node->depth].find(node) != derivativeComputedNodes[node->depth].end()) {
+    propagateError(node);
+  }
+  errorComputedNodes[node->depth].insert(node);
+}
+
+void Graph::propagateError(Node *node) {
+  std::vector<Node *> outputList = keys(BwdDerivatives[node]);
+
+  for (Node *outVar : outputList) {
+//    printBwdDerivative(outVar, node);
+//    std::cout << node->getAbsoluteError() << std::endl;
+//    std::cout << node->getRounding() << std::endl;
+    // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
+    // the rounding and noise
+    auto expr = (ibex::ExprNode *) &abs((*BwdDerivatives[node][outVar] *
+            node->getAbsoluteError() *
+            node->getRounding()));
+
+    ErrAccumulator[outVar] =
+            (ibex::ExprNode *) &(*findWithDefaultInsertion(ErrAccumulator,
+                                                           outVar,
+                                                           (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
+                                                           *expr);
+    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
+  }
+
+
+}
+
 
 ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
   Node *child = node->getChildNode(index);

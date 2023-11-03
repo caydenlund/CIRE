@@ -15,6 +15,7 @@ int CIRE::parse(const char &f) {
 
   do {
     std::cout << "Parsing..." << std::endl;
+    graph->createNewSymbolTable();
     yyparse(graph);
   } while (!feof(yyin));
 
@@ -41,6 +42,8 @@ int main(int argc, char *argv[]) {
           cire.graph->variables[cire.graph->outputs[0]]->parents.size();
 
   cire.graph->derivativeComputingDriver();
+
+  cire.graph->errorComputingDriver();
 
 
   free(cire.graph);

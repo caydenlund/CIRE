@@ -5,7 +5,11 @@
 int Node::NODE_COUNTER = 0;
 
 void Node::setRounding(Node::RoundingType rounding) {
-  this->rounding = rounding;
+  this->rounding = RoundingAmount[rounding];
+}
+
+void Node::setAbsoluteError(const ibex::ExprNode *absoluteError) {
+  this->absoluteError = absoluteError;
 }
 
 void Node::write(std::ostream &os) const {
@@ -63,6 +67,14 @@ Node *Node::operator*(Node &other) const {
 Node *Node::operator/(Node &other) const {
   std::cout << "ERROR: Base class operator+ called" << std::endl;
   exit(1);
+}
+
+double Node::getRounding() {
+  return this->rounding;
+}
+
+ibex::ExprNode &Node::getAbsoluteError() {
+  return (ibex::ExprNode &) *getExprNode();
 }
 
 ibex::ExprNode &Node::generateSymExpr() {
@@ -206,6 +218,10 @@ Node *Float::operator/(Node &other) const {
   return new Float(*c);
 }
 
+ibex::ExprNode &Float::getAbsoluteError() {
+  return (ibex::ExprNode &) *absoluteError;
+}
+
 ibex::ExprNode &Float::generateSymExpr() {
   assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Float value should have been assigned while parsing/"
                                    "node creation\n");
@@ -275,6 +291,10 @@ Node *Double::operator/(Node &other) const {
   return new Double(*c);
 }
 
+ibex::ExprNode &Double::getAbsoluteError() {
+  return (ibex::ExprNode &) *absoluteError;
+}
+
 ibex::ExprNode &Double::generateSymExpr() {
   assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Double value should have been assigned while parsing/"
                                    "node creation\n");
@@ -333,6 +353,10 @@ Node *FreeVariable::operator/(Node &other) const {
   const ibex::Interval *c = new ibex::Interval(*a/(*b));
 
   return new FreeVariable(*c);
+}
+
+ibex::ExprNode &FreeVariable::getAbsoluteError() {
+  return (ibex::ExprNode &) *absoluteError;
 }
 
 ibex::ExprNode &FreeVariable::generateSymExpr() {
@@ -412,6 +436,10 @@ void UnaryOp::write(std::ostream &os) const {
   os << "\tOperand: [" << (Node)*Operand << "]" << std::endl;
 }
 
+ibex::ExprNode *UnaryOp::getExprNode() const {
+  return (ibex::ExprNode*)this->expr;
+}
+
 bool UnaryOp::operator==(const UnaryOp &other) const {
   return Node::operator==(other) &&
           this->Operand == other.Operand &&
@@ -434,8 +462,8 @@ Node *UnaryOp::operator/(Node &other) const {
   return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
-ibex::ExprNode *UnaryOp::getExprNode() const {
-  return (ibex::ExprNode*)this->expr;
+double UnaryOp::getRounding() {
+  return this->rounding * OpErrorULPs[this->op];
 }
 
 ibex::ExprNode &UnaryOp::generateSymExpr() {
@@ -509,16 +537,6 @@ ibex::ExprNode *BinaryOp::getExprNode() const {
   return (ibex::ExprNode*)this->expr;
 }
 
-ibex::ExprNode &BinaryOp::generateSymExpr() {
-  switch (op) {
-    case ADD: return (ibex::ExprNode &) (*leftOperand->getExprNode() + *rightOperand->getExprNode());
-    case SUB: return (ibex::ExprNode &) (*leftOperand->getExprNode() - *rightOperand->getExprNode());
-    case MUL: return (ibex::ExprNode &) (*leftOperand->getExprNode() * *rightOperand->getExprNode());
-    case DIV: return (ibex::ExprNode &) (*leftOperand->getExprNode() / *rightOperand->getExprNode());
-    default: return (ibex::ExprNode &) (*leftOperand->getExprNode() + *rightOperand->getExprNode());
-  }
-}
-
 Node *BinaryOp::operator+(Node &other) const {
   return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
@@ -533,6 +551,20 @@ Node *BinaryOp::operator*(Node &other) const {
 
 Node *BinaryOp::operator/(Node &other) const {
   return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+}
+
+double BinaryOp::getRounding() {
+  return this->rounding * OpErrorULPs[this->op];
+}
+
+ibex::ExprNode &BinaryOp::generateSymExpr() {
+  switch (op) {
+    case ADD: return (ibex::ExprNode &) (*leftOperand->getExprNode() + *rightOperand->getExprNode());
+    case SUB: return (ibex::ExprNode &) (*leftOperand->getExprNode() - *rightOperand->getExprNode());
+    case MUL: return (ibex::ExprNode &) (*leftOperand->getExprNode() * *rightOperand->getExprNode());
+    case DIV: return (ibex::ExprNode &) (*leftOperand->getExprNode() / *rightOperand->getExprNode());
+    default: return (ibex::ExprNode &) (*leftOperand->getExprNode() + *rightOperand->getExprNode());
+  }
 }
 
 Node *BinaryOp::getChildNode(int index) const {
@@ -567,6 +599,10 @@ void TernaryOp::write(std::ostream &os) const {
   os << "\tRight Operand: [" << (Node)*rightOperand << "]" << std::endl;
 }
 
+ibex::ExprNode *TernaryOp::getExprNode() const {
+  return Node::getExprNode();
+}
+
 bool TernaryOp::operator==(const TernaryOp &other) const {
   return Node::operator==(other) &&
           this->leftOperand == other.leftOperand &&
@@ -590,8 +626,9 @@ Node *TernaryOp::operator/(Node &other) const {
   return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
-ibex::ExprNode *TernaryOp::getExprNode() const {
-  return Node::getExprNode();
+double TernaryOp::getRounding() {
+  // TODO: Add rounding for Ternary operations
+  return this->rounding;
 }
 
 ibex::ExprNode &TernaryOp::generateSymExpr() {

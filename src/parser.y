@@ -100,13 +100,19 @@ intv_expr:  intv_term { $$ = $1; }
 
 interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                 if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
-                    $$ = FreeVarNode;
-                    assert(FreeVarNode->type == NodeType::FREE_VARIABLE);
+
                 } else {
-                    $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
-                    $$->setRounding($2);
-                    graph->nodes.insert($$);
+                    graph->variables[$1] = new VariableNode(ibex::ExprSymbol::new_($1));
+                    graph->variables[$1]->setAbsoluteError(&ibex::ExprConstant::new_scalar($7.fval * pow(2, -53)));
+                    graph->variables[$1]->setRounding($2);
+                    graph->nodes.insert(graph->variables[$1]);
+                    graph->symbolTables[graph->currentScope]->insert($1, graph->variables[$1]);
                 }
+                $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
+                $$->setAbsoluteError(graph->variables[$1]->absoluteError);
+                $$->setRounding($2);
+                graph->nodes.insert($$);
+
                 // std::cout << *graph << std::endl;
             }
             | EOL {  }
@@ -170,6 +176,8 @@ number: INT {
         }
         | FP {
             $$ = new Double(ibex::ExprConstant::new_scalar($1.fval));
+            // TODO: Set the error for different precisions
+            $$->setAbsoluteError(&ibex::ExprConstant::new_scalar($1.fval * pow(2, -53)));
             graph->nodes.insert($$);
             // std::cout << *$$ << std::endl;
         }
@@ -179,10 +187,9 @@ number: INT {
 arith_fact: number { $$ = $1; }
             | ID {
                 if(Node *VarNode = graph->findVarNode($1)) {
-                    $$ = VarNode;
+                    $$ = graph->symbolTables[graph->currentScope]->table[$1];
                 } else {
-                    $$ = graph->variables[$1] = new VariableNode(ibex::ExprSymbol::new_($1));
-                    graph->nodes.insert($$);
+                    std::cout << "ERROR: Variable " << $1 << " not found" << std::endl;
                 }
                 // std::cout << *$$ << std::endl;
             }
@@ -220,10 +227,12 @@ arith_exp:  arith_term {
 
 assign_exp: ID ASSIGN arith_exp SEMICOLON {
                 $$ = graph->variables[$1] = $3;
+                graph->symbolTables[graph->currentScope]->insert($1, graph->variables[$1]);
                 // std::cout << *$$ << std::endl;
             }
             | ID FPTYPE ASSIGN arith_exp SEMICOLON {
                 $$ = graph->variables[$1] = $4;
+                graph->symbolTables[graph->currentScope]->insert($1, graph->variables[$1]);
                 $$->setRounding($2);
                 // std::cout << *$$ << std::endl;
             }
