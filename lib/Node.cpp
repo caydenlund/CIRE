@@ -408,6 +408,10 @@ Node *VariableNode::operator/(Node &other) const {
   return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
+ibex::ExprNode &VariableNode::getAbsoluteError() {
+  return (ibex::ExprNode &) *absoluteError;
+}
+
 ibex::ExprNode &VariableNode::generateSymExpr() {
   assert(this->variable != nullptr && "ERROR: ibex::ExprSymbol with string literal should have been assigned while parsing/"
                                    "node creation\n");

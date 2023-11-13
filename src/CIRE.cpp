@@ -70,10 +70,8 @@ int main(int argc, char *argv[]) {
   auto *temp = new ibex::Function(*variables,
                                   *cire.graph->ErrAccumulator[cire.graph->variables[cire.graph->outputs[0]]]);
 
-  ibex::IntervalVector answer = temp->eval(*iv);
+  ibex::IntervalVector answer = temp->eval(*iv) * pow(2, -53);
   std::cout << "Output: " << answer << std::endl;
-//  (abs(x)+abs(x-y)+abs(x*5.96047e-08))
-//  cire.graph->ErrAccumulator[cire.graph->variables[cire.graph->outputs[0]]]
 
   free(cire.graph);
   return 0;

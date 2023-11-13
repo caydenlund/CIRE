@@ -180,6 +180,7 @@ public:
   Node *operator-(Node &other) const override;
   Node *operator*(Node &other) const override;
   Node *operator/(Node &other) const override;
+  ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
