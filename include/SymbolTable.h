@@ -13,7 +13,7 @@ public:
   ~SymbolTable() = default;
 
   void insert(string symbol, Node *node);
-  Node *lookup(string symbol, Node *node);
+  Node *lookup(string symbol, Node *node = new VariableNode());
 };
 
 

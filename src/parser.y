@@ -99,17 +99,18 @@ intv_expr:  intv_term { $$ = $1; }
         ;
 
 interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
+                VariableNode *new_variable;
                 if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
 
                 } else {
-                    graph->variables[$1] = new VariableNode(ibex::ExprSymbol::new_($1));
-                    graph->variables[$1]->setAbsoluteError(&ibex::ExprConstant::new_scalar($7.fval * pow(2, -53)));
-                    graph->variables[$1]->setRounding($2);
-                    graph->nodes.insert(graph->variables[$1]);
-                    graph->symbolTables[graph->currentScope]->insert($1, graph->variables[$1]);
+                    new_variable = new VariableNode(ibex::ExprSymbol::new_($1));
+                    new_variable->setAbsoluteError(&ibex::ExprConstant::new_scalar($7.fval * pow(2, -53)));
+                    new_variable->setRounding($2);
+                    graph->nodes.insert(new_variable);
+                    graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
                 $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
-                $$->setAbsoluteError(graph->variables[$1]->absoluteError);
+                $$->setAbsoluteError(graph->symbolTables[graph->currentScope]->lookup($1)->absoluteError);
                 $$->setRounding($2);
                 graph->nodes.insert($$);
 
@@ -226,13 +227,13 @@ arith_exp:  arith_term {
             ;
 
 assign_exp: ID ASSIGN arith_exp SEMICOLON {
-                $$ = graph->variables[$1] = $3;
-                graph->symbolTables[graph->currentScope]->insert($1, graph->variables[$1]);
+                $$ = $3;
+                graph->symbolTables[graph->currentScope]->insert($1, $3);
                 // std::cout << *$$ << std::endl;
             }
             | ID FPTYPE ASSIGN arith_exp SEMICOLON {
-                $$ = graph->variables[$1] = $4;
-                graph->symbolTables[graph->currentScope]->insert($1, graph->variables[$1]);
+                $$ = $4;
+                graph->symbolTables[graph->currentScope]->insert($1, $4);
                 $$->setRounding($2);
                 // std::cout << *$$ << std::endl;
             }

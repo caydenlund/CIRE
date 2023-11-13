@@ -12,8 +12,6 @@ public:
   std::map<string, FreeVariable *> inputs;
   // List of output variables
   std::vector<string> outputs;
-  // Connects a variable name to a node
-  std::map<string, Node *> variables;
   // List of nodes ever created. Used for cleaning up memory
   std::set<Node *> nodes;
 

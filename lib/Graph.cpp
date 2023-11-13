@@ -10,7 +10,7 @@ std::ostream &operator<<(std::ostream &os, const Graph &graph) {
 }
 
 void Graph::write(std::ostream &os) const {
-os << "Graph:" << std::endl;
+  os << "Graph:" << std::endl;
   os << "Inputs:" << std::endl;
   for (auto &input : inputs) {
     os << "\t" << input.first << " : " << *input.second << std::endl;
@@ -20,7 +20,7 @@ os << "Graph:" << std::endl;
     os << "\t" << output << std::endl;
   }
   os << "Variables:" << std::endl;
-  for (auto &variable : variables) {
+  for (auto &variable : symbolTables.find(currentScope)->second->table) {
     os << "\t" << variable.first << " : " << *variable.second << std::endl;
   }
 
@@ -45,8 +45,8 @@ Node *Graph::findFreeVarNode(string Var) const {
 }
 
 Node *Graph::findVarNode(string Var) const {
-  auto it = variables.find(Var);
-  if (it != variables.end()) {
+  auto it = symbolTables.find(currentScope)->second->table.find(Var);
+  if (it != symbolTables.find(currentScope)->second->table.end()) {
     return it->second;
   }
 
@@ -224,7 +224,7 @@ void Graph::printBwdDerivativesIbexExprs() {
 
 void Graph::errorComputingDriver() {
   for(auto &output : outputs) {
-    if(errorComputedNodes[findVarNode(output)->depth].find(variables[output]) ==
+    if(errorComputedNodes[findVarNode(output)->depth].find(symbolTables.find(currentScope)->second->table[output]) ==
     errorComputedNodes[findVarNode(output)->depth].end()) {
       errorComputing(findVarNode(output));
     }

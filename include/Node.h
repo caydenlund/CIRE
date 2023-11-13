@@ -168,8 +168,7 @@ class VariableNode : public Node {
 private:
 public:
   const ibex::ExprSymbol *variable ;
-  VariableNode() = default;
-  VariableNode(const ibex::ExprSymbol& name);
+  explicit VariableNode(const ibex::ExprSymbol& name = ibex::ExprSymbol::new_("default"));
   ~VariableNode() = default;
 
   // Prints string representation of this node
