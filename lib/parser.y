@@ -4,8 +4,7 @@
 %}
 
 %code requires {
-    #include "../include/Graph.h"
-    #include "../include/CIRE.h"
+    #include "../../include/Graph.h"
     #include<iostream>
     #include <ibex.h>
     #include <ibex_Expr.h>

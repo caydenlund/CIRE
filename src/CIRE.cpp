@@ -4,30 +4,11 @@ CIRE::CIRE() {
   graph = new Graph();
 }
 
-int CIRE::parse(const char &f) {
-  std::ofstream myfile;
-  yydebug = 0;
-  yyin = fopen(&f, "r");
-  if(!yyin) {
-    std::cout << "Bad Input.Non-existant file" << std::endl;
-    return -1;
-  }
-
-  do {
-    std::cout << "Parsing..." << std::endl;
-    graph->createNewSymbolTable();
-    yyparse(graph);
-  } while (!feof(yyin));
-
-//  std::cout << *graph << std::endl;
-
-  return 0;
-}
 
 int main(int argc, char *argv[]) {
   CIRE cire;
 
-  cire.parse(*argv[1]);
+  cire.graph->parse(*argv[1]);
 
   cire.graph->generateExprDriver();
 
@@ -57,7 +38,7 @@ int main(int argc, char *argv[]) {
     x[i][1] = input.second->var->ub();
     i++;
   }
-  ibex::IntervalVector *iv = new ibex::IntervalVector(2, x);
+  auto *iv = new ibex::IntervalVector(2, x);
   std::cout << "Input: " << *iv << std::endl;
 
   std::cout << "Function:" << *cire.graph->ErrAccumulator[cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]] << std::endl;

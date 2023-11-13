@@ -1,6 +1,5 @@
 #include "../include/Graph.h"
-
-Graph *graph;
+#include "lib/parser.h"
 
 int SymbolTable::SCOPE_COUNTER = 0;
 
@@ -386,4 +385,24 @@ T2 findWithDefaultInsertion(std::map<T1, T2> map, T1 key, T2 defaultVal) {
     map[key] = defaultVal;
     return defaultVal;
   }
+}
+
+int Graph::parse(const char &f) {
+  std::ofstream myfile;
+  yydebug = 0;
+  yyin = fopen(&f, "r");
+  if(!yyin) {
+    std::cout << "Bad Input.Non-existant file" << std::endl;
+    return -1;
+  }
+
+  do {
+    std::cout << "Parsing..." << std::endl;
+    this->createNewSymbolTable();
+    yyparse(this);
+  } while (!feof(yyin));
+
+//  std::cout << *graph << std::endl;
+
+  return 0;
 }

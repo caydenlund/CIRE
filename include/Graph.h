@@ -62,6 +62,9 @@ public:
   void printBwdDerivative(Node *outNode, Node *WRTNode);
   void printBwdDerivativesIbexExprs();
 
+  // Run the parser on file F.  Return 0 on success.
+  int parse(const char &f);
+
 };
 
 ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index);
@@ -71,5 +74,10 @@ std::vector<T1> keys(std::map<T1, T2> map);
 template<class T1, class T2>
 T2 findWithDefaultInsertion(std::map<T1, T2> map, T1 key, T2 defaultVal);
 
+
+// Give Flex the prototype of yylex we want ...
+#define YY_DECL int yylex(Graph *graph)
+// ... and declare it for the parser's sake.
+YY_DECL;
 
 #endif //CIRE_GRAPH_H
