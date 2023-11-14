@@ -19,8 +19,9 @@ add_library(Graph
         Node.cpp
         SymbolTable.cpp
         ErrorAnalyzer.cpp
+        IBEXInterface.cpp
         Graph.cpp
         ${BISON_MyParser_OUTPUTS}
-        ${FLEX_MyScanner_OUTPUTS} )
+        ${FLEX_MyScanner_OUTPUTS})
 
 target_link_libraries(Graph PUBLIC ibex)

@@ -80,6 +80,10 @@ void Graph::errorComputingDriver() {
       errorAnalyzer->errorComputing(findVarNode(output));
     }
   }
+
+  errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] =
+          (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] *
+          pow(2, -53));
 }
 
 // Generates Expressions corresponding to all no bottom up
