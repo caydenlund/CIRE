@@ -4,12 +4,12 @@
 
 int Node::NODE_COUNTER = 0;
 
-void Node::setRounding(Node::RoundingType rounding) {
-  this->rounding = RoundingAmount[rounding];
+void Node::setRounding(Node::RoundingType roundingType) {
+  rounding = RoundingAmount[roundingType];
 }
 
-void Node::setAbsoluteError(const ibex::ExprNode *absoluteError) {
-  this->absoluteError = absoluteError;
+void Node::setAbsoluteError(const ibex::ExprNode *absErr) {
+  absoluteError = absErr;
 }
 
 void Node::write(std::ostream &os) const {
@@ -44,33 +44,33 @@ ibex::ExprNode *Node::getExprNode() const {
 }
 
 bool Node::operator==(const Node &other) const {
-  return this->depth == other.depth &&
-         this->type == other.type &&
-         this->rounding == other.rounding;
+  return depth == other.depth &&
+         type == other.type &&
+         rounding == other.rounding;
 }
 
-Node *Node::operator+(Node &other) const {
+Node &Node::operator+(Node &other) const {
   std::cout << "ERROR: Base class operator+ called" << std::endl;
   exit(1);
 }
 
-Node *Node::operator-(Node &other) const {
+Node &Node::operator-(Node &other) const {
   std::cout << "ERROR: Base class operator+ called" << std::endl;
   exit(1);
 }
 
-Node *Node::operator*(Node &other) const {
+Node &Node::operator*(Node &other) const {
   std::cout << "ERROR: Base class operator+ called" << std::endl;
   exit(1);
 }
 
-Node *Node::operator/(Node &other) const {
+Node &Node::operator/(Node &other) const {
   std::cout << "ERROR: Base class operator+ called" << std::endl;
   exit(1);
 }
 
 double Node::getRounding() {
-  return this->rounding;
+  return rounding;
 }
 
 ibex::ExprNode &Node::getAbsoluteError() {
@@ -89,9 +89,8 @@ Node *Node::getChildNode(int index) const {
   exit(1);
 }
 
-Integer::Integer(const ibex::ExprConstant &value) {
-  this->value = &value;
-  this->type = INTEGER;
+Integer::Integer(const ibex::ExprConstant &value): value(&value) {
+  type = INTEGER;
 }
 
 void Integer::write(std::ostream &os) const {
@@ -103,54 +102,54 @@ void Integer::write(std::ostream &os) const {
 }
 
 ibex::ExprNode *Integer::getExprNode() const {
-  return (ibex::ExprNode*)this->value;
+  return (ibex::ExprNode*)value;
 }
 
 bool Integer::operator==(const Integer &other) const {
   return Node::operator==(other) &&
-         this->value == other.value;
+         value == other.value;
 }
 
-Node *Integer::operator+(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Integer::operator+(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
 
-  return new Integer(*c);
+  return *new Integer(*c);
 }
 
-Node *Integer::operator-(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Integer::operator-(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
 
-  return new Integer(*c);
+  return *new Integer(*c);
 }
 
-Node *Integer::operator*(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Integer::operator*(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
 
-  return new Integer(*c);
+  return *new Integer(*c);
 }
 
-Node *Integer::operator/(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Integer::operator/(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
 
-  return new Integer(*c);
+  return *new Integer(*c);
 }
 
 ibex::ExprNode &Integer::generateSymExpr() {
-  assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Integer value should have been assigned while parsing/"
+  assert(value != nullptr && "ERROR: ibex::ExprConstant with Integer value should have been assigned while parsing/"
                                    "node creation\n");
-  return *this->getExprNode();
+  return *getExprNode();
 }
 
 Node *Integer::getChildNode(int index) const {
@@ -159,10 +158,8 @@ Node *Integer::getChildNode(int index) const {
 }
 
 
-Float::Float(const ibex::ExprConstant &value) {
-  this->value = &value;
-  this->type = FLOAT;
-
+Float::Float(const ibex::ExprConstant &value):value(&value) {
+  type = FLOAT;
 }
 
 void Float::write(std::ostream &os) const {
@@ -174,48 +171,48 @@ void Float::write(std::ostream &os) const {
 }
 
 ibex::ExprNode *Float::getExprNode() const {
-  return (ibex::ExprNode*)this->value;
+  return (ibex::ExprNode*)value;
 }
 
 bool Float::operator==(const Float &other) const {
   return Node::operator==(other) &&
-         this->value == other.value;
+         value == other.value;
 }
 
-Node *Float::operator+(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Float::operator+(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
 
-  return new Float(*c);
+  return *new Float(*c);
 }
 
-Node *Float::operator-(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Float::operator-(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
 
-  return new Float(*c);
+  return *new Float(*c);
 }
 
-Node *Float::operator*(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Float::operator*(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
 
-  return new Float(*c);
+  return *new Float(*c);
 }
 
-Node *Float::operator/(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Float::operator/(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
 
-  return new Float(*c);
+  return *new Float(*c);
 }
 
 ibex::ExprNode &Float::getAbsoluteError() {
@@ -223,9 +220,9 @@ ibex::ExprNode &Float::getAbsoluteError() {
 }
 
 ibex::ExprNode &Float::generateSymExpr() {
-  assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Float value should have been assigned while parsing/"
+  assert(value != nullptr && "ERROR: ibex::ExprConstant with Float value should have been assigned while parsing/"
                                    "node creation\n");
-  return *this->getExprNode();
+  return *getExprNode();
 }
 
 Node *Float::getChildNode(int index) const {
@@ -233,9 +230,8 @@ Node *Float::getChildNode(int index) const {
   exit(1);
 }
 
-Double::Double(const ibex::ExprConstant &value) {
-  this->value = &value;
-  this->type = DOUBLE;
+Double::Double(const ibex::ExprConstant &value): value(&value) {
+  type = DOUBLE;
 }
 
 void Double::write(std::ostream &os) const {
@@ -247,48 +243,48 @@ void Double::write(std::ostream &os) const {
 }
 
 ibex::ExprNode *Double::getExprNode() const {
-  return (ibex::ExprNode*)this->value;
+  return (ibex::ExprNode*)value;
 }
 
 bool Double::operator==(const Double &other) const {
   return Node::operator==(other) &&
-         this->value == other.value;
+         value == other.value;
 }
 
-Node *Double::operator+(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Double::operator+(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
 
-  return new Double(*c);
+  return *new Double(*c);
 }
 
-Node *Double::operator-(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Double::operator-(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
 
-  return new Double(*c);
+  return *new Double(*c);
 }
 
-Node *Double::operator*(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Double::operator*(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
 
-  return new Double(*c);
+  return *new Double(*c);
 }
 
-Node *Double::operator/(Node &other) const {
-  ibex::ExprNode *a = this->getExprNode();
+Node &Double::operator/(Node &other) const {
+  ibex::ExprNode *a = getExprNode();
   ibex::ExprNode *b = other.getExprNode();
 
   const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
 
-  return new Double(*c);
+  return *new Double(*c);
 }
 
 ibex::ExprNode &Double::getAbsoluteError() {
@@ -296,9 +292,9 @@ ibex::ExprNode &Double::getAbsoluteError() {
 }
 
 ibex::ExprNode &Double::generateSymExpr() {
-  assert(this->value != nullptr && "ERROR: ibex::ExprConstant with Double value should have been assigned while parsing/"
+  assert(value != nullptr && "ERROR: ibex::ExprConstant with Double value should have been assigned while parsing/"
                                    "node creation\n");
-  return *this->getExprNode();
+  return *getExprNode();
 }
 
 Node *Double::getChildNode(int index) const {
@@ -306,9 +302,8 @@ Node *Double::getChildNode(int index) const {
   exit(1);
 }
 
-FreeVariable::FreeVariable(const ibex::Interval &var) {
-  this->var = &var;
-  this->type = FREE_VARIABLE;
+FreeVariable::FreeVariable(const ibex::Interval &var): var(&var) {
+  type = FREE_VARIABLE;
 }
 
 void FreeVariable::write(std::ostream &os) const {
@@ -319,40 +314,40 @@ void FreeVariable::write(std::ostream &os) const {
   os << "\tValue:" << *var << std::endl;
 }
 
-Node *FreeVariable::operator+(Node &other) const {
+Node &FreeVariable::operator+(Node &other) const {
   assert(other.type == FREE_VARIABLE);
-  const ibex::Interval *a = this->var;
+  const ibex::Interval *a = var;
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a+*b);
 
-  return new FreeVariable(*c);
+  return *new FreeVariable(*c);
 }
 
-Node *FreeVariable::operator-(Node &other) const {
+Node &FreeVariable::operator-(Node &other) const {
   assert(other.type == FREE_VARIABLE);
-  const ibex::Interval *a = this->var;
+  const ibex::Interval *a = var;
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a-*b);
 
-  return new FreeVariable(*c);
+  return *new FreeVariable(*c);
 }
 
-Node *FreeVariable::operator*(Node &other) const {
+Node &FreeVariable::operator*(Node &other) const {
   assert(other.type == FREE_VARIABLE);
-  const ibex::Interval *a = this->var;
+  const ibex::Interval *a = var;
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a**b);
 
-  return new FreeVariable(*c);
+  return *new FreeVariable(*c);
 }
 
-Node *FreeVariable::operator/(Node &other) const {
+Node &FreeVariable::operator/(Node &other) const {
   assert(other.type == FREE_VARIABLE);
-  const ibex::Interval *a = this->var;
+  const ibex::Interval *a = var;
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a/(*b));
 
-  return new FreeVariable(*c);
+  return *new FreeVariable(*c);
 }
 
 ibex::ExprNode &FreeVariable::getAbsoluteError() {
@@ -360,7 +355,7 @@ ibex::ExprNode &FreeVariable::getAbsoluteError() {
 }
 
 ibex::ExprNode &FreeVariable::generateSymExpr() {
-  assert(this->var != nullptr && "ERROR: ibex::Interval with Interval value should have been assigned while parsing/"
+  assert(var != nullptr && "ERROR: ibex::Interval with Interval value should have been assigned while parsing/"
                                    "node creation\n");
   exit(1);
 }
@@ -370,9 +365,8 @@ Node *FreeVariable::getChildNode(int index) const {
   exit(1);
 }
 
-VariableNode::VariableNode(const ibex::ExprSymbol& variable) {
-  this->variable = &variable;
-  this->type = VARIABLE;
+VariableNode::VariableNode(const ibex::ExprSymbol& variable): variable(&variable) {
+  type = VARIABLE;
 }
 
 void VariableNode::write(std::ostream &os) const {
@@ -384,28 +378,28 @@ void VariableNode::write(std::ostream &os) const {
 }
 
 ibex::ExprNode *VariableNode::getExprNode() const {
-  return (ibex::ExprNode*)this->variable;
+  return (ibex::ExprNode*)variable;
 }
 
 bool VariableNode::operator==(const VariableNode &other) const {
   return Node::operator==(other) &&
-         this->variable == other.variable;
+         variable == other.variable;
 }
 
-Node *VariableNode::operator+(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+Node &VariableNode::operator+(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
 
-Node *VariableNode::operator-(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+Node &VariableNode::operator-(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
 }
 
-Node *VariableNode::operator*(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+Node &VariableNode::operator*(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
 }
 
-Node *VariableNode::operator/(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+Node &VariableNode::operator/(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 ibex::ExprNode &VariableNode::getAbsoluteError() {
@@ -413,9 +407,9 @@ ibex::ExprNode &VariableNode::getAbsoluteError() {
 }
 
 ibex::ExprNode &VariableNode::generateSymExpr() {
-  assert(this->variable != nullptr && "ERROR: ibex::ExprSymbol with string literal should have been assigned while parsing/"
+  assert(variable != nullptr && "ERROR: ibex::ExprSymbol with string literal should have been assigned while parsing/"
                                    "node creation\n");
-  return *this->getExprNode();
+  return *getExprNode();
 }
 
 Node *VariableNode::getChildNode(int index) const {
@@ -423,13 +417,12 @@ Node *VariableNode::getChildNode(int index) const {
   exit(1);
 }
 
-UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr) {
-  this->depth = Operand->depth + 1;
-  this->type = UNARY_OP;
-  this->Operand = Operand;
-  this->op = op;
-  this->expr = &expr;
-  this->Operand->parents.insert(this);
+UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr): expr(&expr) {
+  depth = Operand->depth + 1;
+  type = UNARY_OP;
+  Operand = Operand;
+  op = op;
+  Operand->parents.insert(this);
 }
 
 void UnaryOp::write(std::ostream &os) const {
@@ -441,33 +434,33 @@ void UnaryOp::write(std::ostream &os) const {
 }
 
 ibex::ExprNode *UnaryOp::getExprNode() const {
-  return (ibex::ExprNode*)this->expr;
+  return (ibex::ExprNode*)expr;
 }
 
 bool UnaryOp::operator==(const UnaryOp &other) const {
   return Node::operator==(other) &&
-          this->Operand == other.Operand &&
-          this->op == other.op;
+          Operand == other.Operand &&
+          op == other.op;
 }
 
-Node *UnaryOp::operator+(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+Node &UnaryOp::operator+(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
 
-Node *UnaryOp::operator-(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+Node &UnaryOp::operator-(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
 }
 
-Node *UnaryOp::operator*(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+Node &UnaryOp::operator*(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
 }
 
-Node *UnaryOp::operator/(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+Node &UnaryOp::operator/(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 double UnaryOp::getRounding() {
-  return this->rounding * OpErrorULPs[this->op];
+  return rounding * OpErrorULPs[op];
 }
 
 ibex::ExprNode &UnaryOp::generateSymExpr() {
@@ -492,22 +485,21 @@ ibex::ExprNode &UnaryOp::generateSymExpr() {
 
 Node *UnaryOp::getChildNode(int index) const {
   if (index == 0) {
-    return this->Operand;
+    return Operand;
   } else {
     std::cout << "ERROR: UnaryOp Class has only one child node" << std::endl;
     exit(1);
   }
 }
 
-BinaryOp::BinaryOp(Node* Left, Node* Right, Op op) {
-  this->depth = std::max(Left->depth, Right->depth) + 1;
-  this->type = BINARY_OP;
-  this->leftOperand = Left;
-  this->rightOperand = Right;
-  this->op = op;
-  this->expr = nullptr;
-  this->leftOperand->parents.insert(this);
-  this->rightOperand->parents.insert(this);
+BinaryOp::BinaryOp(Node* Left, Node* Right, Op op): leftOperand(Left),
+                                                    rightOperand(Right),
+                                                    op(op),
+                                                    expr(nullptr) {
+  depth = std::max(Left->depth, Right->depth) + 1;
+  type = BINARY_OP;
+  leftOperand->parents.insert(this);
+  rightOperand->parents.insert(this);
 }
 
 void BinaryOp::write(std::ostream &os) const {
@@ -532,33 +524,33 @@ void BinaryOp::write(std::ostream &os) const {
 
 bool BinaryOp::operator==(const BinaryOp &other) const {
   return Node::operator==(other) &&
-          this->leftOperand == other.leftOperand &&
-          this->rightOperand == other.rightOperand &&
-          this->op == other.op;
+          leftOperand == other.leftOperand &&
+          rightOperand == other.rightOperand &&
+          op == other.op;
 }
 
 ibex::ExprNode *BinaryOp::getExprNode() const {
-  return (ibex::ExprNode*)this->expr;
+  return (ibex::ExprNode*)expr;
 }
 
-Node *BinaryOp::operator+(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+Node &BinaryOp::operator+(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
 
-Node *BinaryOp::operator-(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+Node &BinaryOp::operator-(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
 }
 
-Node *BinaryOp::operator*(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+Node &BinaryOp::operator*(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
 }
 
-Node *BinaryOp::operator/(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+Node &BinaryOp::operator/(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 double BinaryOp::getRounding() {
-  return this->rounding * OpErrorULPs[this->op];
+  return rounding * OpErrorULPs[op];
 }
 
 ibex::ExprNode &BinaryOp::generateSymExpr() {
@@ -573,24 +565,23 @@ ibex::ExprNode &BinaryOp::generateSymExpr() {
 
 Node *BinaryOp::getChildNode(int index) const {
   if (index == 0) {
-    return this->leftOperand;
+    return leftOperand;
   } else if (index == 1) {
-    return this->rightOperand;
+    return rightOperand;
   } else {
     std::cout << "ERROR: BinaryOp Class has only two child nodes" << std::endl;
     exit(1);
   }
 }
 
-TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right) {
-  this->depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
-  this->type = TERNARY_OP;
-  this->leftOperand = Left;
-  this->middleOperand = Middle;
-  this->rightOperand = Right;
-  this->leftOperand->parents.insert(this);
-  this->middleOperand->parents.insert(this);
-  this->rightOperand->parents.insert(this);
+TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right): leftOperand(Left),
+                                                              middleOperand(Middle),
+                                                              rightOperand(Right) {
+  depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
+  type = TERNARY_OP;
+  leftOperand->parents.insert(this);
+  middleOperand->parents.insert(this);
+  rightOperand->parents.insert(this);
 }
 
 void TernaryOp::write(std::ostream &os) const {
@@ -609,30 +600,30 @@ ibex::ExprNode *TernaryOp::getExprNode() const {
 
 bool TernaryOp::operator==(const TernaryOp &other) const {
   return Node::operator==(other) &&
-          this->leftOperand == other.leftOperand &&
-          this->middleOperand == other.middleOperand &&
-          this->rightOperand == other.rightOperand;
+          leftOperand == other.leftOperand &&
+          middleOperand == other.middleOperand &&
+          rightOperand == other.rightOperand;
 }
 
-Node *TernaryOp::operator+(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+Node &TernaryOp::operator+(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
 
-Node *TernaryOp::operator-(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+Node &TernaryOp::operator-(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
 }
 
-Node *TernaryOp::operator*(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+Node &TernaryOp::operator*(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
 }
 
-Node *TernaryOp::operator/(Node &other) const {
-  return new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+Node &TernaryOp::operator/(Node &other) const {
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 double TernaryOp::getRounding() {
   // TODO: Add rounding for Ternary operations
-  return this->rounding;
+  return rounding;
 }
 
 ibex::ExprNode &TernaryOp::generateSymExpr() {
@@ -642,11 +633,11 @@ ibex::ExprNode &TernaryOp::generateSymExpr() {
 
 Node *TernaryOp::getChildNode(int index) const {
   if (index == 0) {
-    return this->leftOperand;
+    return leftOperand;
   } else if (index == 1) {
-    return this->middleOperand;
+    return middleOperand;
   } else if (index == 2) {
-    return this->rightOperand;
+    return rightOperand;
   } else {
     std::cout << "ERROR: TernaryOp Class has only three child nodes" << std::endl;
     exit(1);
@@ -658,18 +649,18 @@ std::ostream &operator<<(std::ostream &os, const Node &node) {
   return os;
 }
 
-Node *operator+(Node &x, Node *y) {
+Node &operator+(Node &x, Node *y) {
   return x+*y;
 }
 
-Node *operator-(Node &x, Node *y) {
+Node &operator-(Node &x, Node *y) {
   return x-*y;
 }
 
-Node *operator*(Node &x, Node *y) {
+Node &operator*(Node &x, Node *y) {
   return x**y;
 }
 
-Node *operator/(Node &x, Node *y) {
+Node &operator/(Node &x, Node *y) {
   return x/(*y);
 }

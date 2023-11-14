@@ -51,8 +51,8 @@ public:
   Node() = default;
   ~Node() = default;
 
-  void setRounding(RoundingType rounding);
-  void setAbsoluteError(const ibex::ExprNode *absoluteError);
+  void setRounding(RoundingType roundingType);
+  void setAbsoluteError(const ibex::ExprNode *absErr);
 
   virtual void write(std::ostream &os) const;
 
@@ -62,14 +62,14 @@ public:
   friend std::ostream& operator<<(std::ostream& os, const Node &node);
 
   bool operator==(const Node &other) const;
-  friend Node *operator+(Node &x, Node *y);
-  friend Node *operator-(Node &x, Node *y);
-  friend Node *operator*(Node &x, Node *y);
-  friend Node *operator/(Node &x, Node *y);
-  virtual Node *operator+(Node &other) const;
-  virtual Node *operator-(Node &other) const;
-  virtual Node *operator*(Node &other) const;
-  virtual Node *operator/(Node &other) const;
+  friend Node &operator+(Node &x, Node *y);
+  friend Node &operator-(Node &x, Node *y);
+  friend Node &operator*(Node &x, Node *y);
+  friend Node &operator/(Node &x, Node *y);
+  virtual Node &operator+(Node &other) const;
+  virtual Node &operator-(Node &other) const;
+  virtual Node &operator*(Node &other) const;
+  virtual Node &operator/(Node &other) const;
   virtual double getRounding();
   virtual ibex::ExprNode &getAbsoluteError();
   virtual ibex::ExprNode &generateSymExpr();
@@ -89,10 +89,10 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const Integer &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
@@ -110,10 +110,10 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const Float &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
@@ -132,10 +132,10 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const Double &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
@@ -154,10 +154,10 @@ public:
   // Prints string representation of this node
   void write(std::ostream& os) const override;
   bool operator==(const FreeVariable &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
@@ -175,10 +175,10 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const VariableNode &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   ibex::ExprNode &getAbsoluteError() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
@@ -228,10 +228,10 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const UnaryOp &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   double getRounding() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
@@ -267,10 +267,10 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const BinaryOp &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   double getRounding() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
@@ -291,19 +291,19 @@ public:
   void write(std::ostream& os) const override;
   ibex::ExprNode *getExprNode() const override;
   bool operator==(const TernaryOp &other) const;
-  Node *operator+(Node &other) const override;
-  Node *operator-(Node &other) const override;
-  Node *operator*(Node &other) const override;
-  Node *operator/(Node &other) const override;
+  Node &operator+(Node &other) const override;
+  Node &operator-(Node &other) const override;
+  Node &operator*(Node &other) const override;
+  Node &operator/(Node &other) const override;
   double getRounding() override;
   ibex::ExprNode &generateSymExpr() override;
   Node *getChildNode(int index) const override;
 };
 
 std::ostream &operator<<(std::ostream &os, const Node &node);
-Node *operator+(Node &x, Node *y);
-Node *operator-(Node &x, Node *y);
-Node *operator*(Node &x, Node *y);
-Node *operator/(Node &x, Node *y);
+Node &operator+(Node &x, Node *y);
+Node &operator-(Node &x, Node *y);
+Node &operator*(Node &x, Node *y);
+Node &operator/(Node &x, Node *y);
 
 #endif //CIRE_NODE_H

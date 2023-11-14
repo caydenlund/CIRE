@@ -17,6 +17,7 @@ public:
   std::string file;
 
   CIRE();
+  ~CIRE();
 };
 
 #endif //CIRE_CIRE_H

@@ -4,30 +4,19 @@ CIRE::CIRE() {
   graph = new Graph();
 }
 
+CIRE::~CIRE() {
+  delete graph;
+}
 
 int main(int argc, char *argv[]) {
   CIRE cire;
 
   cire.graph->parse(*argv[1]);
-
   cire.graph->generateExprDriver();
-
-
-  // Set up output
-  // Assuming there is only one output
-  // TODO: Change this for multiple outputs
-  cire.graph->workList.insert(cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]);
-  cire.graph->BwdDerivatives[cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]]
-  [cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]] =
-          (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
-  cire.graph->numParentsOfNode[cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]] =
-          cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]->parents.size();
-
-  cire.graph->derivativeComputingDriver();
+  cire.graph->setupDerivativeComputation();
+  cire.graph->errorAnalyzer->derivativeComputingDriver();
 
   cire.graph->errorComputingDriver();
-
-
 
   // Print Intervals from inputs
   double x[2][2];
@@ -40,8 +29,7 @@ int main(int argc, char *argv[]) {
   }
   auto *iv = new ibex::IntervalVector(2, x);
   std::cout << "Input: " << *iv << std::endl;
-
-  std::cout << "Function:" << *cire.graph->ErrAccumulator[cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]] << std::endl;
+  std::cout << "Function:" << *cire.graph->errorAnalyzer->ErrAccumulator[cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]] << std::endl;
   // Print variables
   auto *variables = new ibex::Array<const ibex::ExprSymbol>();
   std::cout << "Variables: " << std::endl;
@@ -50,11 +38,10 @@ int main(int argc, char *argv[]) {
     variables->add(*(ibex::ExprSymbol*) cire.graph->symbolTables[cire.graph->currentScope]->table[input.first]->getExprNode());
   }
   auto *temp = new ibex::Function(*variables,
-                                  *cire.graph->ErrAccumulator[cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]]);
+                                  *cire.graph->errorAnalyzer->ErrAccumulator[cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[0]]]);
 
   ibex::IntervalVector answer = temp->eval(*iv) * pow(2, -53);
   std::cout << "Output: " << answer << std::endl;
 
-  free(cire.graph);
   return 0;
 }

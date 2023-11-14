@@ -199,12 +199,12 @@ arith_term: arith_fact {
                 $$ = $1;
             }
             | arith_term MUL arith_fact {
-                $$ = *$1*$3;
+                $$ = &(*$1*$3);
                 graph->nodes.insert($$);
                 // std::cout << *$$ << std::endl;
             }
             | arith_term DIV arith_fact {
-                $$ = *$1/$3;
+                $$ = &(*$1/$3);
                 graph->nodes.insert($$);
                 // std::cout << *$$ << std::endl;
             }
@@ -214,12 +214,12 @@ arith_exp:  arith_term {
                 $$ = $1;
             }
             | arith_exp ADD arith_term {
-                $$ = *$1+$3;
+                $$ = &(*$1+$3);
                 graph->nodes.insert($$);
                 // std::cout << *$$ << std::endl;
             }
             | arith_exp SUB arith_term {
-                $$ = *$1-$3;
+                $$ = &(*$1-$3);
                 graph->nodes.insert($$);
                 // std::cout << *$$ << std::endl;
             }
