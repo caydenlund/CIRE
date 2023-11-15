@@ -11,6 +11,7 @@ Graph::~Graph() {
     delete node;
   }
   delete errorAnalyzer;
+  delete ibexInterface;
 }
 
 std::ostream &operator<<(std::ostream &os, const Graph &graph) {

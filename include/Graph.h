@@ -3,6 +3,7 @@
 
 #include "SymbolTable.h"
 #include "ErrorAnalyzer.h"
+#include "IBEXInterface.h"
 
 class Graph {
 private:
@@ -17,6 +18,7 @@ public:
   std::set<Node *> nodes;
 
   ErrorAnalyzer *errorAnalyzer = new ErrorAnalyzer();
+  IBEXInterface *ibexInterface = new IBEXInterface();
 
   Graph() = default;
   ~Graph();
