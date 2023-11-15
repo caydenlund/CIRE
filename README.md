@@ -18,6 +18,22 @@ Cire requires the following softwares installed on your system
 * flex
 * cmake
 
+## IBEX installation
+### Linux and MacOS
+Download `ibex-lib-ibex-2.8.9.tar.gz` (the tar file) from [here](https://github.com/ibex-team/ibex-lib/releases/tag/ibex-2.8.9)
+```bash
+tar xvfz ibex-2.8.9.tgz
+cd ibex-2.8.9
+sudo ./waf configure --enable-shared
+sudo ./waf install
+```
+
+To Uninstall
+```bash
+sudo ./waf uninstall
+sudo ./waf distclean
+```
+
 # Building
 
 The CMakeLists.txt file is configured to build the library and the executable in the build directory.
@@ -25,7 +41,7 @@ Make sure the shared library files are in your PATH. If not, set the LD_LIBRARY_
 shared library files are located.
 Run the following
 
-```cmake
+```bash
 mkdir build-debug
 cmake CIRE
 ```
