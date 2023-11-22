@@ -4,6 +4,38 @@
 
 int Node::NODE_COUNTER = 0;
 
+bool Node::isInteger() const {
+  return type == INTEGER;
+}
+
+bool Node::isFloat() const {
+  return type == FLOAT;
+}
+
+bool Node::isDouble() const {
+  return type == DOUBLE;
+}
+
+bool Node::isFreeVariable() const {
+  return type == FREE_VARIABLE;
+}
+
+bool Node::isVariable() const {
+  return type == VARIABLE;
+}
+
+bool Node::isUnaryOp() const {
+  return type == UNARY_OP;
+}
+
+bool Node::isBinaryOp() const {
+  return type == BINARY_OP;
+}
+
+bool Node::isTernaryOp() const {
+  return type == TERNARY_OP;
+}
+
 void Node::setRounding(Node::RoundingType roundingType) {
   rounding = RoundingAmount[roundingType];
 }
@@ -112,38 +144,82 @@ bool Integer::operator==(const Integer &other) const {
 
 Node &Integer::operator+(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+  if (other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+    return *new Integer(*c);
+  } else if(other.isFloat()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Integer(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
 
 Node &Integer::operator-(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+  if (other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+    return *new Integer(*c);
+  } else if(other.isFloat()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Integer(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
 }
 
 Node &Integer::operator*(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+  if (other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+    return *new Integer(*c);
+  } else if(other.isFloat()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Integer(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
 }
 
 Node &Integer::operator/(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+  if (other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+    return *new Integer(*c);
+  } else if(other.isFloat()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Integer(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 ibex::ExprNode &Integer::generateSymExpr() {
@@ -181,38 +257,66 @@ bool Float::operator==(const Float &other) const {
 
 Node &Float::operator+(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+  if(other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Float(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
 
 Node &Float::operator-(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+  if(other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Float(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
 }
 
 Node &Float::operator*(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+  if(other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Float(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
 }
 
 Node &Float::operator/(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+  if(other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+    return *new Float(*c);
+  } else if(other.isDouble()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Float(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 ibex::ExprNode &Float::getAbsoluteError() {
@@ -253,38 +357,50 @@ bool Double::operator==(const Double &other) const {
 
 Node &Double::operator+(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+  if(other.isDouble() || other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprAdd::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Double(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
 }
 
 Node &Double::operator-(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+  if(other.isDouble() || other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprSub::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Double(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
 }
 
 Node &Double::operator*(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+  if(other.isDouble() || other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprMul::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Double(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
 }
 
 Node &Double::operator/(Node &other) const {
   ibex::ExprNode *a = getExprNode();
-  ibex::ExprNode *b = other.getExprNode();
 
-  const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+  if(other.isDouble() || other.isFloat() || other.isInteger()) {
+    ibex::ExprNode *b = other.getExprNode();
+    const ibex::ExprConstant *c = (ibex::ExprConstant*)&ibex::ExprDiv::new_(*a, *b);
+    return *new Double(*c);
+  }
 
-  return *new Double(*c);
+  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
 }
 
 ibex::ExprNode &Double::getAbsoluteError() {
@@ -417,11 +533,11 @@ Node *VariableNode::getChildNode(int index) const {
   exit(1);
 }
 
-UnaryOp::UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr): expr(&expr) {
+UnaryOp::UnaryOp(Node* Operand, Op op): Operand(Operand),
+                                        op(op),
+                                        expr(nullptr) {
   depth = Operand->depth + 1;
   type = UNARY_OP;
-  Operand = Operand;
-  op = op;
   Operand->parents.insert(this);
 }
 
@@ -465,6 +581,7 @@ double UnaryOp::getRounding() {
 
 ibex::ExprNode &UnaryOp::generateSymExpr() {
   switch (op) {
+    case NEG: return (ibex::ExprNode &) -(*Operand->getExprNode());
     case SIN: return (ibex::ExprNode &) ibex::sin(*Operand->getExprNode());
     case COS: return (ibex::ExprNode &) ibex::cos(*Operand->getExprNode());
     case TAN: return (ibex::ExprNode &) ibex::tan(*Operand->getExprNode());
@@ -663,4 +780,8 @@ Node &operator*(Node &x, Node *y) {
 
 Node &operator/(Node &x, Node *y) {
   return x/(*y);
+}
+
+Node &operator-(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::NEG);
 }

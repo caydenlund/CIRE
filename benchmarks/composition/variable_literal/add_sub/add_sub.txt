@@ -1,0 +1,12 @@
+INPUTS {
+    x fl32 : (-0.3, 0.6);
+    y fl32 : (-10.5, 2.5);
+}
+
+OUTPUTS {
+    res;
+}
+
+EXPRS {
+    res fl32 = x-3.9+y;
+}

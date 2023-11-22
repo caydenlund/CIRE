@@ -4,7 +4,7 @@
     #include "../lib/parser.h"
 %}
 num [0-9][0-9]*
-id [a-zA-Z][a-zA-Z0-9]*
+id [a-zA-Z][a-zA-Z0-9_]*
 
 /* rules */
 %%
@@ -27,7 +27,7 @@ id [a-zA-Z][a-zA-Z0-9]*
 {num}  {yylval.num.type = Number::INT;
         yylval.num.ival = atoi(yytext);
         return INT; }
--?([0-9]*\.[0-9]+([eE][-+]?[0-9]+)?) { yylval.num.type = Number::FP;
+([0-9]*\.[0-9]+([eE][-+]?[0-9]+)?) { yylval.num.type = Number::FP;
                                        yylval.num.fval = atof(yytext);
                                        return FP; }
 

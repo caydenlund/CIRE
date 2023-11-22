@@ -146,7 +146,13 @@ int Graph::parse(const char &f) {
   do {
     std::cout << "Parsing..." << std::endl;
     createNewSymbolTable();
-    yyparse(this);
+    if(yyparse(this)) {
+      std::cout << "Parsing failed" << std::endl;
+      return 0;
+    }
+    else {
+      std::cout << "Parsing successful" << std::endl;
+    }
   } while (!feof(yyin));
 
 //  std::cout << *graph << std::endl;

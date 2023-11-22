@@ -49,7 +49,6 @@
 %token AND OR NOT
 %token INPUTS OUTPUTS CONSTRAINTS EXPRS
 %token IF THEN ELSE ENDIF
-%token MINUS
 %token SIN COS TAN
 %token ASIN
 %token COT
@@ -66,15 +65,18 @@
 /* rules */
 %%
 
-program: inputs EOL outputs EOL constraints EOL exprs {
-
-        }
-        | inputs EOL outputs EOL exprs {
-
-        }
+program: inputs EOL outputs EOL constraints EOL exprs
+	| inputs EOL outputs EOL constraints EOL exprs EOL
+        | inputs EOL outputs EOL exprs
+        | inputs EOL outputs EOL exprs EOL
         ;
 
-intv_factor:    FP { $$ = $1; }
+intv_factor:    SUB FP {
+			$$ = $2;
+			$$.fval = -$2.fval;
+		}
+		|
+		FP { $$ = $1; }
                 ;
 
 intv_term:  intv_factor { $$ = $1; }
@@ -185,6 +187,12 @@ number: INT {
 
 
 arith_fact: number { $$ = $1; }
+	    | SUB number {
+                $$ = &(-*$2);
+		graph->nodes.insert($$);
+		// std::cout << *$$ << std::endl;
+            }
+	    | LPAREN arith_exp RPAREN { $$ = $2; }
             | ID {
                 if(Node *VarNode = graph->findVarNode($1)) {
                     $$ = graph->symbolTables[graph->currentScope]->table[$1];

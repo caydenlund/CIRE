@@ -51,6 +51,15 @@ public:
   Node() = default;
   ~Node() = default;
 
+  bool isInteger() const;
+  bool isFloat() const;
+  bool isDouble() const;
+  bool isFreeVariable() const;
+  bool isVariable() const;
+  bool isUnaryOp() const;
+  bool isBinaryOp() const;
+  bool isTernaryOp() const;
+
   void setRounding(RoundingType roundingType);
   void setAbsoluteError(const ibex::ExprNode *absErr);
 
@@ -188,6 +197,7 @@ class UnaryOp : public Node {
 private:
 public:
   enum Op {
+    NEG,
     SIN,
     COS,
     TAN,
@@ -221,7 +231,7 @@ public:
   Op op;
   const ibex::ExprUnaryOp* expr;
   UnaryOp() = default;
-  UnaryOp(Node* Operand, Op op, const ibex::ExprUnaryOp &expr);
+  UnaryOp(Node* Operand, Op op);
   ~UnaryOp() = default;
 
   // Prints string representation of this node
@@ -305,5 +315,6 @@ Node &operator+(Node &x, Node *y);
 Node &operator-(Node &x, Node *y);
 Node &operator*(Node &x, Node *y);
 Node &operator/(Node &x, Node *y);
+Node &operator-(Node &x);
 
 #endif //CIRE_NODE_H

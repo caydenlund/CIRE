@@ -31,11 +31,11 @@ void ErrorAnalyzer::derivativeComputingDriver() {
       workList.insert(node);
     }
 
-//    printBwdDerivativesIbexExprs();
-
     std::copy_if(nextWorkList.begin(), nextWorkList.end(), std::inserter(workList, workList.end()), [&next_depth](
             Node *node) { return node->depth == next_depth;});
   }
+//  printBwdDerivativesIbexExprs();
+//  std::cout << std::endl;
 }
 
 void ErrorAnalyzer::derivativeComputing(Node *node) {
@@ -58,6 +58,10 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
                                                                outVar,
                                                                (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
                                      *derivThroughNode);
+
+//          std::cout << *outVar->getExprNode() << " wrt "
+//                    << *((UnaryOp *) node)->Operand->getExprNode() << " : "
+//                    << *derivThroughNode << std::endl;
 
         // Add child to nextWorkList
         nextWorkList.insert(((UnaryOp *) node)->Operand);
@@ -178,7 +182,8 @@ void ErrorAnalyzer::propagateError(Node *node) {
                                                            outVar,
                                                            (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
                                  *expr);
-    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
+//    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
+//    std::cout << std::endl;
   }
 
 
@@ -196,6 +201,8 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
       return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0);
     case NodeType::UNARY_OP:
       switch (((UnaryOp*) node)->op) {
+        case UnaryOp::NEG:
+          return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(-1);
         case UnaryOp::SIN:
           return (ibex::ExprNode *) &ibex::cos(*child->getExprNode());
         case UnaryOp::COS:
