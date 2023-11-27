@@ -64,9 +64,12 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
           BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*derivThroughNode);
         }
 
-//        std::cout << *outVar->getExprNode() << " wrt "
+//        std::cout << *node->getExprNode() << " wrt "
 //                  << *Operand->getExprNode() << " : "
 //                  << *derivThroughNode << std::endl;
+//        std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+//                  << *Operand->getExprNode() << " : "
+//                  << *BwdDerivatives[Operand][outVar] << std::endl;
 
         // Add child to nextWorkList
         nextWorkList.insert(Operand);
@@ -86,9 +89,12 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
           BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*derivLeftThroughNode);
         }
 
-//        std::cout << *outVar->getExprNode() << " wrt "
+//        std::cout << *node->getExprNode() << " wrt "
 //                  << *leftOperand->getExprNode() << " : "
 //                  << *derivLeftThroughNode << std::endl;
+//        std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+//                  << *leftOperand->getExprNode() << " : "
+//                  << *BwdDerivatives[leftOperand][outVar] << std::endl;
 
         rightOperand = ((BinaryOp *) node)->rightOperand;
         derivRightThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
@@ -101,9 +107,12 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
           BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*derivRightThroughNode);
         }
 
-//        std::cout << *outVar->getExprNode() << " wrt "
+//        std::cout << *node->getExprNode() << " wrt "
 //                  << *rightOperand->getExprNode() << " : "
 //                  << *derivRightThroughNode << std::endl;
+//        std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+//                  << *rightOperand->getExprNode() << " : "
+//                  << *BwdDerivatives[rightOperand][outVar] << std::endl;
 
         // Add children to nextWorkList
         nextWorkList.insert(leftOperand);

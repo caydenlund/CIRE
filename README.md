@@ -6,7 +6,7 @@ more.
 
 # Dependencies
 
-Cire requires the following softwares installed on your system
+CIRE requires the following softwares installed on your system
 
 * ibex-lib > 2.8.9
   * [Github](https://github.com/ibex-team/ibex-lib)
@@ -17,6 +17,9 @@ Cire requires the following softwares installed on your system
 * bison
 * flex
 * cmake
+
+### If you want to use the LLVM frontend
+* LLVM > 16
 
 ## IBEX installation
 ### Linux and MacOS
@@ -46,6 +49,15 @@ mkdir build-debug
 cmake CIRE
 ```
 
+## Building the LLVM frontend
+
+To build the LLVM frontend, you need to have LLVM installed on your system. Set LT_LLVM_INSTALL_DIR to the directory
+where LLVM is installed.
+
+```bash
+cmake CIRE_LLVM -DLT_LLVM_INSTALL_DIR=<path to LLVM install directory>
+```
+
 # Usage
 
 The executable is located in the build-debug directory. Run the following to see CIRE run on an example file
@@ -54,3 +66,5 @@ The executable is located in the build-debug directory. Run the following to see
 LD_LIBRARY_PATH=/usr/local/lib
 ./build-debug/CIRE ./benchmarks/addition/addition.txt
 ```
+
+## LLVM Frontend

@@ -35,7 +35,7 @@ endif()
 #===============================================================================
 # 3. ADD THE TARGET
 #===============================================================================
-#add_library(HelloWorld SHARED HelloWorld.cpp)
+add_library(CIRE_LLVM SHARED src/CIRE_LLVM.cpp)
 
 # Allow undefined symbols in shared objects on Darwin (this is the default
 # behaviour on Linux)
@@ -71,4 +71,6 @@ add_executable(CIRE src/CIRE.cpp)
 target_link_libraries(CIRE PUBLIC
         Graph
         ibex)
+
+# Building CIRE LLVM
 
