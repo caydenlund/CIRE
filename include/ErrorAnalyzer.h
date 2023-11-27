@@ -40,6 +40,10 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index);
 
 template<class T1, class T2>
 std::vector<T1> keys(std::map<T1, T2> map);
+
+template<class T1, class T2>
+bool contains(std::map<T1, T2> map, T1 key);
+
 template<class T1, class T2>
 T2 findWithDefaultInsertion(std::map<T1, T2> map, T1 key, T2 defaultVal);
 

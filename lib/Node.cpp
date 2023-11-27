@@ -785,3 +785,35 @@ Node &operator/(Node &x, Node *y) {
 Node &operator-(Node &x) {
   return *new UnaryOp(&x, UnaryOp::NEG);
 }
+
+const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right) {
+  if (left == ibex::ExprConstant::new_scalar(1.0) && right == ibex::ExprConstant::new_scalar(1.0)) {
+    return ibex::ExprConstant::new_scalar(1.0);
+  } else if (left == ibex::ExprConstant::new_scalar(1.0)) {
+    return right;
+  } else if (left == ibex::ExprConstant::new_scalar(-1.0)) {
+    return -right;
+  } else if (right == ibex::ExprConstant::new_scalar(1.0)) {
+    return left;
+  } else if (right == ibex::ExprConstant::new_scalar(-1.0)) {
+    return -left;
+  } else {
+    return ibex::ExprMul::new_(left, right);
+  }
+}
+
+const ibex::ExprNode& product(const ibex::ExprNode& left, double right) {
+if (left == ibex::ExprConstant::new_scalar(1.0) && right == 1.0) {
+    return ibex::ExprConstant::new_scalar(1.0);
+  } else if (left == ibex::ExprConstant::new_scalar(1.0)) {
+    return ibex::ExprConstant::new_scalar(right);
+  } else if (left == ibex::ExprConstant::new_scalar(-1.0)) {
+    return ibex::ExprConstant::new_scalar(-right);
+  } else if (right == 1.0) {
+    return left;
+  } else if (right == -1.0) {
+    return -left;
+  } else {
+    return left*ibex::ExprConstant::new_scalar(right);
+  }
+}

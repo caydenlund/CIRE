@@ -40,72 +40,83 @@ void ErrorAnalyzer::derivativeComputingDriver() {
 
 void ErrorAnalyzer::derivativeComputing(Node *node) {
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
+  for (Node *outVar : outputList) {
+    assert(BwdDerivatives[node][outVar] != nullptr && "Derivative of output wrt node should have been computed\n");
 
-  switch (node->type) {
-    case DEFAULT:
-    case INTEGER:
-    case FLOAT:
-    case DOUBLE:
-    case FREE_VARIABLE:
-    case VARIABLE:
-      break;
-    case UNARY_OP:
-      for (Node *outVar : outputList) {
-        auto *derivThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
+    Node *Operand, *leftOperand, *rightOperand;
+    ibex::ExprNode *derivThroughNode, *derivLeftThroughNode, *derivRightThroughNode;
+    switch (node->type) {
+      case DEFAULT:
+      case INTEGER:
+      case FLOAT:
+      case DOUBLE:
+      case FREE_VARIABLE:
+      case VARIABLE:
+        break;
+      case UNARY_OP:
+        Operand = ((UnaryOp *) node)->Operand;
+        derivThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
+                                                      *getDerivativeWRTChildNode(node, 0)).simplify(0);
 
-        BwdDerivatives[((UnaryOp *) node)->Operand][outVar] =
-                (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((UnaryOp *) node)->Operand],
-                                                               outVar,
-                                                               (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
-                                     *derivThroughNode);
+        if (contains(BwdDerivatives[Operand], outVar)) {
+          BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[Operand][outVar] + *derivThroughNode);
+        } else {
+          BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*derivThroughNode);
+        }
 
-//          std::cout << *outVar->getExprNode() << " wrt "
-//                    << *((UnaryOp *) node)->Operand->getExprNode() << " : "
-//                    << *derivThroughNode << std::endl;
+//        std::cout << *outVar->getExprNode() << " wrt "
+//                  << *Operand->getExprNode() << " : "
+//                  << *derivThroughNode << std::endl;
 
         // Add child to nextWorkList
-        nextWorkList.insert(((UnaryOp *) node)->Operand);
+        nextWorkList.insert(Operand);
         // Increment number of parents of child that have been processed
-        numParentsOfNode[((UnaryOp *) node)->Operand]++;
-      }
-      break;
-    case BINARY_OP:
-      for (Node *outVar : outputList) {
+        numParentsOfNode[Operand]++;
+        break;
+      case BINARY_OP:
         // Computing the backward derivative of outVar with respect to node's children
-        auto *derivLeftThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 0));
+        leftOperand = ((BinaryOp *) node)->leftOperand;
+        derivLeftThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
+                                                          *getDerivativeWRTChildNode(node, 0)).simplify(0);
 
-        BwdDerivatives[((BinaryOp *) node)->leftOperand][outVar] =
-                (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->leftOperand],
-                                                               outVar,
-                                                               (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
-                                     *derivLeftThroughNode);
-//          std::cout << *outVar->getExprNode() << " wrt "
-//                    << *((BinaryOp *) node)->leftOperand->getExprNode() << " : "
-//                    << *derivLeftThroughNode << std::endl;
+        if (contains(BwdDerivatives[leftOperand], outVar)) {
+          BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[leftOperand][outVar] +
+                                                                     *derivLeftThroughNode);
+        } else {
+          BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*derivLeftThroughNode);
+        }
 
-        auto *derivRightThroughNode = (ibex::ExprNode *)&(*BwdDerivatives[node][outVar] * *getDerivativeWRTChildNode(node, 1));
-        BwdDerivatives[((BinaryOp *) node)->rightOperand][outVar] =
-                (ibex::ExprNode *) &(*findWithDefaultInsertion(BwdDerivatives[((BinaryOp *) node)->rightOperand],
-                                                               outVar,
-                                                               (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
-                                     *derivRightThroughNode);
-//          std::cout << *outVar->getExprNode() << " wrt "
-//                    << *((BinaryOp *) node)->rightOperand->getExprNode() << " : "
-//                    << *derivRightThroughNode << std::endl;
+//        std::cout << *outVar->getExprNode() << " wrt "
+//                  << *leftOperand->getExprNode() << " : "
+//                  << *derivLeftThroughNode << std::endl;
+
+        rightOperand = ((BinaryOp *) node)->rightOperand;
+        derivRightThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
+                                                           *getDerivativeWRTChildNode(node, 1)).simplify(0);
+
+        if (contains(BwdDerivatives[rightOperand], outVar)) {
+          BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[rightOperand][outVar] +
+                                                                      *derivRightThroughNode);
+        } else {
+          BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*derivRightThroughNode);
+        }
+
+//        std::cout << *outVar->getExprNode() << " wrt "
+//                  << *rightOperand->getExprNode() << " : "
+//                  << *derivRightThroughNode << std::endl;
 
         // Add children to nextWorkList
-        nextWorkList.insert(((BinaryOp *) node)->leftOperand);
-        nextWorkList.insert(((BinaryOp *) node)->rightOperand);
+        nextWorkList.insert(leftOperand);
+        nextWorkList.insert(rightOperand);
 
         // Increment number of parents of children that have been processed
-        numParentsOfNode[((BinaryOp *) node)->leftOperand]++;
-        numParentsOfNode[((BinaryOp *) node)->rightOperand]++;
-      }
-      break;
-    case TERNARY_OP:
-      // TODO: Complete this on adding ternary operations
-      break;
-
+        numParentsOfNode[leftOperand]++;
+        numParentsOfNode[rightOperand]++;
+        break;
+      case TERNARY_OP:
+        // TODO: Complete this on adding ternary operations
+        break;
+    }
   }
 
   derivativeComputedNodes[node->depth].insert(node);
@@ -129,6 +140,8 @@ void ErrorAnalyzer::printBwdDerivativesIbexExprs() {
 
 
 void ErrorAnalyzer::errorComputing(Node *node) {
+  Node *Operand, *leftOperand, *rightOperand;
+
   switch (node->type) {
     case DEFAULT:
     case INTEGER:
@@ -138,19 +151,23 @@ void ErrorAnalyzer::errorComputing(Node *node) {
     case VARIABLE:
       break;
     case UNARY_OP:
-      if(errorComputedNodes[((UnaryOp *) node)->Operand->depth].find(((UnaryOp *) node)->Operand) ==
-         errorComputedNodes[((UnaryOp *) node)->Operand->depth].end()) {
-        errorComputing(((UnaryOp *) node)->Operand);
+      Operand = ((UnaryOp *) node)->Operand;
+      if(errorComputedNodes[Operand->depth].find(Operand) ==
+         errorComputedNodes[Operand->depth].end()) {
+        errorComputing(Operand);
       }
       break;
     case BINARY_OP:
-      if(errorComputedNodes[((BinaryOp *) node)->leftOperand->depth].find(((BinaryOp *) node)->leftOperand) ==
-         errorComputedNodes[((BinaryOp *) node)->leftOperand->depth].end()) {
-        errorComputing(((BinaryOp *) node)->leftOperand);
+      leftOperand = ((BinaryOp *) node)->leftOperand;
+      if(errorComputedNodes[leftOperand->depth].find(leftOperand) ==
+         errorComputedNodes[leftOperand->depth].end()) {
+        errorComputing(leftOperand);
       }
-      if(errorComputedNodes[((BinaryOp *) node)->rightOperand->depth].find(((BinaryOp *) node)->rightOperand) ==
-         errorComputedNodes[((BinaryOp *) node)->rightOperand->depth].end()) {
-        errorComputing(((BinaryOp *) node)->rightOperand);
+
+      rightOperand = ((BinaryOp *) node)->rightOperand;
+      if(errorComputedNodes[rightOperand->depth].find(rightOperand) ==
+         errorComputedNodes[rightOperand->depth].end()) {
+        errorComputing(rightOperand);
       }
       break;
     case TERNARY_OP:
@@ -173,17 +190,18 @@ void ErrorAnalyzer::propagateError(Node *node) {
 //    std::cout << node->getRounding() << std::endl;
     // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
     // the rounding and noise
-    auto expr = (ibex::ExprNode *) &abs((*BwdDerivatives[node][outVar] *
-                                         node->getAbsoluteError() *
-                                         node->getRounding()));
+    auto local_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), node->getRounding()).simplify(0);
+    auto expr = (ibex::ExprNode *) &abs(product(*BwdDerivatives[node][outVar],
+                                                *local_error)).simplify(0);
 
-    ErrAccumulator[outVar] =
-            (ibex::ExprNode *) &(*findWithDefaultInsertion(ErrAccumulator,
-                                                           outVar,
-                                                           (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0)) +
-                                 *expr);
-//    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
-//    std::cout << std::endl;
+    if (contains(ErrAccumulator, outVar)) {
+      ErrAccumulator[outVar] = (ibex::ExprNode *) &(*ErrAccumulator[outVar] + *expr);
+    } else {
+      ErrAccumulator[outVar] = (ibex::ExprNode *) &(*expr);
+    }
+
+    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
+    std::cout << std::endl;
   }
 
 
@@ -273,6 +291,11 @@ std::vector<T1> keys(std::map<T1, T2> map) {
     keys.push_back(key_value.first);
   }
   return keys;
+}
+
+template<class T1, class T2>
+bool contains(std::map<T1, T2> map, T1 key) {
+  return map.find(key) != map.end();
 }
 
 template<class T1, class T2>

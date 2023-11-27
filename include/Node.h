@@ -317,4 +317,7 @@ Node &operator*(Node &x, Node *y);
 Node &operator/(Node &x, Node *y);
 Node &operator-(Node &x);
 
+const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right);
+const ibex::ExprNode& product(const ibex::ExprNode& left, double right);
+
 #endif //CIRE_NODE_H
