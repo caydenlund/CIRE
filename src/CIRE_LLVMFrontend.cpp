@@ -1,6 +1,6 @@
 //=============================================================================
 // FILE:
-//    CIRE.cpp
+//    CIRE_LLVMFrontend.cpp
 //
 // DESCRIPTION:
 //    Visits all functions in a module, prints their names and the number of
@@ -10,7 +10,7 @@
 //
 // USAGE:
 //    New PM
-//      opt -load-pass-plugin=libCIRE_LLVM.dylib -passes="cire" `\`
+//      opt -load-pass-plugin=libCIRE_LLVMFrontend.dylib -passes="cire" `\`
 //        -disable-output <input-llvm-file>
 //
 //
@@ -20,12 +20,18 @@
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
+#include "CIRE_LLVM.h"
 
 using namespace llvm;
 
 // No need to expose the internals of the pass to the outside world - keep
 // everything in an anonymous namespace.
 namespace {
+
+    cl::opt<string> Input("input",
+                          cl::desc("Input file for CIRE containing INPUTS and OUTPUTS"),
+                          cl::value_desc("Looks for the input file in the current directory"),
+                          cl::init("cire_llvm_input.txt"));
 
 // This method implements what the pass does
     void visitor(Function &F) {
@@ -39,6 +45,11 @@ namespace {
         // corresponding pass manager (to be queried if need be)
         PreservedAnalyses run(Function &F, FunctionAnalysisManager &) {
           visitor(F);
+
+          CIRE_LLVM cire;
+
+          cire.parseInputFile(Input);
+
           return PreservedAnalyses::all();
         }
 
@@ -47,6 +58,7 @@ namespace {
         // all functions with optnone.
         static bool isRequired() { return true; }
     };
+
 } // namespace
 
 //-----------------------------------------------------------------------------

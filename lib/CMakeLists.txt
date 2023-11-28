@@ -26,7 +26,7 @@ FLEX_TARGET(MyScanner
 
 ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
-add_library(Graph
+add_library(Graph SHARED
         Node.cpp
         SymbolTable.cpp
         ErrorAnalyzer.cpp

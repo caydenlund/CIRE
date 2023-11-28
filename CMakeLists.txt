@@ -3,6 +3,22 @@ project(CIRE)
 
 set(CMAKE_CXX_STANDARD 17)
 
+add_subdirectory(lib)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+    include_directories(include
+            /usr/local/include
+            /usr/local/include/ibex
+            /usr/local/include/ibex/3rd
+            /usr/local/include/ibex/3rd/gaol)
+    link_directories(/usr/local/lib)
+else()
+    include_directories(include
+            /usr/local/include/ibex
+            /usr/local/include/ibex/3rd
+            /usr/local/include/ibex/3rd/gaol)
+endif()
+
 #===============================================================================
 # 1. LOAD LLVM CONFIGURATION
 #===============================================================================
@@ -35,7 +51,11 @@ endif()
 #===============================================================================
 # 3. ADD THE TARGET
 #===============================================================================
-add_library(CIRE_LLVM SHARED src/CIRE_LLVM.cpp)
+add_library(CIRE_LLVM SHARED src/CIRE_LLVMFrontend.cpp
+            lib/CIRE_LLVM.cpp)
+target_link_libraries(CIRE_LLVM PUBLIC
+                        Graph
+                        ibex)
 
 # Allow undefined symbols in shared objects on Darwin (this is the default
 # behaviour on Linux)
@@ -44,21 +64,6 @@ add_library(CIRE_LLVM SHARED src/CIRE_LLVM.cpp)
 
 #===============================================================================
 
-add_subdirectory(lib)
-
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    include_directories(include
-            /usr/local/include
-            /usr/local/include/ibex
-            /usr/local/include/ibex/3rd
-            /usr/local/include/ibex/3rd/gaol)
-    link_directories(/usr/local/lib)
-else()
-    include_directories(include
-            /usr/local/include/ibex
-            /usr/local/include/ibex/3rd
-            /usr/local/include/ibex/3rd/gaol)
-endif()
 
 # Building lib_tester
 add_executable(lib_tester src/lib_tester.cpp)
@@ -71,6 +76,3 @@ add_executable(CIRE src/CIRE.cpp)
 target_link_libraries(CIRE PUBLIC
         Graph
         ibex)
-
-# Building CIRE LLVM
-
