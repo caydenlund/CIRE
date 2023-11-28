@@ -1,9 +1,10 @@
 cmake_minimum_required(VERSION 3.22)
 project(CIRE)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
 
 add_subdirectory(lib)
+add_subdirectory(benchmarks)
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
     include_directories(include
@@ -40,9 +41,6 @@ include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 #===============================================================================
 # 2. LLVM-TUTOR BUILD CONFIGURATION
 #===============================================================================
-# Use the same C++ standard as LLVM does
-set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
-
 # LLVM is normally built without RTTI. Be consistent with that.
 if(NOT LLVM_ENABLE_RTTI)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
@@ -51,8 +49,9 @@ endif()
 #===============================================================================
 # 3. ADD THE TARGET
 #===============================================================================
-add_library(CIRE_LLVM SHARED src/CIRE_LLVMFrontend.cpp
-            lib/CIRE_LLVM.cpp)
+add_library(CIRE_LLVM SHARED
+            src/CIRE_LLVM.cpp
+            src/CIRE.cpp)
 target_link_libraries(CIRE_LLVM PUBLIC
                         Graph
                         ibex)

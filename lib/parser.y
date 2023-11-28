@@ -66,9 +66,13 @@
 %%
 
 program: inputs EOL outputs EOL constraints EOL exprs
-	| inputs EOL outputs EOL constraints EOL exprs EOL
+	    | inputs EOL outputs EOL constraints EOL exprs EOL
         | inputs EOL outputs EOL exprs
         | inputs EOL outputs EOL exprs EOL
+        | inputs EOL outputs { std::cout << "Only LLVM programs can be parsed with INPUTS "
+                                "and OUTPUTS sections" << std::endl; }
+        | inputs EOL outputs EOL { std::cout << "Only LLVM programs can be parsed with INPUTS "
+                                "and OUTPUTS sections" << std::endl; }
         ;
 
 intv_factor:    SUB FP {
