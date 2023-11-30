@@ -1,0 +1,11 @@
+INPUTS {
+    x fl64 : (-10.5, 20.5);
+}
+
+OUTPUTS {
+    res;
+}
+
+EXPRS {
+    res=atan(x);
+}

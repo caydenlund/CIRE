@@ -48,12 +48,14 @@ id [a-zA-Z][a-zA-Z0-9_]*
 "!" { return NOT; }
 
 "sin" { return SIN; }
-"asin" { return ASIN; }
 "cos" { return COS; }
 "tan" { return TAN; }
-"cot" { return COT; }
 "sinh" { return SINH; }
 "cosh" { return COSH; }
+"tanh" { return TANH; }
+"asin" { return ASIN; }
+"acos" { return ACOS; }
+"atan" { return ATAN; }
 
 "sqrt" { return SQRT; }
 "exp" { return EXP; }

@@ -317,6 +317,17 @@ Node &operator*(Node &x, Node *y);
 Node &operator/(Node &x, Node *y);
 Node &operator-(Node &x);
 Node &sin(Node &x);
+Node &cos(Node &x);
+Node &tan(Node &x);
+Node &sinh(Node &x);
+Node &cosh(Node &x);
+Node &tanh(Node &x);
+Node &asin(Node &x);
+Node &acos(Node &x);
+Node &atan(Node &x);
+Node &log(Node &x);
+Node &sqrt(Node &x);
+Node &exp(Node &x);
 
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right);
 const ibex::ExprNode& product(const ibex::ExprNode& left, double right);

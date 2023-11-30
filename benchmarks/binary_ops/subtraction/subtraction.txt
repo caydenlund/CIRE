@@ -1,0 +1,12 @@
+INPUTS {
+    x fl64 : (-10.5, 20.5);
+    y fl64 : (-3.7, 60.3);
+}
+
+OUTPUTS {
+    res;
+}
+
+EXPRS {
+    res=x-y;
+}

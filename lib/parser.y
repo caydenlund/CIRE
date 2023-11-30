@@ -50,9 +50,8 @@
 %token INPUTS OUTPUTS CONSTRAINTS EXPRS
 %token IF THEN ELSE ENDIF
 %token SIN COS TAN
-%token ASIN
-%token COT
-%token SINH COSH
+%token ASIN ACOS ATAN
+%token SINH COSH TANH
 %token SQRT EXP LOG
 %token LBRACE RBRACE LPAREN RPAREN LBRACKET RBRACKET
 %token COMMA COLON SEMICOLON ASSIGN
@@ -193,6 +192,61 @@ number: INT {
 arith_fact: number { $$ = $1; }
         | SIN LPAREN arith_exp RPAREN {
             $$ = &sin(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | COS LPAREN arith_exp RPAREN {
+            $$ = &cos(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | TAN LPAREN arith_exp RPAREN {
+            $$ = &tan(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | SINH LPAREN arith_exp RPAREN {
+            $$ = &sinh(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | COSH LPAREN arith_exp RPAREN {
+            $$ = &cosh(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | TANH LPAREN arith_exp RPAREN {
+            $$ = &tanh(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | ASIN LPAREN arith_exp RPAREN {
+            $$ = &asin(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | ACOS LPAREN arith_exp RPAREN {
+            $$ = &acos(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | ATAN LPAREN arith_exp RPAREN {
+            $$ = &atan(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | LOG LPAREN arith_exp RPAREN {
+            $$ = &log(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | SQRT LPAREN arith_exp RPAREN {
+            $$ = &sqrt(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | EXP LPAREN arith_exp RPAREN {
+            $$ = &exp(*$3);
             graph->nodes.insert($$);
             // std::cout << *$$ << std::endl;
         }

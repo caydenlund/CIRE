@@ -790,6 +790,50 @@ Node &sin(Node &x) {
   return *new UnaryOp(&x, UnaryOp::SIN);
 }
 
+Node &cos(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::COS);
+}
+
+Node &tan(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::TAN);
+}
+
+Node &sinh(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::SINH);
+}
+
+Node &cosh(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::COSH);
+}
+
+Node &tanh(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::TANH);
+}
+
+Node &asin(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::ASIN);
+}
+
+Node &acos(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::ACOS);
+}
+
+Node &atan(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::ATAN);
+}
+
+Node &log(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::LOG);
+}
+
+Node &sqrt(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::SQRT);
+}
+
+Node &exp(Node &x) {
+  return *new UnaryOp(&x, UnaryOp::EXP);
+}
+
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right) {
   if (left == ibex::ExprConstant::new_scalar(1.0) && right == ibex::ExprConstant::new_scalar(1.0)) {
     return ibex::ExprConstant::new_scalar(1.0);
