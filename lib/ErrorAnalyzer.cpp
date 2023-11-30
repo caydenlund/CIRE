@@ -231,27 +231,27 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
         case UnaryOp::NEG:
           return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(-1);
         case UnaryOp::SIN:
-          return (ibex::ExprNode *) &ibex::cos(*child->getExprNode());
+          return (ibex::ExprNode *) &cos(*child->getExprNode());
         case UnaryOp::COS:
-          return (ibex::ExprNode *) &ibex::sin(-*child->getExprNode());
+          return (ibex::ExprNode *) &sin(-*child->getExprNode());
         case UnaryOp::TAN:
-          return (ibex::ExprNode *) &(1.0/ibex::sqr(ibex::cos(*child->getExprNode())));
+          return (ibex::ExprNode *) &(1.0/sqr(cos(*child->getExprNode())));
         case UnaryOp::SINH:
-          return (ibex::ExprNode *) &(ibex::exp(*child->getExprNode())-ibex::exp(-*child->getExprNode())/2.0);
+          return (ibex::ExprNode *) &(exp(*child->getExprNode())-exp(-*child->getExprNode())/2.0);
         case UnaryOp::COSH:
-          return (ibex::ExprNode *) &(ibex::exp(*child->getExprNode())+ibex::exp(-*child->getExprNode())/2.0);
+          return (ibex::ExprNode *) &(exp(*child->getExprNode())+exp(-*child->getExprNode())/2.0);
         case UnaryOp::TANH:
-          return (ibex::ExprNode *) &(ibex::sinh(*child->getExprNode())/ibex::cosh(*child->getExprNode()));
+          return (ibex::ExprNode *) &(sinh(*child->getExprNode())/cosh(*child->getExprNode()));
         case UnaryOp::ASIN:
-          return (ibex::ExprNode *) &(1.0/ibex::sqrt(1.0-ibex::sqr(*child->getExprNode())));
+          return (ibex::ExprNode *) &(1.0/sqrt(1.0-sqr(*child->getExprNode())));
         case UnaryOp::ACOS:
-          return (ibex::ExprNode *) &(-1.0/ibex::sqrt(1.0-ibex::sqr(*child->getExprNode())));
+          return (ibex::ExprNode *) &(-1.0/sqrt(1.0-sqr(*child->getExprNode())));
         case UnaryOp::ATAN:
-          return (ibex::ExprNode *) &(1.0/(1.0+ibex::sqr(*child->getExprNode())));
+          return (ibex::ExprNode *) &(1.0/(1.0+sqr(*child->getExprNode())));
         case UnaryOp::LOG:
-          return (ibex::ExprNode *) &(1.0/(*child->getExprNode()*ibex::log(10.0)));
+          return (ibex::ExprNode *) &(1.0/(*child->getExprNode()*log(10.0)));
         case UnaryOp::SQRT:
-          return (ibex::ExprNode *) &(1.0/(2.0*ibex::sqrt(*child->getExprNode())));
+          return (ibex::ExprNode *) &(1.0/(2.0*sqrt(*child->getExprNode())));
         case UnaryOp::EXP:
           return child->getExprNode();
       }
@@ -279,7 +279,7 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
             return (ibex::ExprNode *) &(1.0 / *((BinaryOp*) node)->rightOperand->getExprNode());
           } else if (index == 1) {
             return (ibex::ExprNode *) &(-*((BinaryOp*) node)->leftOperand->getExprNode() /
-                                        ibex::sqr(*((BinaryOp*) node)->rightOperand->getExprNode()));
+                                        sqr(*((BinaryOp*) node)->rightOperand->getExprNode()));
           }
       }
       break;

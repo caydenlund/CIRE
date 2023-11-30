@@ -191,21 +191,26 @@ number: INT {
 
 
 arith_fact: number { $$ = $1; }
+        | SIN LPAREN arith_exp RPAREN {
+            $$ = &sin(*$3);
+            graph->nodes.insert($$);
+            // std::cout << *$$ << std::endl;
+        }
 	    | SUB number {
-                $$ = &(-*$2);
-		graph->nodes.insert($$);
-		// std::cout << *$$ << std::endl;
-            }
+            $$ = &(-*$2);
+		    graph->nodes.insert($$);
+		    // std::cout << *$$ << std::endl;
+        }
 	    | LPAREN arith_exp RPAREN { $$ = $2; }
-            | ID {
-                if(Node *VarNode = graph->findVarNode($1)) {
-                    $$ = graph->symbolTables[graph->currentScope]->table[$1];
-                } else {
-                    std::cout << "ERROR: Variable " << $1 << " not found" << std::endl;
-                }
-                // std::cout << *$$ << std::endl;
+        | ID {
+            if(Node *VarNode = graph->findVarNode($1)) {
+                $$ = graph->symbolTables[graph->currentScope]->table[$1];
+            } else {
+                std::cout << "ERROR: Variable " << $1 << " not found" << std::endl;
             }
-            ;
+            // std::cout << *$$ << std::endl;
+        }
+        ;
 
 arith_term: arith_fact {
                 $$ = $1;
