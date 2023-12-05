@@ -40,6 +40,11 @@ public:
   void generateExprDriver();
   void generateExpr(Node *node);
 
+  std::set<Node*> selectNodesForAbstraction(unsigned int maxDepth,
+                                               unsigned int boundMinDepth,
+                                               unsigned int boundMaxDepth);
+  void performAbstraction(unsigned int boundMinDepth, unsigned int boundMaxDepth);
+
   // Run the parser on file F.  Return 0 on success.
   int parse(const char &f);
 

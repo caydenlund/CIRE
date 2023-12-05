@@ -134,6 +134,29 @@ void Graph::generateExpr(Node *node) {
   }
 }
 
+std::set<Node*> Graph::selectNodesForAbstraction(unsigned int maxDepth,
+                                                    unsigned int boundMinDepth,
+                                                    unsigned int boundMaxDepth) {
+  assert(boundMinDepth <= boundMaxDepth && boundMaxDepth <= maxDepth);
+  std::set<Node*> nodesToAbstract;
+  if (boundMinDepth == boundMaxDepth && boundMaxDepth <= maxDepth) {
+    return depthTable[boundMinDepth];
+  }
+}
+
+void Graph::performAbstraction(unsigned int boundMinDepth, unsigned int boundMaxDepth) {
+  // Get max depth using keys in depthTable
+  unsigned int maxDepth = depthTable.rbegin()->first;
+
+  auto candidateNodes = selectNodesForAbstraction(maxDepth, boundMinDepth, boundMaxDepth);
+
+  // Print candidate nodes
+  std::cout << "Candidate Nodes:" << std::endl;
+  for (auto &node : candidateNodes) {
+    std::cout << "\t" << *node << std::endl;
+  }
+}
+
 int Graph::parse(const char &f) {
   yydebug = 0;
   yyin = fopen(&f, "r");

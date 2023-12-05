@@ -30,7 +30,7 @@ void CIRE::setMaxDepth(unsigned int depth) {
 
 ibex::IntervalVector CIRE::performErrorAnalysis() {
   if (abstraction) {
-    graph->performAbstraction();
+    graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
   }
 
   graph->generateExprDriver();
