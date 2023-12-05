@@ -111,6 +111,7 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                     new_variable->setAbsoluteError(&ibex::ExprConstant::new_scalar($7.fval * pow(2, -53)));
                     new_variable->setRounding($2);
                     graph->nodes.insert(new_variable);
+                    graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
                 $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
@@ -177,6 +178,7 @@ exprs:  EXPRS LBRACE stmts RBRACE
 number: INT {
             $$ = new Integer(ibex::ExprConstant::new_scalar($1.ival));
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | FP {
@@ -184,6 +186,7 @@ number: INT {
             // TODO: Set the error for different precisions
             $$->setAbsoluteError(&ibex::ExprConstant::new_scalar($1.fval * pow(2, -53)));
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         ;
@@ -193,66 +196,79 @@ arith_fact: number { $$ = $1; }
         | SIN LPAREN arith_exp RPAREN {
             $$ = &sin(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | COS LPAREN arith_exp RPAREN {
             $$ = &cos(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | TAN LPAREN arith_exp RPAREN {
             $$ = &tan(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | SINH LPAREN arith_exp RPAREN {
             $$ = &sinh(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | COSH LPAREN arith_exp RPAREN {
             $$ = &cosh(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | TANH LPAREN arith_exp RPAREN {
             $$ = &tanh(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | ASIN LPAREN arith_exp RPAREN {
             $$ = &asin(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | ACOS LPAREN arith_exp RPAREN {
             $$ = &acos(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | ATAN LPAREN arith_exp RPAREN {
             $$ = &atan(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | LOG LPAREN arith_exp RPAREN {
             $$ = &log(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | SQRT LPAREN arith_exp RPAREN {
             $$ = &sqrt(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | EXP LPAREN arith_exp RPAREN {
             $$ = &exp(*$3);
             graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
 	    | SUB number {
             $$ = &(-*$2);
 		    graph->nodes.insert($$);
+		    graph->depthTable[$$->depth].insert($$);
 		    // std::cout << *$$ << std::endl;
         }
 	    | LPAREN arith_exp RPAREN { $$ = $2; }
@@ -272,11 +288,13 @@ arith_term: arith_fact {
             | arith_term MUL arith_fact {
                 $$ = &(*$1*$3);
                 graph->nodes.insert($$);
+                graph->depthTable[$$->depth].insert($$);
                 // std::cout << *$$ << std::endl;
             }
             | arith_term DIV arith_fact {
                 $$ = &(*$1/$3);
                 graph->nodes.insert($$);
+                graph->depthTable[$$->depth].insert($$);
                 // std::cout << *$$ << std::endl;
             }
             ;
@@ -287,11 +305,13 @@ arith_exp:  arith_term {
             | arith_exp ADD arith_term {
                 $$ = &(*$1+$3);
                 graph->nodes.insert($$);
+                graph->depthTable[$$->depth].insert($$);
                 // std::cout << *$$ << std::endl;
             }
             | arith_exp SUB arith_term {
                 $$ = &(*$1-$3);
                 graph->nodes.insert($$);
+                graph->depthTable[$$->depth].insert($$);
                 // std::cout << *$$ << std::endl;
             }
             ;

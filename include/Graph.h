@@ -16,6 +16,8 @@ public:
   std::vector<string> outputs;
   // List of nodes ever created. Used for cleaning up memory
   std::set<Node *> nodes;
+  // Depth table contains a map from depth to a set of nodes at that depth
+  std::map<int, std::set<Node *>> depthTable;
 
   ErrorAnalyzer *errorAnalyzer = new ErrorAnalyzer();
   IBEXInterface *ibexInterface = new IBEXInterface();
