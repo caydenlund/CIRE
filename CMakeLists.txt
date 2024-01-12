@@ -20,11 +20,15 @@ else()
             /usr/local/include/ibex/3rd/gaol)
 endif()
 
+option(ENABLE_LLVM_FRONTEND "Enable the LLVM frontend" OFF)
+
+if(ENABLE_LLVM_FRONTEND)
 #===============================================================================
 # 1. LOAD LLVM CONFIGURATION
 #===============================================================================
 # Set this to a valid LLVM installation dir
 set(LT_LLVM_INSTALL_DIR "" CACHE PATH "LLVM installation directory")
+message(STATUS "LLVM installation directory: ${LT_LLVM_INSTALL_DIR}")
 
 # Add the location of LLVMConfig.cmake to CMake search paths (so that
 # find_package can locate it)
@@ -62,7 +66,7 @@ target_link_libraries(CIRE_LLVM PUBLIC
 #        "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
 
 #===============================================================================
-
+ENDIF(ENABLE_LLVM_FRONTEND)
 
 # Building lib_tester
 add_executable(lib_tester src/lib_tester.cpp)
