@@ -134,14 +134,291 @@ void Graph::generateExpr(Node *node) {
   }
 }
 
-std::set<Node*> Graph::selectNodesForAbstraction(unsigned int maxDepth,
-                                                    unsigned int boundMinDepth,
-                                                    unsigned int boundMaxDepth) {
-  assert(boundMinDepth <= boundMaxDepth && boundMaxDepth <= maxDepth);
-  std::set<Node*> nodesToAbstract;
-  if (boundMinDepth == boundMaxDepth && boundMaxDepth <= maxDepth) {
-    return depthTable[boundMinDepth];
+/*
+ * Flattens subDAGs within min_depth and max_depth
+ *
+ * @param node Node to flatten subDAGs for
+ * @param min_depth Lower bound of depth window to get nodes from
+ * @param max_depth Upper bound of depth window to get nodes from
+ *
+ * @return A set of nodes that are flattened subDAGs
+ */
+std::set<Node *> Graph::FlattenSubDAGS(Node *node, unsigned int min_depth, unsigned int max_depth) {
+  assert(min_depth <= max_depth && "Invalid bounds for flattening");
+
+  std::set<Node *> nodes_to_flatten;
+
+  // Flatten nodes from children of node within depth window
+  switch (node->type) {
+    case NodeType::INTEGER:
+      break;
+    case NodeType::FLOAT:
+      break;
+    case NodeType::DOUBLE:
+      break;
+    case NodeType::FREE_VARIABLE:
+      break;
+    case NodeType::VARIABLE:
+      break;
+    case NodeType::UNARY_OP:
+      if (((UnaryOp*)node)->Operand->depth >= min_depth && ((UnaryOp*)node)->Operand->depth <= max_depth) {
+        nodes_to_flatten.insert(((UnaryOp *)node)->Operand);
+      }
+      if (((UnaryOp*)node)->Operand->depth > min_depth) {
+        std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                       FlattenSubDAGS(((UnaryOp*)node)->Operand, min_depth, max_depth).begin(),
+                       FlattenSubDAGS(((UnaryOp*)node)->Operand, min_depth, max_depth).end(),
+                       std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+      }
+      break;
+    case NodeType::BINARY_OP:
+      if (((BinaryOp*)node)->leftOperand->depth >= min_depth && ((BinaryOp*)node)->leftOperand->depth <= max_depth) {
+        nodes_to_flatten.insert(((BinaryOp *)node)->leftOperand);
+      }
+      if (((BinaryOp*)node)->rightOperand->depth >= min_depth && ((BinaryOp*)node)->rightOperand->depth <= max_depth) {
+        nodes_to_flatten.insert(((BinaryOp *)node)->rightOperand);
+      }
+      if (((BinaryOp*)node)->leftOperand->depth > min_depth) {
+        std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                       FlattenSubDAGS(((BinaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
+                       FlattenSubDAGS(((BinaryOp*)node)->leftOperand, min_depth, max_depth).end(),
+                       std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+      }
+      if (((BinaryOp*)node)->rightOperand->depth > min_depth) {
+        std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                       FlattenSubDAGS(((BinaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
+                       FlattenSubDAGS(((BinaryOp*)node)->rightOperand, min_depth, max_depth).end(),
+                       std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+      }
+      break;
+    case NodeType::TERNARY_OP:
+      if (((TernaryOp*)node)->leftOperand->depth >= min_depth && ((TernaryOp*)node)->leftOperand->depth <= max_depth) {
+        nodes_to_flatten.insert(((TernaryOp *)node)->leftOperand);
+      }
+      if (((TernaryOp*)node)->middleOperand->depth >= min_depth && ((TernaryOp*)node)->middleOperand->depth <= max_depth) {
+        nodes_to_flatten.insert(((TernaryOp *)node)->middleOperand);
+      }
+      if (((TernaryOp*)node)->rightOperand->depth >= min_depth && ((TernaryOp*)node)->rightOperand->depth <= max_depth) {
+        nodes_to_flatten.insert(((TernaryOp *)node)->rightOperand);
+      }
+      if (((TernaryOp*)node)->leftOperand->depth > min_depth) {
+        std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                       FlattenSubDAGS(((TernaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
+                       FlattenSubDAGS(((TernaryOp*)node)->leftOperand, min_depth, max_depth).end(),
+                       std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+      }
+      if (((TernaryOp*)node)->middleOperand->depth > min_depth) {
+        std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                       FlattenSubDAGS(((TernaryOp*)node)->middleOperand, min_depth, max_depth).begin(),
+                       FlattenSubDAGS(((TernaryOp*)node)->middleOperand, min_depth, max_depth).end(),
+                       std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+      }
+      if (((TernaryOp*)node)->rightOperand->depth > min_depth) {
+        std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                       FlattenSubDAGS(((TernaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
+                       FlattenSubDAGS(((TernaryOp*)node)->rightOperand, min_depth, max_depth).end(),
+                       std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+      }
+      break;
+    default:
+      std::cout << "Unknown node type" << std::endl;
+      break;
   }
+
+  return std::set<Node *>();
+}
+
+/*
+ * Finds common nodes within min_depth and max_depth from the flattened children subDAGs
+ *
+ * @param nodes Set of nodes to find common nodes from
+ * @param min_depth Lower bound of depth window to get nodes from
+ * @param max_depth Upper bound of depth window to get nodes from
+ *
+ * @return A set of nodes that are common to all nodes in node's children
+ */
+std::set<Node *> Graph::FindCommonNodes(Node * node, unsigned int min_depth, unsigned int max_depth) {
+  std::set<Node *> common_nodes;
+
+  // Create a list of flattened subDAGs of children of node
+  std::vector<std::set<Node *>> flattened_subDAGs;
+  switch (node->type) {
+    case NodeType::INTEGER:
+      break;
+    case NodeType::FLOAT:
+      break;
+    case NodeType::DOUBLE:
+      break;
+    case NodeType::FREE_VARIABLE:
+      break;
+    case NodeType::VARIABLE:
+      break;
+    case NodeType::UNARY_OP:
+      flattened_subDAGs.push_back(FlattenSubDAGS(((UnaryOp*)node)->Operand, min_depth, max_depth));
+      break;
+    case NodeType::BINARY_OP:
+      flattened_subDAGs.push_back(FlattenSubDAGS(((BinaryOp*)node)->leftOperand, min_depth, max_depth));
+      flattened_subDAGs.push_back(FlattenSubDAGS(((BinaryOp*)node)->rightOperand, min_depth, max_depth));
+      break;
+    case NodeType::TERNARY_OP:
+      flattened_subDAGs.push_back(FlattenSubDAGS(((TernaryOp*)node)->leftOperand, min_depth, max_depth));
+      flattened_subDAGs.push_back(FlattenSubDAGS(((TernaryOp*)node)->middleOperand, min_depth, max_depth));
+      flattened_subDAGs.push_back(FlattenSubDAGS(((TernaryOp*)node)->rightOperand, min_depth, max_depth));
+      break;
+    default:
+      std::cout << "Unknown node type" << std::endl;
+      break;
+  }
+
+  flattened_subDAGs.push_back(std::set<Node *>({node}));
+
+//  std::cout << "Flattened SubDAGs:" << std::endl;
+//  for (auto &flattened_subDAG : flattened_subDAGs) {
+//    for (auto &node : flattened_subDAG) {
+//      std::cout << "\t" << *node << std::endl;
+//    }
+//  }
+
+  // Find common nodes
+  for (auto &flattened_subDAG : flattened_subDAGs) {
+    if (common_nodes.empty()) {
+      common_nodes = flattened_subDAG;
+    }
+    else {
+      std::set<Node *> temp;
+      std::set_intersection(common_nodes.begin(), common_nodes.end(),
+                            flattened_subDAG.begin(), flattened_subDAG.end(),
+                            std::inserter(temp, temp.end()));
+      common_nodes = temp;
+    }
+  }
+
+  return common_nodes;
+}
+
+/*
+ * Finds common nodes within min_depth and max_depth from the flattened children subDAGs
+ *
+ * @param nodes Set of nodes to find common nodes from
+ * @param min_depth Lower bound of depth window to get nodes from
+ * @param max_depth Upper bound of depth window to get nodes from
+ *
+ * @return A set of nodes that are common to all nodes in nodes
+ */
+std::map<Node *, std::set<Node *>>
+Graph::FindCommonDependencies(std::set<Node *> nodes, unsigned int min_depth, unsigned int max_depth) {
+  std::map<Node *, std::set<Node *>> common_dependencies;
+
+  // Populate common_dependencies with common_nodes from each node's common node list
+  for (auto &node : nodes) {
+    std::set<Node*> initial_dependence_list = FindCommonNodes(node, min_depth, max_depth);
+    std::vector<std::set<Node*>> common_nodes_list;
+
+    // Populate common_nodes_list with common_nodes from each node's common node list
+    for (auto &node : initial_dependence_list) {
+      common_nodes_list.push_back(FindCommonNodes(node, min_depth, max_depth));
+    }
+
+    std::set<Node*> redundant_nodes;
+
+    // Unionize common_nodes_list into redundant_nodes
+    for (auto &common_nodes : common_nodes_list) {
+      std::set_union(redundant_nodes.begin(), redundant_nodes.end(),
+                     common_nodes.begin(), common_nodes.end(),
+                     std::inserter(redundant_nodes, redundant_nodes.end()));
+    }
+
+    // Get the set difference between initial_dependence_list and redundant_nodes
+    std::set<Node*> common_nodes;
+    std::set_difference(initial_dependence_list.begin(), initial_dependence_list.end(),
+                        redundant_nodes.begin(), redundant_nodes.end(),
+                        std::inserter(common_nodes, common_nodes.end()));
+    if (!common_nodes.empty()) {
+      common_dependencies[node] = common_nodes;
+    } else {
+      common_dependencies[node].insert(node);
+    }
+  }
+
+  return common_dependencies;
+}
+
+/*
+ * Filters nodes with operation op within depth max_depth
+ *
+ * @param op Operation to filter nodes with
+ * @param max_depth Maximum depth of the graph
+ *
+ * @return A vector of op operation nodes within max_depth
+ */
+std::set<Node *> Graph::FilterNodesWithOperationWithinDepth(Node::Op op, unsigned int max_depth) {
+  std::set<Node *> nodes_with_op;
+
+  std::copy_if(nodes.begin(), nodes.end(), std::inserter(nodes_with_op, nodes_with_op.end()),
+               [op, max_depth](Node *node) {
+                 return node->depth <= max_depth && (node->isUnaryOp() && ((UnaryOp *) node)->op == op) ||
+                        (node->isBinaryOp() && ((BinaryOp *) node)->op == op);
+               });
+
+  return nodes_with_op;
+}
+
+
+
+/*
+ * Filters nodes with depth between lower_bound and upper_bound
+ *
+ * @param max_depth Maximum depth of the graph
+ * @param lower_bound Lower bound of the abstraction window
+ * @param upper_bound Upper bound of the abstraction window
+ *
+ * @return A vector of nodes that are candidates for abstraction
+ */
+std::vector<Node *>
+Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound, unsigned int upper_bound) {
+  assert(lower_bound <= upper_bound && upper_bound <= max_depth && "Invalid bounds for abstraction");
+
+  std::set<Node *> nodes_with_op = FilterNodesWithOperationWithinDepth(Node::Op::DIV, max_depth);
+
+  // Print nodes with op
+  std::cout << "Nodes with op:" << std::endl;
+  for (auto &node : nodes_with_op) {
+    std::cout << "\t" << *node << std::endl;
+  }
+
+  std::map<Node *, std::set<Node *>> common_dependencies = FindCommonDependencies(nodes_with_op, lower_bound, upper_bound);
+
+  // Print common dependencies
+  std::cout << "Common dependencies:" << std::endl;
+  for (auto &common_dependency : common_dependencies) {
+    std::cout << "\t" << *common_dependency.first << " : ";
+    for (auto &node : common_dependency.second) {
+      std::cout << *node << " ";
+    }
+    std::cout << std::endl;
+  }
+
+  return std::vector<Node *>();
+}
+
+std::set<Node*> Graph::selectNodesForAbstraction(unsigned int max_depth,
+                                                    unsigned int bound_min_depth,
+                                                    unsigned int bound_max_depth) {
+  assert(bound_min_depth <= bound_max_depth && bound_max_depth <= max_depth && "Invalid bounds for abstraction");
+  std::set<Node*> nodes_to_abstract;
+
+  // Abstraction window is just 1 level wide
+  if (bound_min_depth == bound_max_depth && bound_max_depth <= max_depth) {
+    return depthTable[bound_min_depth];
+  }
+
+  std::vector<Node*> initialCandidateList = FilterCandidatesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
+
+
+
+  unsigned int local_max_depth = bound_max_depth;
+
+
 }
 
 void Graph::performAbstraction(unsigned int boundMinDepth, unsigned int boundMaxDepth) {

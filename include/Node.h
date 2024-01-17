@@ -19,7 +19,43 @@ enum NodeType {
 
 class Node {
 public:
-
+  enum Op {
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    NEG,
+    SIN,
+    COS,
+    TAN,
+    SINH,
+    COSH,
+    TANH,
+    ASIN,
+    ACOS,
+    ATAN,
+    LOG,
+    SQRT,
+    EXP,
+  };
+  // The amount of error on these operations
+  std::map<Op, double> OpErrorULPs = {
+          {ADD, 1.0},
+          {SUB, 1.0},
+          {MUL, 1.0},
+          {DIV, 2.0},
+          {SIN, 2.0},
+          {COS, 2.0},
+          {TAN, 2.0},
+          {SINH, 2.0},
+          {COSH, 2.0},
+          {TANH, 2.0},
+          {ASIN, 2.0},  // Check whether 2.0 is correct
+          {ACOS, 2.0},  // Check whether 2.0 is correct
+          {ATAN, 2.0},  // Check whether 2.0 is correct
+          {LOG, 2.0},
+          {SQRT, 1.0},
+          {EXP, 2.0},};
   enum RoundingType {
     CONST,
     INT,
@@ -196,37 +232,6 @@ public:
 class UnaryOp : public Node {
 private:
 public:
-  enum Op {
-    NEG,
-    SIN,
-    COS,
-    TAN,
-    SINH,
-    COSH,
-    TANH,
-    ASIN,
-    ACOS,
-    ATAN,
-    LOG,
-    SQRT,
-    EXP,
-  };
-
-// The amount of error on these operations
-  std::map<Op, double> OpErrorULPs = {
-          {SIN, 2.0},
-          {COS, 2.0},
-          {TAN, 2.0},
-          {SINH, 2.0},
-          {COSH, 2.0},
-          {TANH, 2.0},
-          {ASIN, 2.0},  // Check whether 2.0 is correct
-          {ACOS, 2.0},  // Check whether 2.0 is correct
-          {ATAN, 2.0},  // Check whether 2.0 is correct
-          {LOG, 2.0},
-          {SQRT, 1.0},
-          {EXP, 2.0},};
-
   Node* Operand;
   Op op;
   const ibex::ExprUnaryOp* expr;
@@ -249,20 +254,6 @@ public:
 
 class BinaryOp : public Node {
 public:
-  enum Op {
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-  };
-
-  // The amount of error on these operations
-  std::map<Op, double> OpErrorULPs = {
-          {ADD, 1.0},
-          {SUB, 1.0},
-          {MUL, 1.0},
-          {DIV, 2.0},};
-
 //private:
   Node* leftOperand;
   Node* rightOperand;

@@ -159,7 +159,7 @@ Node &Integer::operator+(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+  return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &Integer::operator-(Node &other) const {
@@ -179,7 +179,7 @@ Node &Integer::operator-(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+  return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &Integer::operator*(Node &other) const {
@@ -199,7 +199,7 @@ Node &Integer::operator*(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+  return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &Integer::operator/(Node &other) const {
@@ -219,7 +219,7 @@ Node &Integer::operator/(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+  return *new BinaryOp((Node *) this, (Node *) &other, DIV);
 }
 
 ibex::ExprNode &Integer::generateSymExpr() {
@@ -268,7 +268,7 @@ Node &Float::operator+(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+  return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &Float::operator-(Node &other) const {
@@ -284,7 +284,7 @@ Node &Float::operator-(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+  return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &Float::operator*(Node &other) const {
@@ -300,7 +300,7 @@ Node &Float::operator*(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+  return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &Float::operator/(Node &other) const {
@@ -316,7 +316,7 @@ Node &Float::operator/(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+  return *new BinaryOp((Node *) this, (Node *) &other, DIV);
 }
 
 ibex::ExprNode &Float::getAbsoluteError() {
@@ -364,7 +364,7 @@ Node &Double::operator+(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+  return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &Double::operator-(Node &other) const {
@@ -376,7 +376,7 @@ Node &Double::operator-(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+  return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &Double::operator*(Node &other) const {
@@ -388,7 +388,7 @@ Node &Double::operator*(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+  return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &Double::operator/(Node &other) const {
@@ -400,7 +400,7 @@ Node &Double::operator/(Node &other) const {
     return *new Double(*c);
   }
 
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+  return *new BinaryOp((Node *) this, (Node *) &other, DIV);
 }
 
 ibex::ExprNode &Double::getAbsoluteError() {
@@ -503,19 +503,19 @@ bool VariableNode::operator==(const VariableNode &other) const {
 }
 
 Node &VariableNode::operator+(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+  return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &VariableNode::operator-(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+  return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &VariableNode::operator*(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+  return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &VariableNode::operator/(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+  return *new BinaryOp((Node *) this, (Node *) &other, DIV);
 }
 
 ibex::ExprNode &VariableNode::getAbsoluteError() {
@@ -560,19 +560,19 @@ bool UnaryOp::operator==(const UnaryOp &other) const {
 }
 
 Node &UnaryOp::operator+(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+  return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &UnaryOp::operator-(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+  return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &UnaryOp::operator*(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+  return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &UnaryOp::operator/(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+  return *new BinaryOp((Node *) this, (Node *) &other, DIV);
 }
 
 double UnaryOp::getRounding() {
@@ -651,19 +651,19 @@ ibex::ExprNode *BinaryOp::getExprNode() const {
 }
 
 Node &BinaryOp::operator+(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+  return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &BinaryOp::operator-(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+  return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &BinaryOp::operator*(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+  return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &BinaryOp::operator/(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+  return *new BinaryOp((Node *) this, (Node *) &other, DIV);
 }
 
 double BinaryOp::getRounding() {
@@ -723,19 +723,19 @@ bool TernaryOp::operator==(const TernaryOp &other) const {
 }
 
 Node &TernaryOp::operator+(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::ADD);
+  return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &TernaryOp::operator-(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::SUB);
+  return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &TernaryOp::operator*(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::MUL);
+  return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &TernaryOp::operator/(Node &other) const {
-  return *new BinaryOp((Node *) this, (Node *) &other, BinaryOp::DIV);
+  return *new BinaryOp((Node *) this, (Node *) &other, DIV);
 }
 
 double TernaryOp::getRounding() {
@@ -783,55 +783,55 @@ Node &operator/(Node &x, Node *y) {
 }
 
 Node &operator-(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::NEG);
+  return *new UnaryOp(&x, Node::NEG);
 }
 
 Node &sin(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::SIN);
+  return *new UnaryOp(&x, Node::SIN);
 }
 
 Node &cos(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::COS);
+  return *new UnaryOp(&x, Node::COS);
 }
 
 Node &tan(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::TAN);
+  return *new UnaryOp(&x, Node::TAN);
 }
 
 Node &sinh(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::SINH);
+  return *new UnaryOp(&x, Node::SINH);
 }
 
 Node &cosh(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::COSH);
+  return *new UnaryOp(&x, Node::COSH);
 }
 
 Node &tanh(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::TANH);
+  return *new UnaryOp(&x, Node::TANH);
 }
 
 Node &asin(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::ASIN);
+  return *new UnaryOp(&x, Node::ASIN);
 }
 
 Node &acos(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::ACOS);
+  return *new UnaryOp(&x, Node::ACOS);
 }
 
 Node &atan(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::ATAN);
+  return *new UnaryOp(&x, Node::ATAN);
 }
 
 Node &log(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::LOG);
+  return *new UnaryOp(&x, Node::LOG);
 }
 
 Node &sqrt(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::SQRT);
+  return *new UnaryOp(&x, Node::SQRT);
 }
 
 Node &exp(Node &x) {
-  return *new UnaryOp(&x, UnaryOp::EXP);
+  return *new UnaryOp(&x, Node::EXP);
 }
 
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right) {

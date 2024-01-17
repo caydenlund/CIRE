@@ -228,53 +228,53 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
       return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0.0);
     case NodeType::UNARY_OP:
       switch (((UnaryOp*) node)->op) {
-        case UnaryOp::NEG:
+        case Node::NEG:
           return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(-1);
-        case UnaryOp::SIN:
+        case Node::SIN:
           return (ibex::ExprNode *) &cos(*child->getExprNode());
-        case UnaryOp::COS:
+        case Node::COS:
           return (ibex::ExprNode *) &sin(-*child->getExprNode());
-        case UnaryOp::TAN:
+        case Node::TAN:
           return (ibex::ExprNode *) &(1.0/sqr(cos(*child->getExprNode())));
-        case UnaryOp::SINH:
+        case Node::SINH:
           return (ibex::ExprNode *) &(exp(*child->getExprNode())-exp(-*child->getExprNode())/2.0);
-        case UnaryOp::COSH:
+        case Node::COSH:
           return (ibex::ExprNode *) &(exp(*child->getExprNode())+exp(-*child->getExprNode())/2.0);
-        case UnaryOp::TANH:
+        case Node::TANH:
           return (ibex::ExprNode *) &(sinh(*child->getExprNode())/cosh(*child->getExprNode()));
-        case UnaryOp::ASIN:
+        case Node::ASIN:
           return (ibex::ExprNode *) &(1.0/sqrt(1.0-sqr(*child->getExprNode())));
-        case UnaryOp::ACOS:
+        case Node::ACOS:
           return (ibex::ExprNode *) &(-1.0/sqrt(1.0-sqr(*child->getExprNode())));
-        case UnaryOp::ATAN:
+        case Node::ATAN:
           return (ibex::ExprNode *) &(1.0/(1.0+sqr(*child->getExprNode())));
-        case UnaryOp::LOG:
+        case Node::LOG:
           return (ibex::ExprNode *) &(1.0/(*child->getExprNode()*log(10.0)));
-        case UnaryOp::SQRT:
+        case Node::SQRT:
           return (ibex::ExprNode *) &(1.0/(2.0*sqrt(*child->getExprNode())));
-        case UnaryOp::EXP:
+        case Node::EXP:
           return child->getExprNode();
       }
       break;
     case NodeType::BINARY_OP:
       switch (((BinaryOp*) node)->op) {
-        case BinaryOp::ADD:
+        case Node::ADD:
           return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
-        case BinaryOp::SUB:
+        case Node::SUB:
           if (index == 0) {
             return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
           }
           else {
             return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(-1);
           }
-        case BinaryOp::MUL:
+        case Node::MUL:
           if (index == 0) {
             return ((BinaryOp*) node)->rightOperand->getExprNode();
           }
           else {
             return ((BinaryOp*) node)->leftOperand->getExprNode();
           }
-        case BinaryOp::DIV:
+        case Node::DIV:
           if (index == 0) {
             return (ibex::ExprNode *) &(1.0 / *((BinaryOp*) node)->rightOperand->getExprNode());
           } else if (index == 1) {
