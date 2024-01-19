@@ -374,7 +374,7 @@ std::set<Node *> Graph::FilterNodesWithOperationWithinDepth(Node::Op op, unsigne
  *
  * @return A vector of nodes that are candidates for abstraction
  */
-std::vector<Node *>
+std::set<Node *>
 Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound, unsigned int upper_bound) {
   assert(lower_bound <= upper_bound && upper_bound <= max_depth && "Invalid bounds for abstraction");
 
@@ -398,10 +398,54 @@ Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower
     std::cout << std::endl;
   }
 
-  return std::vector<Node *>();
+  // Unionize the node set from common_dependencies
+  std::set<Node *> common_dependencies_set;
+  for (auto &common_dependency : common_dependencies) {
+    std::set_union(common_dependencies_set.begin(), common_dependencies_set.end(),
+                   common_dependency.second.begin(), common_dependency.second.end(),
+                   std::inserter(common_dependencies_set, common_dependencies_set.end()));
+  }
+
+  if (common_dependencies_set.empty()) {
+    std::cout << "Empty dependence set! Generating candidates!" << std::endl;
+
+    // Get all nodes from depthTable within the depth window with node type UnaryOp, BinaryOp, or TernaryOp
+    std::set<Node *> common_dependencies_set;
+    for (auto &depth_table : depthTable) {
+      if (depth_table.first >= lower_bound && depth_table.first <= upper_bound) {
+        std::set_union(common_dependencies_set.begin(), common_dependencies_set.end(),
+                       depth_table.second.begin(), depth_table.second.end(),
+                       std::inserter(common_dependencies_set, common_dependencies_set.end()));
+      }
+    }
+  } else {
+    unsigned int local_max_depth=-1;
+    // Get the greatest depth from nodes in common_dependencies_set
+    for (auto &node : common_dependencies_set) {
+      if (node->depth > local_max_depth) {
+        local_max_depth = node->depth;
+      }
+    }
+
+    // Get nodes from common_dependencies_set with depth equal to local_max_depth
+    std::set<Node *> common_dependencies_set;
+    for (auto &node : common_dependencies_set) {
+      if (node->depth == local_max_depth) {
+        common_dependencies_set.insert(node);
+      }
+    }
+  }
+
+  // Print common dependencies set
+  std::cout << "Common dependencies set:" << std::endl;
+  for (auto &node : common_dependencies_set) {
+    std::cout << "\t" << *node << std::endl;
+  }
+
+  return common_dependencies_set;
 }
 
-std::set<Node*> Graph::selectNodesForAbstraction(unsigned int max_depth,
+std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsigned int max_depth,
                                                     unsigned int bound_min_depth,
                                                     unsigned int bound_max_depth) {
   assert(bound_min_depth <= bound_max_depth && bound_max_depth <= max_depth && "Invalid bounds for abstraction");
@@ -409,28 +453,215 @@ std::set<Node*> Graph::selectNodesForAbstraction(unsigned int max_depth,
 
   // Abstraction window is just 1 level wide
   if (bound_min_depth == bound_max_depth && bound_max_depth <= max_depth) {
-    return depthTable[bound_min_depth];
+    return std::make_pair(bound_min_depth, depthTable[bound_min_depth]);
   }
 
-  std::vector<Node*> initialCandidateList = FilterCandidatesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
-
-
+  std::set<Node*> initialCandidateList = FilterCandidatesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
 
   unsigned int local_max_depth = bound_max_depth;
 
 
+  // Keep increasing local_max_depth until initialCandidateList is not empty
+  while (initialCandidateList.empty() && local_max_depth <= max_depth) {
+    local_max_depth+=5;
+    initialCandidateList = FilterCandidatesForAbstraction(max_depth, bound_min_depth, local_max_depth);
+  }
+
+  if (initialCandidateList.empty()) {
+    std::cout << "No candidates found!" << std::endl;
+    return std::make_pair(-1, std::set<Node*>());
+  } else {
+    local_max_depth = -1;
+    // Set local_max_depth to the greatest depth of nodes in initialCandidateList
+    for (auto &node : initialCandidateList) {
+      if (node->depth > local_max_depth) {
+        local_max_depth = node->depth;
+      }
+    }
+
+    auto f = [&local_max_depth](Node *x) {
+      return float(x->depth)/(local_max_depth + 0.01);
+    };
+
+    auto g = [](Node *x, auto y) {
+      return (-1)*y* log2(y)*x->parents.size();
+    };
+
+    // Create a list of cost
+    std::map<Node*, double> cost_dict;
+
+    // Compute g(x, f(x)) for each node in initialCandidateList
+    for (auto &node : initialCandidateList) {
+      cost_dict[node] = g(node, f(node));
+    }
+
+    // Sum cost of all nodes with same depth
+    std::map<int, double> cost_sum_dict;
+    for (auto &node : initialCandidateList) {
+      cost_sum_dict[node->depth] += cost_dict[node];
+    }
+
+    // Print cost_sum_dict
+    std::cout << "Cost Sum Dict:" << std::endl;
+    for (auto &cost_sum : cost_sum_dict) {
+      std::cout << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
+    }
+
+    // Get the depth with the greatest cost
+    int abstraction_depth = -1;
+    double greatest_cost = -1;
+    for (auto &cost_sum : cost_sum_dict) {
+      if (cost_sum.second > greatest_cost) {
+        greatest_cost = cost_sum.second;
+        abstraction_depth = cost_sum.first;
+      }
+    }
+
+    // Get nodes with depth equal to depth_with_greatest_cost
+    auto candidate_nodes = depthTable[abstraction_depth];
+
+    // Print max depth and abstraction depth
+    std::cout << "Max Depth: " << max_depth << std::endl;
+    std::cout << "Abstraction Depth: " << abstraction_depth << std::endl;
+
+    return std::make_pair(abstraction_depth, candidate_nodes);
+  }
 }
 
-void Graph::performAbstraction(unsigned int boundMinDepth, unsigned int boundMaxDepth) {
+
+
+void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
   // Get max depth using keys in depthTable
-  unsigned int maxDepth = depthTable.rbegin()->first;
+  unsigned int max_depth = depthTable.rbegin()->first;
 
-  auto candidateNodes = selectNodesForAbstraction(maxDepth, boundMinDepth, boundMaxDepth);
+  unsigned int abstraction_level = 1;
+  std::cout << "Performing abstraction" << std::endl;
 
-  // Print candidate nodes
-  std::cout << "Candidate Nodes:" << std::endl;
-  for (auto &node : candidateNodes) {
-    std::cout << "\t" << *node << std::endl;
+  while (max_depth >= bound_max_depth && max_depth >= bound_min_depth) {
+    auto [abstraction_depth, candidate_nodes] = selectNodesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
+
+    if (!candidate_nodes.empty()) {
+      // Print candidate nodes
+      std::cout << "Candidate Nodes:" << std::endl;
+      for (auto &node : candidate_nodes) {
+        std::cout << "\t" << *node << std::endl;
+      }
+
+      // Modify the AST
+      // results = SimplifyWithAbstraction(candidate_nodes);
+
+
+    } else {
+      std::cout << "No candidates found!" << std::endl;
+      return;
+    }
+
+
+
+  }
+
+  // Create a new node for each node in candidateNodes
+
+}
+
+/*
+ * Modifies the probe list to include nodes that are common to all nodes in the probe list
+ *
+ * @param probeList List of nodes to modify
+ *
+ * @return A list of nodes that are common to all nodes in the probe list
+ */
+std::vector<Node *> Graph::ModProbeList() {
+  std::vector<Node*> probe_list;
+
+  // Get nodes from symbol table corresponding to the output variables
+  for (auto &output : outputs) {
+    probe_list.push_back(symbolTables[currentScope]->table[output]);
+  }
+
+  return probe_list;
+}
+
+/*
+ * Rebuilds the AST post abstraction
+ */
+void Graph::RebuildAST() {
+  std::cout << "Rebuilding AST" << std::endl;
+
+  std::vector<Node*> probe_list = ModProbeList();
+
+  std::map<Node*, unsigned int> completed;
+
+  // Recursively call RebuildASTNode on nodes in probe_list if not already completed
+  for (auto &node : probe_list) {
+    if (completed.find(node) == completed.end()) {
+      RebuildASTNode(node, completed);
+    }
+  }
+
+  // Get max depth among nodes in probe_list
+  unsigned int max_depth = -1;
+  for (auto &node : probe_list) {
+    if (node->depth > max_depth) {
+      max_depth = node->depth;
+    }
+  }
+
+  // TODO: Get total number of nodes before and after
+}
+
+void Graph::RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed) {
+  // Recursively call RebuildASTNode on children of node if not already completed
+  switch(node->type) {
+    case NodeType::INTEGER:
+    case NodeType::FLOAT:
+    case NodeType::DOUBLE:
+    case NodeType::FREE_VARIABLE:
+    case NodeType::VARIABLE:
+      node->depth = 0;
+      break;
+    case NodeType::UNARY_OP:
+      if (completed.find(((UnaryOp*)node)->Operand) == completed.end()) {
+        RebuildASTNode(((UnaryOp*)node)->Operand, completed);
+      }
+      node->depth = ((UnaryOp*)node)->Operand->depth + 1;
+      completed[node] = node->depth;
+      break;
+    case NodeType::BINARY_OP:
+      if (completed.find(((BinaryOp*)node)->leftOperand) == completed.end()) {
+        RebuildASTNode(((BinaryOp*)node)->leftOperand, completed);
+      }
+      if (completed.find(((BinaryOp*)node)->rightOperand) == completed.end()) {
+        RebuildASTNode(((BinaryOp*)node)->rightOperand, completed);
+      }
+      node->depth = std::max(((BinaryOp*)node)->leftOperand->depth, ((BinaryOp*)node)->rightOperand->depth) + 1;
+      completed[node] = node->depth;
+      break;
+    case NodeType::TERNARY_OP:
+      if (completed.find(((TernaryOp*)node)->leftOperand) == completed.end()) {
+        RebuildASTNode(((TernaryOp*)node)->leftOperand, completed);
+      }
+      if (completed.find(((TernaryOp*)node)->middleOperand) == completed.end()) {
+        RebuildASTNode(((TernaryOp*)node)->middleOperand, completed);
+      }
+      if (completed.find(((TernaryOp*)node)->rightOperand) == completed.end()) {
+        RebuildASTNode(((TernaryOp*)node)->rightOperand, completed);
+      }
+      node->depth = std::max(std::max(((TernaryOp*)node)->leftOperand->depth, ((TernaryOp*)node)->middleOperand->depth),
+                             ((TernaryOp*)node)->rightOperand->depth) + 1;
+      completed[node] = node->depth;
+      break;
+    default:
+      std::cout << "Unknown node type" << std::endl;
+      break;
+  }
+
+  // Modify node
+  if (node->isUnaryOp() || node->isBinaryOp() || node->isTernaryOp()) {
+
+    completed[node] = node->depth;
+  } else {
+    node->depth = 0;
   }
 }
 

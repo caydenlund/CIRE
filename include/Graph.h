@@ -45,13 +45,17 @@ public:
   std::set<Node*> FindCommonNodes(Node* node, unsigned int min_depth, unsigned int max_depth);
   std::map<Node*, std::set<Node*>> FindCommonDependencies(std::set<Node*> node, unsigned int min_depth, unsigned int max_depth);
   std::set<Node*> FilterNodesWithOperationWithinDepth(Node::Op op, unsigned int max_depth);
-  std::vector<Node*> FilterCandidatesForAbstraction(unsigned int max_depth,
+  std::set<Node*> FilterCandidatesForAbstraction(unsigned int max_depth,
                                                     unsigned int lower_bound,
                                                     unsigned int upper_bound);
-  std::set<Node*> selectNodesForAbstraction(unsigned int max_depth,
-                                               unsigned int bound_min_depth,
-                                               unsigned int bound_max_depth);
+  std::pair<unsigned int, std::set<Node*>> selectNodesForAbstraction(unsigned int max_depth,
+                                             unsigned int bound_min_depth,
+                                             unsigned int bound_max_depth);
   void performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
+
+  std::vector<Node *> ModProbeList();
+  void RebuildAST();
+  void RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed);
 
   // Run the parser on file F.  Return 0 on success.
   int parse(const char &f);
