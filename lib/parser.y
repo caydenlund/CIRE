@@ -78,9 +78,13 @@ intv_factor:    SUB FP {
 			$$ = $2;
 			$$.fval = -$2.fval;
 		}
-		|
-		FP { $$ = $1; }
-                ;
+		| SUB INT {
+            $$ = $2;
+            $$.ival = -$2.ival;
+        }
+		| FP { $$ = $1; }
+		| INT { $$ = $1; }
+        ;
 
 intv_term:  intv_factor { $$ = $1; }
         | intv_term MUL intv_factor {

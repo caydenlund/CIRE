@@ -1,5 +1,4 @@
 INPUTS {
-
 	 x fl64 : (-1.0, 1.0) ;
 }
 OUTPUTS {
