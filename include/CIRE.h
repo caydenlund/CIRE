@@ -27,7 +27,7 @@ public:
   void setAbstractionWindow(std::pair<unsigned int, unsigned int> window);
   void setMinDepth(unsigned int depth);
   void setMaxDepth(unsigned int depth);
-  ibex::IntervalVector performErrorAnalysis();
+  std::map<Node *, ibex::IntervalVector> performErrorAnalysis();
 };
 
 #endif //CIRE_CIRE_H

@@ -35,9 +35,9 @@ public:
   Node *findFreeVarNode(string Var) const;
   Node *findVarNode(string Var) const;
 
-  void setupDerivativeComputation();
-  void errorComputingDriver();
-  void generateExprDriver();
+  void setupDerivativeComputation(std::set<Node*> nodes);
+  void errorComputingDriver(std::set<Node*> nodes);
+  void generateExprDriver(std::set<Node *> nodes);
   void generateExpr(Node *node);
 
   // Abstraction related functions
@@ -51,7 +51,9 @@ public:
   std::pair<unsigned int, std::set<Node*>> selectNodesForAbstraction(unsigned int max_depth,
                                              unsigned int bound_min_depth,
                                              unsigned int bound_max_depth);
-  void performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
+  std::map<Node *, ibex::IntervalVector> performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
+
+  std::map<Node *, ibex::IntervalVector> SimplifyWithAbstraction(std::set<Node*> nodes, unsigned max_depth, bool isFinal=false);
 
   std::vector<Node *> ModProbeList();
   void RebuildAST();

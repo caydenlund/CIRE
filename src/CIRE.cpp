@@ -28,22 +28,16 @@ void CIRE::setMaxDepth(unsigned int depth) {
   abstractionWindow.second = depth;
 }
 
-ibex::IntervalVector CIRE::performErrorAnalysis() {
+std::map<Node *, ibex::IntervalVector> CIRE::performErrorAnalysis() {
   if (abstraction) {
-    graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
+    return graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
+  } else {
+    std::set<Node*> output_set;
+    for (auto &output : graph->outputs) {
+      output_set.insert(graph->findVarNode(output));
+    }
+    return graph->SimplifyWithAbstraction(output_set, 0, true);
   }
-
-  graph->generateExprDriver();
-  graph->setupDerivativeComputation();
-
-  graph->errorAnalyzer->derivativeComputingDriver();
-  graph->errorComputingDriver();
-
-  graph->ibexInterface->setInputIntervals(graph->inputs);
-  graph->ibexInterface->setVariables(graph->inputs, graph->symbolTables[graph->currentScope]->table);
-  graph->ibexInterface->setFunction(graph->errorAnalyzer->ErrAccumulator[graph->symbolTables[graph->currentScope]->table[graph->outputs[0]]]);
-
-  return graph->ibexInterface->eval();
 }
 
 void show_usage(std::string name) {
@@ -98,8 +92,11 @@ int main(int argc, char *argv[]) {
   }
 
   cire.graph->parse(*cire.file.c_str());
-  ibex::IntervalVector answer = cire.performErrorAnalysis();
-  std::cout << "Output: " << answer << std::endl;
+  std::map<Node *, ibex::IntervalVector> answer = cire.performErrorAnalysis();
+  // print the answer map
+  for (auto &node : answer) {
+    std::cout << *node.first << " : " << node.second << std::endl;
+  }
 
   return 0;
 }

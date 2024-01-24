@@ -63,35 +63,74 @@ Node *Graph::findVarNode(string Var) const {
   return nullptr;
 }
 
-void Graph::setupDerivativeComputation() {
+void Graph::setupDerivativeComputation(std::set<Node*> nodes) {
   // Set up output
   // Assuming there is only one output
   // TODO: Change this for multiple outputs
-  errorAnalyzer->workList.insert(symbolTables[currentScope]->table[outputs[0]]);
-  errorAnalyzer->BwdDerivatives[symbolTables[currentScope]->table[outputs[0]]][symbolTables[currentScope]->table[outputs[0]]] =
-          (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
-  errorAnalyzer->numParentsOfNode[symbolTables[currentScope]->table[outputs[0]]] =
-          symbolTables[currentScope]->table[outputs[0]]->parents.size();
-}
-
-void Graph::errorComputingDriver() {
-  for(auto &output : outputs) {
-    if(errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].find(symbolTables.find(currentScope)->second->table[output]) ==
-        errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].end()) {
-      errorAnalyzer->errorComputing(findVarNode(output));
+  // Get the max depth of the nodes
+  unsigned int max_depth = 0;
+  for (auto &node : nodes) {
+    if (node->depth > max_depth) {
+      max_depth = node->depth;
     }
   }
 
-  errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] =
-          (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] *
-          pow(2, -53));
+  // Insert nodes with max depth into worklist
+  for (auto &node : nodes) {
+    if (node->depth == max_depth) {
+      errorAnalyzer->workList.insert(node);
+    }
+  }
+
+  // Set BwdDerivatives of each node with respect to itself to 1
+  for (auto &node : nodes) {
+    errorAnalyzer->BwdDerivatives[node][node] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+  }
+
+  // Set numParentsOfNode of each node to the number of parents it has
+  for (auto &node : nodes) {
+    errorAnalyzer->numParentsOfNode[node] = node->parents.size();
+  }
+
+//  errorAnalyzer->workList.insert(symbolTables[currentScope]->table[outputs[0]]);
+//  errorAnalyzer->BwdDerivatives[symbolTables[currentScope]->table[outputs[0]]][symbolTables[currentScope]->table[outputs[0]]] =
+//          (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+//  errorAnalyzer->numParentsOfNode[symbolTables[currentScope]->table[outputs[0]]] =
+//          symbolTables[currentScope]->table[outputs[0]]->parents.size();
 }
 
-// Generates Expressions corresponding to all no bottom up
-void Graph::generateExprDriver() {
-  for (auto &output : outputs) {
-    generateExpr(findVarNode(output));
+void Graph::errorComputingDriver(std::set<Node*> nodes) {
+  for(auto &output : nodes) {
+  // This part is for a single output node. Remove if no useful info in this code
+//    if(errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].find(symbolTables.find(currentScope)->second->table[output]) ==
+//        errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].end()) {
+//      errorAnalyzer->errorComputing(findVarNode(output));
+//    }
+    if(errorAnalyzer->errorComputedNodes[output->depth].find(output) ==
+       errorAnalyzer->errorComputedNodes[output->depth].end()) {
+      errorAnalyzer->errorComputing(output);
+    }
+
+    errorAnalyzer->ErrAccumulator[output] =
+            (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[output] *
+                                pow(2, -53));
   }
+
+  // This part is for a single output node. Remove if no useful info in this code
+//  errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] =
+//          (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] *
+//          pow(2, -53));
+}
+
+// Generates Expressions corresponding to all nodes bottom up
+void Graph::generateExprDriver(std::set<Node *> nodes) {
+//  for (auto &output : outputs) {
+//    generateExpr(findVarNode(output));
+//  }
+
+    for (auto &node : nodes) {
+      generateExpr(node);
+    }
 }
 
 void Graph::generateExpr(Node *node) {
@@ -410,7 +449,6 @@ Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower
     std::cout << "Empty dependence set! Generating candidates!" << std::endl;
 
     // Get all nodes from depthTable within the depth window with node type UnaryOp, BinaryOp, or TernaryOp
-    std::set<Node *> common_dependencies_set;
     for (auto &depth_table : depthTable) {
       if (depth_table.first >= lower_bound && depth_table.first <= upper_bound) {
         std::set_union(common_dependencies_set.begin(), common_dependencies_set.end(),
@@ -471,7 +509,7 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
     std::cout << "No candidates found!" << std::endl;
     return std::make_pair(-1, std::set<Node*>());
   } else {
-    local_max_depth = -1;
+    local_max_depth = 0;
     // Set local_max_depth to the greatest depth of nodes in initialCandidateList
     for (auto &node : initialCandidateList) {
       if (node->depth > local_max_depth) {
@@ -530,7 +568,7 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
 
 
 
-void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
+std::map<Node *, ibex::IntervalVector> Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
   // Get max depth using keys in depthTable
   unsigned int max_depth = depthTable.rbegin()->first;
 
@@ -548,12 +586,12 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
       }
 
       // Modify the AST
-      // results = SimplifyWithAbstraction(candidate_nodes);
+      SimplifyWithAbstraction(candidate_nodes, max_depth);
 
 
     } else {
       std::cout << "No candidates found!" << std::endl;
-      return;
+      return {};
     }
 
 
@@ -562,6 +600,39 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
 
   // Create a new node for each node in candidateNodes
 
+}
+
+std::map<Node *, ibex::IntervalVector> Graph::SimplifyWithAbstraction(std::set<Node *> nodes, unsigned int max_depth, bool isFinal) {
+
+  generateExprDriver(nodes);
+  setupDerivativeComputation(nodes);
+
+  errorAnalyzer->derivativeComputingDriver();
+  errorComputingDriver(nodes);
+
+  std::map<Node *, ibex::IntervalVector> results;
+  for (auto &node : nodes) {
+    ibexInterface->setInputIntervals(inputs);
+    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+    ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]]);
+    results[node] = ibexInterface->eval();
+  }
+
+
+
+
+  if(isFinal) {
+    return results;
+  }
+
+  // Reset values of nodes in nodes
+  for (auto &node : nodes) {
+
+  }
+
+  RebuildAST();
+
+  return results;
 }
 
 /*
@@ -607,7 +678,22 @@ void Graph::RebuildAST() {
     }
   }
 
-  // TODO: Get total number of nodes before and after
+  // Get total number of nodes before
+  unsigned int num_nodes = 0;
+  for (auto &depth_table : depthTable) {
+    num_nodes += depth_table.second.size();
+  }
+
+  // Modify depthTable using the completed map
+  for (auto &node : completed) {
+    depthTable[node.second].insert(node.first);
+  }
+
+  // Get total number of nodes after
+  num_nodes = 0;
+  for (auto &depth_table : depthTable) {
+    num_nodes += depth_table.second.size();
+  }
 }
 
 void Graph::RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed) {
@@ -689,3 +775,5 @@ int Graph::parse(const char &f) {
 
   return 0;
 }
+
+
