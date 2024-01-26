@@ -20,6 +20,8 @@ public:
   std::map<int, std::set<Node *>> derivativeComputedNodes;
   // Map from depth to nodes at that depth whose error has been computed
   std::map<int, std::set<Node *>> errorComputedNodes;
+  // Map of node from parents of node
+  std::map<Node *, std::set<Node *>> parentsOfNode;
 
   std::map<Node *, ibex::ExprNode *> ErrAccumulator;
 

@@ -1,7 +1,7 @@
 #include "../include/ErrorAnalyzer.h"
 
 bool ErrorAnalyzer::parentsVisited(Node *node) {
-  return numParentsOfNode[node] >= node->parents.size();
+  return numParentsOfNode[node] >= parentsOfNode[node].size();
 }
 
 void ErrorAnalyzer::derivativeComputingDriver() {
@@ -31,8 +31,10 @@ void ErrorAnalyzer::derivativeComputingDriver() {
       workList.insert(node);
     }
 
-    std::copy_if(nextWorkList.begin(), nextWorkList.end(), std::inserter(workList, workList.end()), [&next_depth](
-            Node *node) { return node->depth == next_depth;});
+    if(workList.empty() && !nextWorkList.empty() && next_depth >= 0) {
+      std::copy_if(nextWorkList.begin(), nextWorkList.end(), std::inserter(workList, workList.end()), [&next_depth](
+              Node *node) { return node->depth == next_depth;});
+    }
   }
 //  printBwdDerivativesIbexExprs();
 //  std::cout << std::endl;

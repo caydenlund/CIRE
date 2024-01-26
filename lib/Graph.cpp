@@ -153,18 +153,25 @@ void Graph::generateExpr(Node *node) {
     case NodeType::UNARY_OP:
       generateExpr(((UnaryOp *)node)->Operand);
       ((UnaryOp *)node)->expr = (ibex::ExprUnaryOp *)&node->generateSymExpr();
+      errorAnalyzer->parentsOfNode[((UnaryOp *)node)->Operand].insert(node);
 //      std::cout << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
       break;
     case NodeType::BINARY_OP:
       generateExpr(((BinaryOp *)node)->leftOperand);
       generateExpr(((BinaryOp *)node)->rightOperand);
       ((BinaryOp *)node)->expr = (ibex::ExprBinaryOp *)&node->generateSymExpr();
+      errorAnalyzer->parentsOfNode[((BinaryOp *)node)->leftOperand].insert(node);
+      errorAnalyzer->parentsOfNode[((BinaryOp *)node)->rightOperand].insert(node);
 //      std::cout << "BinaryOp: " << *((BinaryOp *)node)->expr << std::endl;
       break;
     case NodeType::TERNARY_OP:
       generateExpr(((TernaryOp *)node)->leftOperand);
       generateExpr(((TernaryOp *)node)->middleOperand);
       generateExpr(((TernaryOp *)node)->rightOperand);
+//      ((TernaryOp *)node)->expr = (ibex::ExprTernaryOp *)&node->generateSymExpr();
+      errorAnalyzer->parentsOfNode[((TernaryOp *)node)->leftOperand].insert(node);
+      errorAnalyzer->parentsOfNode[((TernaryOp *)node)->middleOperand].insert(node);
+      errorAnalyzer->parentsOfNode[((TernaryOp *)node)->rightOperand].insert(node);
       // Ibex does not have a TernaryOp
       break;
     default:
@@ -614,7 +621,8 @@ std::map<Node *, ibex::IntervalVector> Graph::SimplifyWithAbstraction(std::set<N
   for (auto &node : nodes) {
     ibexInterface->setInputIntervals(inputs);
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-    ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]]);
+//    ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]]);
+    ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[node]);
     results[node] = ibexInterface->eval();
   }
 
