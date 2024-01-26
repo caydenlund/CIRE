@@ -115,7 +115,7 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                     new_variable->setAbsoluteError(&ibex::ExprConstant::new_scalar($7.fval * pow(2, -53)));
                     new_variable->setRounding($2);
                     graph->nodes.insert(new_variable);
-                    graph->depthTable[new_variable->depth].insert(new_variable);
+                    // graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
                 $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
@@ -182,7 +182,7 @@ exprs:  EXPRS LBRACE stmts RBRACE
 number: INT {
             $$ = new Integer(ibex::ExprConstant::new_scalar($1.ival));
             graph->nodes.insert($$);
-            graph->depthTable[$$->depth].insert($$);
+            // graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | FP {
@@ -190,7 +190,7 @@ number: INT {
             // TODO: Set the error for different precisions
             $$->setAbsoluteError(&ibex::ExprConstant::new_scalar($1.fval * pow(2, -53)));
             graph->nodes.insert($$);
-            graph->depthTable[$$->depth].insert($$);
+            // graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         ;
@@ -272,7 +272,7 @@ arith_fact: number { $$ = $1; }
 	    | SUB number {
             $$ = &(-*$2);
 		    graph->nodes.insert($$);
-		    graph->depthTable[$$->depth].insert($$);
+		    // graph->depthTable[$$->depth].insert($$);
 		    // std::cout << *$$ << std::endl;
         }
 	    | LPAREN arith_exp RPAREN { $$ = $2; }

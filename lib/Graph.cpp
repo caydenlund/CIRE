@@ -692,6 +692,9 @@ void Graph::RebuildAST() {
     num_nodes += depth_table.second.size();
   }
 
+  // Print num_nodes before
+  std::cout << "Num nodes before: " << num_nodes << std::endl;
+
   // Modify depthTable using the completed map
   for (auto &node : completed) {
     depthTable[node.second].insert(node.first);
@@ -702,6 +705,9 @@ void Graph::RebuildAST() {
   for (auto &depth_table : depthTable) {
     num_nodes += depth_table.second.size();
   }
+
+  // Print num_nodes after
+  std::cout << "Num nodes after: " << num_nodes << std::endl;
 }
 
 void Graph::RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed) {
@@ -715,11 +721,14 @@ void Graph::RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed
       node->depth = 0;
       break;
     case NodeType::UNARY_OP:
-      if (completed.find(((UnaryOp*)node)->Operand) == completed.end()) {
-        RebuildASTNode(((UnaryOp*)node)->Operand, completed);
+      if(((UnaryOp*)node)->op != Node::Op::NEG) {
+        if (completed.find(((UnaryOp*)node)->Operand) == completed.end()) {
+          RebuildASTNode(((UnaryOp*)node)->Operand, completed);
+        }
+
+        node->depth = ((UnaryOp *) node)->Operand->depth + 1;
+        completed[node] = node->depth;
       }
-      node->depth = ((UnaryOp*)node)->Operand->depth + 1;
-      completed[node] = node->depth;
       break;
     case NodeType::BINARY_OP:
       if (completed.find(((BinaryOp*)node)->leftOperand) == completed.end()) {
@@ -751,8 +760,7 @@ void Graph::RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed
   }
 
   // Modify node
-  if (node->isUnaryOp() || node->isBinaryOp() || node->isTernaryOp()) {
-
+  if ((node->isUnaryOp() && ((UnaryOp*)node)->op != Node::Op::NEG) || node->isBinaryOp() || node->isTernaryOp()) {
     completed[node] = node->depth;
   } else {
     node->depth = 0;
