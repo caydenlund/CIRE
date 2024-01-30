@@ -638,6 +638,7 @@ std::map<Node *, ibex::IntervalVector> Graph::SimplifyWithAbstraction(std::set<N
 
   }
 
+  AbstractNodes(results);
   RebuildAST();
 
   return results;
@@ -659,6 +660,39 @@ std::vector<Node *> Graph::ModProbeList() {
   }
 
   return probe_list;
+}
+
+/*
+ * Abstracts nodes in results
+ *
+ * @param results A map of nodes to their corresponding intervals
+ */
+void Graph::AbstractNodes(std::map<Node *, ibex::IntervalVector> results) {
+  std::cout << "Abstracting nodes" << std::endl;
+
+  // Turn node in results into Variable nodes and create corresponding FreeVariable nodes
+  for (auto &result : results) {
+    auto node = result.first;
+
+    VariableNode *converted_node;
+
+    // Convert node to Variable node
+    converted_node = new VariableNode(*node);
+    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
+
+    // Add converted node to nodes and symbol table
+    nodes.insert(converted_node);
+    symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
+
+    // Create corresponding FreeVariable node using the result IntervalVector
+    FreeVariable *free_node = new FreeVariable();
+    inputs[converted_node->variable->name] = free_node;
+
+    // Add free node to nodes and inputs
+    nodes.insert(free_node);
+    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
+    free_node->setRounding(converted_node->getRounding());
+  }
 }
 
 /*
@@ -696,6 +730,7 @@ void Graph::RebuildAST() {
   std::cout << "Num nodes before: " << num_nodes << std::endl;
 
   // Modify depthTable using the completed map
+  depthTable.clear();
   for (auto &node : completed) {
     depthTable[node.second].insert(node.first);
   }
@@ -791,5 +826,3 @@ int Graph::parse(const char &f) {
 
   return 0;
 }
-
-

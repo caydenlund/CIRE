@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+int Node::NEW_FREE_VARIABLE_COUNTER = 0;
 int Node::NODE_COUNTER = 0;
 
 bool Node::isInteger() const {
@@ -36,8 +37,8 @@ bool Node::isTernaryOp() const {
   return type == TERNARY_OP;
 }
 
-void Node::setRounding(Node::RoundingType roundingType) {
-  rounding = RoundingAmount[roundingType];
+void Node::setRounding(double rounding) {
+  this->rounding = rounding;
 }
 
 void Node::setAbsoluteError(const ibex::ExprNode *absErr) {
@@ -483,6 +484,56 @@ Node *FreeVariable::getChildNode(int index) const {
 
 VariableNode::VariableNode(const ibex::ExprSymbol& variable): variable(&variable) {
   type = VARIABLE;
+}
+
+VariableNode::VariableNode(const Node &node) {
+  type = VARIABLE;
+  parents = node.parents;
+  rounding = node.rounding;
+  
+  // Modify the parents of the node to point to this node
+  for (auto parent : parents) {
+    // switch on parent node type
+    switch (parent->type) {
+      case UNARY_OP: {
+        UnaryOp *unaryOp = (UnaryOp *) parent;
+        if (unaryOp->Operand == &node) {
+          unaryOp->Operand = this;
+        }
+        break;
+      }
+      case BINARY_OP: {
+        BinaryOp *binaryOp = (BinaryOp *) parent;
+        if (binaryOp->leftOperand == &node) {
+          binaryOp->leftOperand = this;
+        } else if (binaryOp->rightOperand == &node) {
+          binaryOp->rightOperand = this;
+        }
+        break;
+      }
+      case TERNARY_OP: {
+        TernaryOp *ternaryOp = (TernaryOp *) parent;
+        if (ternaryOp->leftOperand == &node) {
+          ternaryOp->leftOperand = this;
+        } else if (ternaryOp->middleOperand == &node) {
+          ternaryOp->middleOperand = this;
+        } else if (ternaryOp->rightOperand == &node) {
+          ternaryOp->rightOperand = this;
+        }
+        break;
+      }
+      default: {
+        std::cout << "ERROR: Unknown node type" << std::endl;
+        exit(1);
+      }
+    }
+  }
+
+  string prefix = "FR";
+  string var_name = prefix + std::to_string(Node::NEW_FREE_VARIABLE_COUNTER++);
+
+  // Set VariableNode members
+  variable = &ibex::ExprSymbol::new_(var_name.c_str());
 }
 
 void VariableNode::write(std::ostream &os) const {

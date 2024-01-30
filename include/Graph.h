@@ -56,6 +56,7 @@ public:
   std::map<Node *, ibex::IntervalVector> SimplifyWithAbstraction(std::set<Node*> nodes, unsigned max_depth, bool isFinal=false);
 
   std::vector<Node *> ModProbeList();
+  void AbstractNodes(std::map<Node *, ibex::IntervalVector> results);
   void RebuildAST();
   void RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed);
 

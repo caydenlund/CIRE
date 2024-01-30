@@ -12,8 +12,9 @@ public:
   SymbolTable() = default;
   ~SymbolTable() = default;
 
-  void insert(string symbol, Node *node);
-  Node *lookup(string symbol, Node *node = new VariableNode());
+  void insert(const string& symbol, Node *node);
+  Node *lookup(const string& symbol, Node *node = new VariableNode());
+  string ReverseLookup(const Node *node);
 };
 
 

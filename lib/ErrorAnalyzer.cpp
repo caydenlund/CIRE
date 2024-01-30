@@ -211,8 +211,8 @@ void ErrorAnalyzer::propagateError(Node *node) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*expr);
     }
 
-    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
-    std::cout << std::endl;
+//    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
+//    std::cout << std::endl;
   }
 
 

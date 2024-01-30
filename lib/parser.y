@@ -182,6 +182,7 @@ exprs:  EXPRS LBRACE stmts RBRACE
 number: INT {
             $$ = new Integer(ibex::ExprConstant::new_scalar($1.ival));
             graph->nodes.insert($$);
+            $$->setAbsoluteError(&ibex::ExprConstant::new_scalar(0.0));
             // graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }

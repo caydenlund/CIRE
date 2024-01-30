@@ -67,6 +67,7 @@ public:
 protected:
 
 public:
+  static int NEW_FREE_VARIABLE_COUNTER;
   static int NODE_COUNTER;
   int id = NODE_COUNTER++;
   int depth = 0;
@@ -96,7 +97,7 @@ public:
   bool isBinaryOp() const;
   bool isTernaryOp() const;
 
-  void setRounding(RoundingType roundingType);
+  void setRounding(double rounding);
   void setAbsoluteError(const ibex::ExprNode *absErr);
 
   virtual void write(std::ostream &os) const;
@@ -193,7 +194,7 @@ private:
 public:
   const ibex::Interval *var = nullptr;
   FreeVariable() = default;
-  FreeVariable(const ibex::Interval &var);
+  explicit FreeVariable(const ibex::Interval &var);
   ~FreeVariable() = default;
 
   // Prints string representation of this node
@@ -213,7 +214,8 @@ class VariableNode : public Node {
 private:
 public:
   const ibex::ExprSymbol *variable ;
-  explicit VariableNode(const ibex::ExprSymbol& name = ibex::ExprSymbol::new_("default"));
+  explicit VariableNode(const ibex::ExprSymbol& variable = ibex::ExprSymbol::new_("default"));
+  explicit VariableNode(const Node &node);
   ~VariableNode() = default;
 
   // Prints string representation of this node
