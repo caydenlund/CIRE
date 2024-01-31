@@ -51,12 +51,12 @@ public:
   std::pair<unsigned int, std::set<Node*>> selectNodesForAbstraction(unsigned int max_depth,
                                              unsigned int bound_min_depth,
                                              unsigned int bound_max_depth);
-  std::map<Node *, ibex::IntervalVector> performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
+  std::map<Node *, std::vector<ibex::IntervalVector>> performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
 
-  std::map<Node *, ibex::IntervalVector> SimplifyWithAbstraction(std::set<Node*> nodes, unsigned max_depth, bool isFinal=false);
+  std::map<Node *, std::vector<ibex::IntervalVector>> SimplifyWithAbstraction(std::set<Node*> nodes, unsigned max_depth, bool isFinal=false);
 
   std::vector<Node *> ModProbeList();
-  void AbstractNodes(std::map<Node *, ibex::IntervalVector> results);
+  void AbstractNodes(std::map<Node *, std::vector<ibex::IntervalVector>> results);
   void RebuildAST();
   void RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed);
 

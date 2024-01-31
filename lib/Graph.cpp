@@ -575,7 +575,7 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
 
 
 
-std::map<Node *, ibex::IntervalVector> Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
+std::map<Node *, std::vector<ibex::IntervalVector>> Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
   // Get max depth using keys in depthTable
   unsigned int max_depth = depthTable.rbegin()->first;
 
@@ -609,7 +609,7 @@ std::map<Node *, ibex::IntervalVector> Graph::performAbstraction(unsigned int bo
 
 }
 
-std::map<Node *, ibex::IntervalVector> Graph::SimplifyWithAbstraction(std::set<Node *> nodes, unsigned int max_depth, bool isFinal) {
+std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstraction(std::set<Node *> nodes, unsigned int max_depth, bool isFinal) {
 
   generateExprDriver(nodes);
   setupDerivativeComputation(nodes);
@@ -617,25 +617,19 @@ std::map<Node *, ibex::IntervalVector> Graph::SimplifyWithAbstraction(std::set<N
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(nodes);
 
-  std::map<Node *, ibex::IntervalVector> results;
+  std::map<Node *, std::vector<ibex::IntervalVector>> results;
   for (auto &node : nodes) {
     ibexInterface->setInputIntervals(inputs);
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-//    ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]]);
     ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[node]);
-    results[node] = ibexInterface->eval();
+    results[node].push_back(ibexInterface->eval());
+
+    ibexInterface->setFunction(node->getExprNode());
+    results[node].push_back(ibexInterface->eval());
   }
-
-
-
 
   if(isFinal) {
     return results;
-  }
-
-  // Reset values of nodes in nodes
-  for (auto &node : nodes) {
-
   }
 
   AbstractNodes(results);
@@ -667,7 +661,7 @@ std::vector<Node *> Graph::ModProbeList() {
  *
  * @param results A map of nodes to their corresponding intervals
  */
-void Graph::AbstractNodes(std::map<Node *, ibex::IntervalVector> results) {
+void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::IntervalVector>> results) {
   std::cout << "Abstracting nodes" << std::endl;
 
   // Turn node in results into Variable nodes and create corresponding FreeVariable nodes
@@ -678,19 +672,19 @@ void Graph::AbstractNodes(std::map<Node *, ibex::IntervalVector> results) {
 
     // Convert node to Variable node
     converted_node = new VariableNode(*node);
-    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
+    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0][0].ub()));
 
     // Add converted node to nodes and symbol table
     nodes.insert(converted_node);
     symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
 
     // Create corresponding FreeVariable node using the result IntervalVector
-    FreeVariable *free_node = new FreeVariable();
+    auto *free_node = new FreeVariable(result.second[1][0]);
     inputs[converted_node->variable->name] = free_node;
 
     // Add free node to nodes and inputs
     nodes.insert(free_node);
-    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
+    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0][0].ub()));
     free_node->setRounding(converted_node->getRounding());
   }
 }

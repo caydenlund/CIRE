@@ -28,7 +28,7 @@ void CIRE::setMaxDepth(unsigned int depth) {
   abstractionWindow.second = depth;
 }
 
-std::map<Node *, ibex::IntervalVector> CIRE::performErrorAnalysis() {
+std::map<Node *, std::vector<ibex::IntervalVector>> CIRE::performErrorAnalysis() {
   if (abstraction) {
     return graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
   } else {
@@ -92,10 +92,11 @@ int main(int argc, char *argv[]) {
   }
 
   cire.graph->parse(*cire.file.c_str());
-  std::map<Node *, ibex::IntervalVector> answer = cire.performErrorAnalysis();
+  // print graph input
+  std::map<Node *, std::vector<ibex::IntervalVector>> answer = cire.performErrorAnalysis();
   // print the answer map
   for (auto &node : answer) {
-    std::cout << *node.first << " : " << node.second << std::endl;
+    std::cout << *node.first << " : " << node.second[0] << "," << node.second[1] << std::endl;
   }
 
   return 0;
