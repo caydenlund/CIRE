@@ -26,6 +26,7 @@ class IBEXInterface {
 
   void setFunction(ibex::Function *Function);
   void setFunction(ibex::ExprNode *Expression);
+  void clearFunction();
 
   ibex::IntervalVector eval();
 };

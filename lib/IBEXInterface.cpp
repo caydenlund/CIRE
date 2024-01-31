@@ -42,6 +42,10 @@ void IBEXInterface::setFunction(ibex::ExprNode *Expression) {
   _function = new ibex::Function(_variables, *Expression);
 }
 
+void IBEXInterface::clearFunction() {
+  delete _function;
+}
+
 ibex::IntervalVector IBEXInterface::eval() {
   return _function->eval(_inputIntervals);
 }

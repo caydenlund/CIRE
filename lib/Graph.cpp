@@ -624,6 +624,8 @@ std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstracti
     ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[node]);
     results[node].push_back(ibexInterface->eval());
 
+//    ibexInterface->clearFunction();
+
     ibexInterface->setFunction(node->getExprNode());
     results[node].push_back(ibexInterface->eval());
   }
@@ -664,13 +666,13 @@ std::vector<Node *> Graph::ModProbeList() {
 void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::IntervalVector>> results) {
   std::cout << "Abstracting nodes" << std::endl;
 
-  // Turn node in results into Variable nodes and create corresponding FreeVariable nodes
+  // Turn node in results into VariableNodes and create corresponding FreeVariable nodes
   for (auto &result : results) {
     auto node = result.first;
 
     VariableNode *converted_node;
 
-    // Convert node to Variable node
+    // Convert node to VariableNode
     converted_node = new VariableNode(*node);
     converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0][0].ub()));
 
