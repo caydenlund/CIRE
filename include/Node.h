@@ -214,7 +214,8 @@ class VariableNode : public Node {
 private:
 public:
   const ibex::ExprSymbol *variable ;
-  explicit VariableNode(const ibex::ExprSymbol& variable = ibex::ExprSymbol::new_("default"));
+  VariableNode();
+  explicit VariableNode(const ibex::ExprSymbol& variable);
   explicit VariableNode(const Node &node);
   ~VariableNode() = default;
 

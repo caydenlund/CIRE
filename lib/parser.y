@@ -111,7 +111,7 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                 if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
 
                 } else {
-                    new_variable = new VariableNode(ibex::ExprSymbol::new_($1));
+                    new_variable = new VariableNode();
                     new_variable->setAbsoluteError(&ibex::ExprConstant::new_scalar($7.fval * pow(2, -53)));
                     new_variable->setRounding($2);
                     graph->nodes.insert(new_variable);

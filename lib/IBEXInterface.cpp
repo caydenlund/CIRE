@@ -3,7 +3,7 @@
 IBEXInterface::IBEXInterface(ibex::IntervalVector InputIntervals,
                              ibex::Array<const ibex::ExprSymbol> Variables,
                              ibex::Function *Function): _inputIntervals(InputIntervals),
-                                                        _variables(Variables),
+                                                        _variables(&Variables),
                                                         _function(Function) {
 
 }
@@ -29,8 +29,10 @@ void IBEXInterface::setInputIntervals(double x[][2]) {
 
 void IBEXInterface::setVariables(std::map<string, FreeVariable *> inputs,
                                  std::map<string, Node *> table) {
+  delete _variables;
+  _variables = new ibex::Array<const ibex::ExprSymbol>;
   for (auto &input : inputs) {
-    _variables.add(*(ibex::ExprSymbol *) table[input.first]->getExprNode());
+    _variables->add(*(ibex::ExprSymbol *) table[input.first]->getExprNode());
   }
 }
 
@@ -39,7 +41,7 @@ void IBEXInterface::setFunction(ibex::Function *Function) {
 }
 
 void IBEXInterface::setFunction(ibex::ExprNode *Expression) {
-  _function = new ibex::Function(_variables, *Expression);
+  _function = new ibex::Function(*_variables, *Expression);
 }
 
 void IBEXInterface::clearFunction() {

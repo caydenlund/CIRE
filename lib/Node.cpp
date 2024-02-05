@@ -482,6 +482,10 @@ Node *FreeVariable::getChildNode(int index) const {
   exit(1);
 }
 
+VariableNode::VariableNode() {
+  type = VARIABLE;
+}
+
 VariableNode::VariableNode(const ibex::ExprSymbol& variable): variable(&variable) {
   type = VARIABLE;
 }

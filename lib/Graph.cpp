@@ -611,6 +611,11 @@ std::map<Node *, std::vector<ibex::IntervalVector>> Graph::performAbstraction(un
 
 std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstraction(std::set<Node *> nodes, unsigned int max_depth, bool isFinal) {
 
+  for (auto &input: inputs) {
+    assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
+    ((VariableNode *)symbolTables[currentScope]->table[input.first])->variable = &(ibex::ExprSymbol::new_(input.first.c_str()));
+  }
+
   generateExprDriver(nodes);
   setupDerivativeComputation(nodes);
 
@@ -623,9 +628,17 @@ std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstracti
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[node]);
     results[node].push_back(ibexInterface->eval());
+  }
 
-//    ibexInterface->clearFunction();
+  for (auto &input: inputs) {
+    assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
+    ((VariableNode *)symbolTables[currentScope]->table[input.first])->variable = &(ibex::ExprSymbol::new_(input.first.c_str()));
+  }
 
+  generateExprDriver(nodes);
+
+  for (auto &node : nodes) {
+    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     ibexInterface->setFunction(node->getExprNode());
     results[node].push_back(ibexInterface->eval());
   }

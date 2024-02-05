@@ -7,7 +7,7 @@
 
 class IBEXInterface {
   ibex::IntervalVector _inputIntervals;
-  ibex::Array<const ibex::ExprSymbol> _variables;
+  ibex::Array<const ibex::ExprSymbol> *_variables;
   ibex::Function *_function;
 
   public:
