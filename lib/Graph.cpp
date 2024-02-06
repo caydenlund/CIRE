@@ -45,6 +45,47 @@ void Graph::createNewSymbolTable() {
   symbolTables[currentScope] = new SymbolTable();
 }
 
+void Graph::generateIbexSymbols() {
+  for (auto &input : inputs) {
+    assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
+    ((VariableNode *)symbolTables[currentScope]->table[input.first])->variable = &(ibex::ExprSymbol::new_(input.first.c_str()));
+    symbolTables[currentScope]->table[input.first]->setAbsoluteError(&ibex::ExprConstant::new_scalar(input.second->var[1] * pow(2, -53)));
+  }
+
+
+  for (auto &node: nodes) {
+    switch (node->type) {
+      case NodeType::INTEGER: {
+        ((Integer*)node)->value = &(ibex::ExprConstant::new_scalar(((Integer*)node)->val));
+        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(0.0));
+        break;
+      }
+      case NodeType::FLOAT: {
+        ((Float*)node)->value = &(ibex::ExprConstant::new_scalar(((Float*)node)->val));
+        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((Float*)node)->val * pow(2, -53)));
+        break;
+      }
+      case NodeType::DOUBLE: {
+        ((Double*)node)->value = &(ibex::ExprConstant::new_scalar(((Double*)node)->val));
+        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((Double*)node)->val * pow(2, -53)));
+        break;
+      }
+      case NodeType::FREE_VARIABLE: {
+        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((FreeVariable*)node)->var[1] * pow(2, -53)));
+        break;
+      }
+      case NodeType::VARIABLE: // The absoluteError has already been set in the previous inputs for loop
+      // Following nodes do not have an absolute error. Only Constants and FreeVariables have an absolute error
+      case NodeType::UNARY_OP:
+      case NodeType::BINARY_OP:
+      case NodeType::TERNARY_OP:
+      case NodeType::DEFAULT: {
+        break;
+      }
+    }
+  }
+}
+
 Node *Graph::findFreeVarNode(string Var) const {
   auto it = inputs.find(Var);
   if (it != inputs.end()) {
@@ -610,11 +651,7 @@ std::map<Node *, std::vector<ibex::IntervalVector>> Graph::performAbstraction(un
 }
 
 std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstraction(std::set<Node *> nodes, unsigned int max_depth, bool isFinal) {
-
-  for (auto &input: inputs) {
-    assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
-    ((VariableNode *)symbolTables[currentScope]->table[input.first])->variable = &(ibex::ExprSymbol::new_(input.first.c_str()));
-  }
+  generateIbexSymbols();
 
   generateExprDriver(nodes);
   setupDerivativeComputation(nodes);
@@ -630,10 +667,7 @@ std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstracti
     results[node].push_back(ibexInterface->eval());
   }
 
-  for (auto &input: inputs) {
-    assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
-    ((VariableNode *)symbolTables[currentScope]->table[input.first])->variable = &(ibex::ExprSymbol::new_(input.first.c_str()));
-  }
+  generateIbexSymbols();
 
   generateExprDriver(nodes);
 

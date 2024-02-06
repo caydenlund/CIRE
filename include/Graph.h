@@ -32,6 +32,8 @@ public:
 
   void createNewSymbolTable();
 
+  void generateIbexSymbols();
+
   Node *findFreeVarNode(string Var) const;
   Node *findVarNode(string Var) const;
 

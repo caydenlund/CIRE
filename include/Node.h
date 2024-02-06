@@ -8,7 +8,7 @@
 enum NodeType {
   DEFAULT,        // Default node type
   INTEGER,         // Represents integers
-  FLOAT,          // Represents single precision floating point numbers
+  FLOAT,          // Represents single precision floating point numbers TODO: Remove FLOAT if not using
   DOUBLE,         // Represents double precision floating point numbers
   FREE_VARIABLE,  // For Input variables
   VARIABLE,       // For variables in expressions
@@ -127,8 +127,10 @@ private:
 
 public:
   const ibex::ExprConstant *value = nullptr;
+  const int val = 0;
   Integer() = default;
-  Integer(const ibex::ExprConstant &value);
+  explicit Integer(const int);
+  explicit Integer(const ibex::ExprConstant &value);
   ~Integer() = default;
 
   // Prints string representation of this node
@@ -148,8 +150,10 @@ private:
 
 public:
   const ibex::ExprConstant *value = nullptr;
+  const float val = 0.0;
   Float() = default;
-  Float(const ibex::ExprConstant &value);
+  explicit Float(const float);
+  explicit Float(const ibex::ExprConstant &value);
   ~Float() = default;
 
   // Prints string representation of this node
@@ -170,8 +174,10 @@ private:
 
 public:
   const ibex::ExprConstant *value = nullptr;
+  const double val = 0.0;
   Double() = default;
-  Double(const ibex::ExprConstant &value);
+  explicit Double(const double);
+  explicit Double(const ibex::ExprConstant &value);
   ~Double() = default;
 
   // Prints string representation of this node

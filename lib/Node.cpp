@@ -122,6 +122,10 @@ Node *Node::getChildNode(int index) const {
   exit(1);
 }
 
+Integer::Integer(const int val): val(val) {
+  type = INTEGER;
+}
+
 Integer::Integer(const ibex::ExprConstant &value): value(&value) {
   type = INTEGER;
 }
@@ -234,6 +238,9 @@ Node *Integer::getChildNode(int index) const {
   exit(1);
 }
 
+Float::Float(const float val): val(val) {
+  type = FLOAT;
+}
 
 Float::Float(const ibex::ExprConstant &value):value(&value) {
   type = FLOAT;
@@ -333,6 +340,10 @@ ibex::ExprNode &Float::generateSymExpr() {
 Node *Float::getChildNode(int index) const {
   std::cout << "ERROR: Float Class does not have child nodes" << std::endl;
   exit(1);
+}
+
+Double::Double(const double val): val(val) {
+  type = DOUBLE;
 }
 
 Double::Double(const ibex::ExprConstant &value): value(&value) {

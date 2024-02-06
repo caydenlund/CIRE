@@ -7,7 +7,6 @@
     #include "../../include/Graph.h"
     #include<iostream>
     #include <ibex.h>
-    #include <ibex_Expr.h>
 
     extern FILE *yyin;
     extern int yydebug;
@@ -33,8 +32,6 @@
     Node::RoundingType rnd_type;
     char *str;
     Node *node;
-    ibex::Interval *interval;
-    ibex::IntervalVector *interval_vector;
 }
 
 %token EOL
@@ -57,7 +54,6 @@
 %token COMMA COLON SEMICOLON ASSIGN
 %token<str> ID
 
-%type<interval_vector> interval_list inputs;
 %type<node> arith_exp arith_term arith_fact interval assign_exp;
 %type<num> intv_expr intv_term intv_factor;
 
@@ -112,14 +108,12 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
 
                 } else {
                     new_variable = new VariableNode();
-                    new_variable->setAbsoluteError(&ibex::ExprConstant::new_scalar($7.fval * pow(2, -53)));
                     new_variable->setRounding($2);
                     graph->nodes.insert(new_variable);
                     // graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
                 $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
-                $$->setAbsoluteError(graph->symbolTables[graph->currentScope]->lookup($1)->absoluteError);
                 $$->setRounding($2);
                 graph->nodes.insert($$);
 
@@ -180,16 +174,13 @@ exprs:  EXPRS LBRACE stmts RBRACE
         ;
 
 number: INT {
-            $$ = new Integer(ibex::ExprConstant::new_scalar($1.ival));
+            $$ = new Integer($1.ival);
             graph->nodes.insert($$);
-            $$->setAbsoluteError(&ibex::ExprConstant::new_scalar(0.0));
             // graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | FP {
-            $$ = new Double(ibex::ExprConstant::new_scalar($1.fval));
-            // TODO: Set the error for different precisions
-            $$->setAbsoluteError(&ibex::ExprConstant::new_scalar($1.fval * pow(2, -53)));
+            $$ = new Double($1.fval);
             graph->nodes.insert($$);
             // graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
