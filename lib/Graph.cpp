@@ -468,22 +468,22 @@ Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower
   std::set<Node *> nodes_with_op = FilterNodesWithOperationWithinDepth(Node::Op::DIV, max_depth);
 
   // Print nodes with op
-  std::cout << "Nodes with op:" << std::endl;
-  for (auto &node : nodes_with_op) {
-    std::cout << "\t" << *node << std::endl;
-  }
+//  std::cout << "Nodes with op:" << std::endl;
+//  for (auto &node : nodes_with_op) {
+//    std::cout << "\t" << *node << std::endl;
+//  }
 
   std::map<Node *, std::set<Node *>> common_dependencies = FindCommonDependencies(nodes_with_op, lower_bound, upper_bound);
 
   // Print common dependencies
-  std::cout << "Common dependencies:" << std::endl;
-  for (auto &common_dependency : common_dependencies) {
-    std::cout << "\t" << *common_dependency.first << " : ";
-    for (auto &node : common_dependency.second) {
-      std::cout << *node << " ";
-    }
-    std::cout << std::endl;
-  }
+//  std::cout << "Common dependencies:" << std::endl;
+//  for (auto &common_dependency : common_dependencies) {
+//    std::cout << "\t" << *common_dependency.first << " : ";
+//    for (auto &node : common_dependency.second) {
+//      std::cout << *node << " ";
+//    }
+//    std::cout << std::endl;
+//  }
 
   // Unionize the node set from common_dependencies
   std::set<Node *> common_dependencies_set;
@@ -523,10 +523,10 @@ Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower
   }
 
   // Print common dependencies set
-  std::cout << "Common dependencies set:" << std::endl;
-  for (auto &node : common_dependencies_set) {
-    std::cout << "\t" << *node << std::endl;
-  }
+//  std::cout << "Common dependencies set:" << std::endl;
+//  for (auto &node : common_dependencies_set) {
+//    std::cout << "\t" << *node << std::endl;
+//  }
 
   return common_dependencies_set;
 }
@@ -616,7 +616,7 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
 
 
 
-std::map<Node *, std::vector<ibex::IntervalVector>> Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
+void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
   // Get max depth using keys in depthTable
   unsigned int max_depth = depthTable.rbegin()->first;
 
@@ -627,27 +627,38 @@ std::map<Node *, std::vector<ibex::IntervalVector>> Graph::performAbstraction(un
     auto [abstraction_depth, candidate_nodes] = selectNodesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
 
     if (!candidate_nodes.empty()) {
+      std::cout << "Abstraction level: " << abstraction_level << std::endl;
       // Print candidate nodes
-      std::cout << "Candidate Nodes:" << std::endl;
-      for (auto &node : candidate_nodes) {
-        std::cout << "\t" << *node << std::endl;
-      }
+//      std::cout << "Candidate Nodes:" << std::endl;
+//      for (auto &node : candidate_nodes) {
+//        std::cout << "\t" << *node << std::endl;
+//      }
+
+      abstraction_level++;
 
       // Modify the AST
       SimplifyWithAbstraction(candidate_nodes, max_depth);
 
+      // TODO: Figure out how to get the operation count
+      unsigned int maxopCount = 0;
 
+      max_depth = depthTable.rbegin()->first;
+
+      if (max_depth > 8 && bound_min_depth > 5) {
+        if(bound_max_depth > max_depth) {
+          bound_max_depth = max_depth;
+        } else if(bound_max_depth - bound_min_depth > 4) {
+          bound_max_depth = bound_max_depth - 2;
+          bound_min_depth = bound_min_depth - 2;
+        }
+      } else if (max_depth <= bound_max_depth && max_depth > bound_min_depth) {
+        bound_max_depth = max_depth;
+        assert(bound_max_depth >= bound_min_depth);
+      }
     } else {
       std::cout << "No candidates found!" << std::endl;
-      return {};
     }
-
-
-
   }
-
-  // Create a new node for each node in candidateNodes
-
 }
 
 std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstraction(std::set<Node *> nodes, unsigned int max_depth, bool isFinal) {

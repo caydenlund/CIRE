@@ -53,7 +53,7 @@ public:
   std::pair<unsigned int, std::set<Node*>> selectNodesForAbstraction(unsigned int max_depth,
                                              unsigned int bound_min_depth,
                                              unsigned int bound_max_depth);
-  std::map<Node *, std::vector<ibex::IntervalVector>> performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
+  void performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
 
   std::map<Node *, std::vector<ibex::IntervalVector>> SimplifyWithAbstraction(std::set<Node*> nodes, unsigned max_depth, bool isFinal=false);
 

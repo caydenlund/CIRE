@@ -30,14 +30,14 @@ void CIRE::setMaxDepth(unsigned int depth) {
 
 std::map<Node *, std::vector<ibex::IntervalVector>> CIRE::performErrorAnalysis() {
   if (abstraction) {
-    return graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
-  } else {
-    std::set<Node*> output_set;
-    for (auto &output : graph->outputs) {
-      output_set.insert(graph->findVarNode(output));
-    }
-    return graph->SimplifyWithAbstraction(output_set, 0, true);
+    graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
   }
+  std::set<Node*> output_set;
+  for (auto &output : graph->outputs) {
+    output_set.insert(graph->findVarNode(output));
+  }
+  return graph->SimplifyWithAbstraction(output_set, 0, true);
+
 }
 
 void show_usage(std::string name) {
