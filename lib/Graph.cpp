@@ -104,32 +104,59 @@ Node *Graph::findVarNode(string Var) const {
   return nullptr;
 }
 
-void Graph::setupDerivativeComputation(std::set<Node*> nodes) {
+void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
   // Set up output
   // Assuming there is only one output
   // TODO: Change this for multiple outputs
-  // Get the max depth of the nodes
+  // Get the max depth of the candidate_nodes
   unsigned int max_depth = 0;
-  for (auto &node : nodes) {
+  for (auto &node : candidate_nodes) {
     if (node->depth > max_depth) {
       max_depth = node->depth;
     }
   }
 
-  // Insert nodes with max depth into worklist
-  for (auto &node : nodes) {
+  // For each key in derivativeComputedNodes reset all values
+  for (auto &derivativeComputedNode : errorAnalyzer->derivativeComputedNodes) {
+    derivativeComputedNode.second.clear();
+  }
+
+  // For each key in errorComputedNodes reset all values
+  for (auto &errorComputedNode : errorAnalyzer->errorComputedNodes) {
+    errorComputedNode.second.clear();
+  }
+
+  // For each key in numParentsOfNode reset all values
+  for (auto &numParentsOfNode : errorAnalyzer->numParentsOfNode) {
+    numParentsOfNode.second = 0;
+  }
+
+  // For each key in parentsOfNode reset all values
+  for (auto &parentsOfNode : errorAnalyzer->parentsOfNode) {
+    parentsOfNode.second.clear();
+  }
+
+  // For each key in BwdDerivatives reset all values
+  for (auto &BwdDerivative : errorAnalyzer->BwdDerivatives) {
+    for (auto &BwdDerivativeInner : BwdDerivative.second) {
+      BwdDerivativeInner.second = nullptr;
+    }
+  }
+
+  // Insert candidate_nodes with max depth into worklist
+  for (auto &node : candidate_nodes) {
     if (node->depth == max_depth) {
       errorAnalyzer->workList.insert(node);
     }
   }
 
   // Set BwdDerivatives of each node with respect to itself to 1
-  for (auto &node : nodes) {
+  for (auto &node : candidate_nodes) {
     errorAnalyzer->BwdDerivatives[node][node] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
   }
 
   // Set numParentsOfNode of each node to the number of parents it has
-  for (auto &node : nodes) {
+  for (auto &node : candidate_nodes) {
     errorAnalyzer->numParentsOfNode[node] = node->parents.size();
   }
 
@@ -140,8 +167,8 @@ void Graph::setupDerivativeComputation(std::set<Node*> nodes) {
 //          symbolTables[currentScope]->table[outputs[0]]->parents.size();
 }
 
-void Graph::errorComputingDriver(std::set<Node*> nodes) {
-  for(auto &output : nodes) {
+void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
+  for(auto &output : candidate_nodes) {
   // This part is for a single output node. Remove if no useful info in this code
 //    if(errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].find(symbolTables.find(currentScope)->second->table[output]) ==
 //        errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].end()) {
@@ -163,13 +190,13 @@ void Graph::errorComputingDriver(std::set<Node*> nodes) {
 //          pow(2, -53));
 }
 
-// Generates Expressions corresponding to all nodes bottom up
-void Graph::generateExprDriver(std::set<Node *> nodes) {
+// Generates Expressions corresponding to all candidate_nodes bottom up
+void Graph::generateExprDriver(std::set<Node *> candidate_nodes) {
 //  for (auto &output : outputs) {
 //    generateExpr(findVarNode(output));
 //  }
 
-    for (auto &node : nodes) {
+    for (auto &node : candidate_nodes) {
       generateExpr(node);
     }
 }
@@ -235,7 +262,7 @@ std::set<Node *> Graph::FlattenSubDAGS(Node *node, unsigned int min_depth, unsig
 
   std::set<Node *> nodes_to_flatten;
 
-  // Flatten nodes from children of node within depth window
+  // Flatten nodes from children of node within depth windowI
   switch (node->type) {
     case NodeType::INTEGER:
       break;
@@ -661,32 +688,84 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
   }
 }
 
-std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstraction(std::set<Node *> nodes, unsigned int max_depth, bool isFinal) {
+std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   generateIbexSymbols();
 
-  generateExprDriver(nodes);
-  setupDerivativeComputation(nodes);
+  generateExprDriver(candidate_nodes);
+
+  ibexInterface->setInputIntervals(inputs);
+
+  std::map<Node *, std::vector<ibex::IntervalVector>> min;
+  for (auto &node : candidate_nodes) {
+    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+    min[node].push_back(ibexInterface->FindMin(node->getExprNode()));
+  }
+
+  generateIbexSymbols();
+
+  generateExprDriver(candidate_nodes);
+
+  std::map<Node *, std::vector<ibex::IntervalVector>> max;
+  for (auto &node : candidate_nodes) {
+    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+    max[node].push_back(ibexInterface->FindMax(node->getExprNode()));
+  }
+
+  std::map<Node *, ibex::Interval> extrema;
+  for (auto &node : candidate_nodes) {
+    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][1].ub()[0]);
+  }
+
+  return extrema;
+}
+
+std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
+  generateIbexSymbols();
+
+  generateExprDriver(candidate_nodes);
+  setupDerivativeComputation(candidate_nodes);
 
   errorAnalyzer->derivativeComputingDriver();
-  errorComputingDriver(nodes);
+  errorComputingDriver(candidate_nodes);
 
-  std::map<Node *, std::vector<ibex::IntervalVector>> results;
-  for (auto &node : nodes) {
-    ibexInterface->setInputIntervals(inputs);
+  ibexInterface->setInputIntervals(inputs);
+
+  std::map<Node *, std::vector<ibex::IntervalVector>> min;
+  for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-    ibexInterface->setFunction(errorAnalyzer->ErrAccumulator[node]);
-    results[node].push_back(ibexInterface->eval());
+    min[node].push_back(ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]));
   }
 
   generateIbexSymbols();
 
-  generateExprDriver(nodes);
+  generateExprDriver(candidate_nodes);
+  setupDerivativeComputation(candidate_nodes);
 
-  for (auto &node : nodes) {
+  errorAnalyzer->derivativeComputingDriver();
+  errorComputingDriver(candidate_nodes);
+
+  std::map<Node *, std::vector<ibex::IntervalVector>> max;
+  for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-    ibexInterface->setFunction(node->getExprNode());
-    results[node].push_back(ibexInterface->eval());
+    max[node].push_back(ibexInterface->FindMax(errorAnalyzer->ErrAccumulator[node]));
   }
+
+  std::map<Node *, ibex::Interval> extrema;
+  for (auto &node : candidate_nodes) {
+    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][1].ub()[0]);
+  }
+
+  return extrema;
+}
+
+std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(const std::set<Node *>& candidate_nodes, unsigned int max_depth, bool isFinal) {
+  std::map<Node *, std::vector<ibex::Interval>> results;
+
+  std::map<Node *, ibex::Interval> error_extrema = FindErrorExtrema(candidate_nodes);
+  std::map<Node *, ibex::Interval> output_extrema = FindOutputExtrema(candidate_nodes);
+
+
+
 
   if(isFinal) {
     return results;
@@ -694,6 +773,10 @@ std::map<Node *, std::vector<ibex::IntervalVector>> Graph::SimplifyWithAbstracti
 
   AbstractNodes(results);
   RebuildAST();
+
+  for (auto &node : results) {
+    std::cout << *node.first << " : " << node.second[0] << "," << node.second[1] << std::endl;
+  }
 
   return results;
 }
@@ -721,7 +804,7 @@ std::vector<Node *> Graph::ModProbeList() {
  *
  * @param results A map of nodes to their corresponding intervals
  */
-void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::IntervalVector>> results) {
+void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results) {
   std::cout << "Abstracting nodes" << std::endl;
 
   // Turn node in results into VariableNodes and create corresponding FreeVariable nodes
@@ -732,19 +815,19 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::IntervalVector>> re
 
     // Convert node to VariableNode
     converted_node = new VariableNode(*node);
-    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0][0].ub()));
+    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
 
     // Add converted node to nodes and symbol table
     nodes.insert(converted_node);
     symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
 
     // Create corresponding FreeVariable node using the result IntervalVector
-    auto *free_node = new FreeVariable(result.second[1][0]);
+    auto *free_node = new FreeVariable(result.second[1]);
     inputs[converted_node->variable->name] = free_node;
 
     // Add free node to nodes and inputs
     nodes.insert(free_node);
-    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0][0].ub()));
+    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
     free_node->setRounding(converted_node->getRounding());
   }
 }

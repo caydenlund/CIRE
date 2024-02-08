@@ -29,6 +29,8 @@ class IBEXInterface {
   void clearFunction();
 
   ibex::IntervalVector eval();
+  ibex::IntervalVector FindMin(ibex::ExprNode *Expression);
+  ibex::IntervalVector FindMax(ibex::ExprNode *Expression);
 };
 
 #endif //CIRE_IBEXINTERFACE_H

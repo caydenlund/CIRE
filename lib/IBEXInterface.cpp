@@ -48,6 +48,21 @@ void IBEXInterface::clearFunction() {
   delete _function;
 }
 
+
+
 ibex::IntervalVector IBEXInterface::eval() {
   return _function->eval(_inputIntervals);
 }
+
+ibex::IntervalVector IBEXInterface::FindMin(ibex::ExprNode *Expression) {
+  setFunction((ibex::ExprNode*) &-*Expression);
+  return _function->eval(_inputIntervals);
+}
+
+ibex::IntervalVector IBEXInterface::FindMax(ibex::ExprNode *Expression) {
+  setFunction(Expression);
+  return _function->eval(_inputIntervals);
+}
+
+
+

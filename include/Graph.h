@@ -37,9 +37,9 @@ public:
   Node *findFreeVarNode(string Var) const;
   Node *findVarNode(string Var) const;
 
-  void setupDerivativeComputation(std::set<Node*> nodes);
-  void errorComputingDriver(std::set<Node*> nodes);
-  void generateExprDriver(std::set<Node *> nodes);
+  void setupDerivativeComputation(std::set<Node*> candidate_nodes);
+  void errorComputingDriver(std::set<Node*> candidate_nodes);
+  void generateExprDriver(std::set<Node *> candidate_nodes);
   void generateExpr(Node *node);
 
   // Abstraction related functions
@@ -55,10 +55,13 @@ public:
                                              unsigned int bound_max_depth);
   void performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
 
-  std::map<Node *, std::vector<ibex::IntervalVector>> SimplifyWithAbstraction(std::set<Node*> nodes, unsigned max_depth, bool isFinal=false);
+  std::map<Node *, ibex::Interval> FindOutputExtrema(const std::set<Node *>& candidate_nodes);
+  std::map<Node *, ibex::Interval> FindErrorExtrema(const std::set<Node *>& candidate_nodes);
+
+  std::map<Node *, std::vector<ibex::Interval>> SimplifyWithAbstraction(const std::set<Node*>& candidate_nodes, unsigned max_depth, bool isFinal=false);
 
   std::vector<Node *> ModProbeList();
-  void AbstractNodes(std::map<Node *, std::vector<ibex::IntervalVector>> results);
+  void AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results);
   void RebuildAST();
   void RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed);
 
