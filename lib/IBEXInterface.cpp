@@ -56,11 +56,23 @@ ibex::IntervalVector IBEXInterface::eval() {
 
 ibex::IntervalVector IBEXInterface::FindMin(ibex::ExprNode *Expression) {
   setFunction((ibex::ExprNode*) &-*Expression);
+//  ibex::SystemFactory factory;
+//  factory.add_goal(*_function);
+//  ibex::System sys(factory);
+//  ibex::DefaultOptimizer opt(sys);
+//  auto temp = opt.optimize(_inputIntervals);
+//  std::cout << "temp: " << temp << std::endl;
   return _function->eval(_inputIntervals);
 }
 
 ibex::IntervalVector IBEXInterface::FindMax(ibex::ExprNode *Expression) {
   setFunction(Expression);
+//  ibex::SystemFactory factory;
+//  factory.add_goal(*_function);
+//  ibex::System sys(factory);
+//  ibex::DefaultOptimizer opt(sys);
+//  auto temp = opt.optimize(_inputIntervals);
+//  std::cout << "temp: " << temp << std::endl;
   return _function->eval(_inputIntervals);
 }
 

@@ -116,32 +116,12 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
     }
   }
 
-  // For each key in derivativeComputedNodes reset all values
-  for (auto &derivativeComputedNode : errorAnalyzer->derivativeComputedNodes) {
-    derivativeComputedNode.second.clear();
-  }
-
-  // For each key in errorComputedNodes reset all values
-  for (auto &errorComputedNode : errorAnalyzer->errorComputedNodes) {
-    errorComputedNode.second.clear();
-  }
-
-  // For each key in numParentsOfNode reset all values
-  for (auto &numParentsOfNode : errorAnalyzer->numParentsOfNode) {
-    numParentsOfNode.second = 0;
-  }
-
-  // For each key in parentsOfNode reset all values
-  for (auto &parentsOfNode : errorAnalyzer->parentsOfNode) {
-    parentsOfNode.second.clear();
-  }
-
-  // For each key in BwdDerivatives reset all values
-  for (auto &BwdDerivative : errorAnalyzer->BwdDerivatives) {
-    for (auto &BwdDerivativeInner : BwdDerivative.second) {
-      BwdDerivativeInner.second = nullptr;
-    }
-  }
+  errorAnalyzer->derivativeComputedNodes.clear();
+  errorAnalyzer->errorComputedNodes.clear();
+  errorAnalyzer->numParentsOfNode.clear();
+  errorAnalyzer->parentsOfNode.clear();
+  errorAnalyzer->BwdDerivatives.clear();
+  errorAnalyzer->ErrAccumulator.clear();
 
   // Insert candidate_nodes with max depth into worklist
   for (auto &node : candidate_nodes) {
@@ -169,11 +149,6 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
 
 void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
   for(auto &output : candidate_nodes) {
-  // This part is for a single output node. Remove if no useful info in this code
-//    if(errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].find(symbolTables.find(currentScope)->second->table[output]) ==
-//        errorAnalyzer->errorComputedNodes[findVarNode(output)->depth].end()) {
-//      errorAnalyzer->errorComputing(findVarNode(output));
-//    }
     if(errorAnalyzer->errorComputedNodes[output->depth].find(output) ==
        errorAnalyzer->errorComputedNodes[output->depth].end()) {
       errorAnalyzer->errorComputing(output);
@@ -183,11 +158,6 @@ void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
             (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[output] *
                                 pow(2, -53));
   }
-
-  // This part is for a single output node. Remove if no useful info in this code
-//  errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] =
-//          (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[symbolTables[currentScope]->table[outputs[0]]] *
-//          pow(2, -53));
 }
 
 // Generates Expressions corresponding to all candidate_nodes bottom up
@@ -699,6 +669,8 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node].push_back(ibexInterface->FindMin(node->getExprNode()));
+    // print the output expression
+//    std::cout << "Output expression 1: " << *node->getExprNode() << std::endl;
   }
 
   generateIbexSymbols();
@@ -709,11 +681,13 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node].push_back(ibexInterface->FindMax(node->getExprNode()));
+    // print the output expression
+//    std::cout << "Output expression 2: " << *node->getExprNode() << std::endl;
   }
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
-    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][1].ub()[0]);
+    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][0].ub()[0]);
   }
 
   return extrema;
@@ -722,8 +696,9 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   generateIbexSymbols();
 
-  generateExprDriver(candidate_nodes);
   setupDerivativeComputation(candidate_nodes);
+  generateExprDriver(candidate_nodes);
+
 
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(candidate_nodes);
@@ -734,12 +709,15 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node].push_back(ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]));
+    // print the error expression
+//    std::cout << "Error expression 1: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
   }
 
   generateIbexSymbols();
 
-  generateExprDriver(candidate_nodes);
   setupDerivativeComputation(candidate_nodes);
+  generateExprDriver(candidate_nodes);
+
 
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(candidate_nodes);
@@ -748,11 +726,12 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node].push_back(ibexInterface->FindMax(errorAnalyzer->ErrAccumulator[node]));
+//    std::cout << "Error expression 2: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
   }
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
-    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][1].ub()[0]);
+    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][0].ub()[0]);
   }
 
   return extrema;
@@ -764,8 +743,10 @@ std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(con
   std::map<Node *, ibex::Interval> error_extrema = FindErrorExtrema(candidate_nodes);
   std::map<Node *, ibex::Interval> output_extrema = FindOutputExtrema(candidate_nodes);
 
-
-
+  for (auto &node : candidate_nodes) {
+    results[node].push_back(output_extrema[node]);
+    results[node].push_back(error_extrema[node]);
+  }
 
   if(isFinal) {
     return results;
@@ -775,7 +756,8 @@ std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(con
   RebuildAST();
 
   for (auto &node : results) {
-    std::cout << *node.first << " : " << node.second[0] << "," << node.second[1] << std::endl;
+    std::cout << *node.first << " : " << "\n\tOutput: " << node.second[0] << ","
+                                      << "\n\tError: " << node.second[1] << std::endl;
   }
 
   return results;
