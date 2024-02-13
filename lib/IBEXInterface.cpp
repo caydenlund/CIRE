@@ -41,39 +41,43 @@ void IBEXInterface::setFunction(ibex::Function *Function) {
 }
 
 void IBEXInterface::setFunction(ibex::ExprNode *Expression) {
+  delete _function;
   _function = new ibex::Function(*_variables, *Expression);
 }
-
-void IBEXInterface::clearFunction() {
-  delete _function;
-}
-
-
 
 ibex::IntervalVector IBEXInterface::eval() {
   return _function->eval(_inputIntervals);
 }
 
-ibex::IntervalVector IBEXInterface::FindMin(ibex::ExprNode *Expression) {
-  setFunction((ibex::ExprNode*) &-*Expression);
-//  ibex::SystemFactory factory;
-//  factory.add_goal(*_function);
-//  ibex::System sys(factory);
-//  ibex::DefaultOptimizer opt(sys);
-//  auto temp = opt.optimize(_inputIntervals);
-//  std::cout << "temp: " << temp << std::endl;
-  return _function->eval(_inputIntervals);
+ibex::Interval IBEXInterface::FindMin(ibex::ExprNode *Expression) {
+//  setFunction((ibex::ExprNode*) &-*Expression);
+  ibex::SystemFactory factory;
+  for (auto &var : *_variables) {
+    factory.add_var(var);
+  }
+  factory.add_goal(*Expression);
+
+  ibex::System sys(factory);
+  ibex::DefaultOptimizer opt(sys);
+  opt.optimize(_inputIntervals);
+//  std::cout << "temp: ";
+//  opt.report();
+  return {opt.get_uplo(), opt.get_loup()};
 }
 
-ibex::IntervalVector IBEXInterface::FindMax(ibex::ExprNode *Expression) {
-  setFunction(Expression);
-//  ibex::SystemFactory factory;
-//  factory.add_goal(*_function);
-//  ibex::System sys(factory);
-//  ibex::DefaultOptimizer opt(sys);
-//  auto temp = opt.optimize(_inputIntervals);
-//  std::cout << "temp: " << temp << std::endl;
-  return _function->eval(_inputIntervals);
+ibex::Interval IBEXInterface::FindMax(ibex::ExprNode *Expression) {
+//  setFunction(Expression);
+  ibex::SystemFactory factory;
+  for (auto &var : *_variables) {
+    factory.add_var(var);
+  }
+  factory.add_goal(-*Expression);
+  ibex::System sys(factory);
+  ibex::DefaultOptimizer opt(sys);
+  opt.optimize(_inputIntervals);
+//  std::cout << "temp: ";
+//  opt.report();
+  return {opt.get_uplo(), opt.get_loup()};
 }
 
 

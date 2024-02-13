@@ -95,7 +95,7 @@ int main(int argc, char *argv[]) {
   // print graph input
   std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
   // print the answer map
-  for (auto &node : results) {
+  for (auto &node : answer) {
     std::cout << *node.first << " : " << "\n\tOutput: " << node.second[0] << ","
                                       << "\n\tError: " << node.second[1] << std::endl;
   }

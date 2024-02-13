@@ -665,10 +665,10 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
   ibexInterface->setInputIntervals(inputs);
 
-  std::map<Node *, std::vector<ibex::IntervalVector>> min;
+  std::map<Node *, ibex::Interval> min;
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-    min[node].push_back(ibexInterface->FindMin(node->getExprNode()));
+    min[node] = ibexInterface->FindMin(node->getExprNode());
     // print the output expression
 //    std::cout << "Output expression 1: " << *node->getExprNode() << std::endl;
   }
@@ -677,17 +677,22 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
   generateExprDriver(candidate_nodes);
 
-  std::map<Node *, std::vector<ibex::IntervalVector>> max;
+  std::map<Node *, ibex::Interval> max;
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-    max[node].push_back(ibexInterface->FindMax(node->getExprNode()));
+    max[node] = ibexInterface->FindMax(node->getExprNode());
     // print the output expression
 //    std::cout << "Output expression 2: " << *node->getExprNode() << std::endl;
   }
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
-    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][0].ub()[0]);
+    if (min[node].lb() <= max[node].ub() ) {
+      extrema[node] = ibex::Interval(min[node].lb(), max[node].ub());
+    } else {
+      std::cout << "Output extrema is empty! Setting to 0" << std::endl;
+      extrema[node] = ibex::Interval(0, 0);
+    }
   }
 
   return extrema;
@@ -705,10 +710,10 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
 
   ibexInterface->setInputIntervals(inputs);
 
-  std::map<Node *, std::vector<ibex::IntervalVector>> min;
+  std::map<Node *, ibex::Interval> min;
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-    min[node].push_back(ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]));
+    min[node] = ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]);
     // print the error expression
 //    std::cout << "Error expression 1: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
   }
@@ -722,16 +727,21 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(candidate_nodes);
 
-  std::map<Node *, std::vector<ibex::IntervalVector>> max;
+  std::map<Node *, ibex::Interval> max;
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
-    max[node].push_back(ibexInterface->FindMax(errorAnalyzer->ErrAccumulator[node]));
+    max[node] = ibexInterface->FindMax(errorAnalyzer->ErrAccumulator[node]);
 //    std::cout << "Error expression 2: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
   }
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
-    extrema[node] = ibex::Interval(min[node][0].lb()[0], max[node][0].ub()[0]);
+    if (min[node].lb() <= max[node].ub() ) {
+      extrema[node] = ibex::Interval(min[node].lb(), max[node].ub());
+    } else {
+      std::cout << "Error extrema is empty! Setting to 0" << std::endl;
+      extrema[node] = ibex::Interval(0, 0);
+    }
   }
 
   return extrema;
@@ -797,19 +807,19 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
 
     // Convert node to VariableNode
     converted_node = new VariableNode(*node);
-    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
+    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[1].ub()));
 
     // Add converted node to nodes and symbol table
     nodes.insert(converted_node);
     symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
 
     // Create corresponding FreeVariable node using the result IntervalVector
-    auto *free_node = new FreeVariable(result.second[1]);
+    auto *free_node = new FreeVariable(result.second[0]);
     inputs[converted_node->variable->name] = free_node;
 
     // Add free node to nodes and inputs
     nodes.insert(free_node);
-    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[0].ub()));
+    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[1].ub()));
     free_node->setRounding(converted_node->getRounding());
   }
 }
