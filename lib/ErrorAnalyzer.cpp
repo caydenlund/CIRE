@@ -197,8 +197,8 @@ void ErrorAnalyzer::propagateError(Node *node) {
 
   for (Node *outVar : outputList) {
 //    printBwdDerivative(outVar, node);
-//    std::cout << node->getAbsoluteError() << std::endl;
-//    std::cout << node->getRounding() << std::endl;
+//    std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
+//    std::cout << "rounding:" << node->getRounding() << std::endl;
     // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
     // the rounding and noise
     auto local_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), node->getRounding()).simplify(0);

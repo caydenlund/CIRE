@@ -8,5 +8,5 @@ OUTPUTS {
 }
 
 EXPRS {
-    res=x+y;
+    res fl64 =x+y;
 }

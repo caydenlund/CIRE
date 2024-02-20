@@ -108,13 +108,13 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
 
                 } else {
                     new_variable = new VariableNode();
-                    new_variable->setRounding($2);
+                    new_variable->setRoundingFromType($2);
                     graph->nodes.insert(new_variable);
                     // graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
                 $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
-                $$->setRounding($2);
+                $$->setRoundingFromType($2);
                 graph->nodes.insert($$);
 
                 // std::cout << *graph << std::endl;
@@ -320,7 +320,7 @@ assign_exp: ID ASSIGN arith_exp SEMICOLON {
             | ID FPTYPE ASSIGN arith_exp SEMICOLON {
                 $$ = $4;
                 graph->symbolTables[graph->currentScope]->insert($1, $4);
-                $$->setRounding($2);
+                $$->setRoundingFromType($2);
                 // std::cout << *$$ << std::endl;
             }
             | EOL {

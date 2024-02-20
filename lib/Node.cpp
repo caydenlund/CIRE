@@ -37,6 +37,10 @@ bool Node::isTernaryOp() const {
   return type == TERNARY_OP;
 }
 
+void Node::setRoundingFromType(RoundingType type) {
+  rounding = RoundingAmount[type];
+}
+
 void Node::setRounding(double rounding) {
   this->rounding = rounding;
 }

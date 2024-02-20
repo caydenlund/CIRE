@@ -97,6 +97,7 @@ public:
   bool isBinaryOp() const;
   bool isTernaryOp() const;
 
+  void setRoundingFromType(RoundingType type);
   void setRounding(double rounding);
   void setAbsoluteError(const ibex::ExprNode *absErr);
 

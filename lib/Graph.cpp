@@ -49,7 +49,7 @@ void Graph::generateIbexSymbols() {
   for (auto &input : inputs) {
     assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
     ((VariableNode *)symbolTables[currentScope]->table[input.first])->variable = &(ibex::ExprSymbol::new_(input.first.c_str()));
-    symbolTables[currentScope]->table[input.first]->setAbsoluteError(&ibex::ExprConstant::new_scalar(input.second->var[1] * pow(2, -53)));
+    symbolTables[currentScope]->table[input.first]->setAbsoluteError(&ibex::ExprConstant::new_scalar(input.second->var->ub() * pow(2, -53)));
   }
 
 
@@ -71,7 +71,7 @@ void Graph::generateIbexSymbols() {
         break;
       }
       case NodeType::FREE_VARIABLE: {
-        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((FreeVariable*)node)->var[1] * pow(2, -53)));
+        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((FreeVariable*)node)->var->ub() * pow(2, -53)));
         break;
       }
       case NodeType::VARIABLE: // The absoluteError has already been set in the previous inputs for loop
@@ -585,10 +585,10 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
     }
 
     // Print cost_sum_dict
-    std::cout << "Cost Sum Dict:" << std::endl;
-    for (auto &cost_sum : cost_sum_dict) {
-      std::cout << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
-    }
+//    std::cout << "Cost Sum Dict:" << std::endl;
+//    for (auto &cost_sum : cost_sum_dict) {
+//      std::cout << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
+//    }
 
     // Get the depth with the greatest cost
     int abstraction_depth = -1;
@@ -670,7 +670,7 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(node->getExprNode());
     // print the output expression
-//    std::cout << "Output expression 1: " << *node->getExprNode() << std::endl;
+    std::cout << "Output expression 1: " << *node->getExprNode() << std::endl;
   }
 
   generateIbexSymbols();
@@ -687,8 +687,8 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
-    if (min[node].lb() <= max[node].ub() ) {
-      extrema[node] = ibex::Interval(min[node].lb(), max[node].ub());
+    if (min[node].lb() <= -max[node].lb() ) {
+      extrema[node] = ibex::Interval(min[node].lb(), -max[node].lb());
     } else {
       std::cout << "Output extrema is empty! Setting to 0" << std::endl;
       extrema[node] = ibex::Interval(0, 0);
@@ -715,7 +715,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]);
     // print the error expression
-//    std::cout << "Error expression 1: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+    std::cout << "Error expression 1: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
   }
 
   generateIbexSymbols();
@@ -736,8 +736,8 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
-    if (min[node].lb() <= max[node].ub() ) {
-      extrema[node] = ibex::Interval(min[node].lb(), max[node].ub());
+    if (min[node].lb() <= -max[node].lb() ) {
+      extrema[node] = ibex::Interval(min[node].lb(), -max[node].lb());
     } else {
       std::cout << "Error extrema is empty! Setting to 0" << std::endl;
       extrema[node] = ibex::Interval(0, 0);
