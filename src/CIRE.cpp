@@ -56,6 +56,8 @@ void show_usage(std::string name) {
 int main(int argc, char *argv[]) {
   CIRE cire;
 
+  std::time_t start = std::time(nullptr);
+
   if (argc < 2) {
     show_usage(argv[0]);
     return 1;
@@ -100,6 +102,9 @@ int main(int argc, char *argv[]) {
     std::cout << *node.first << " : " << "\n\tOutput: " << node.second[0] << ","
                                       << "\n\tError: " << node.second[1] << std::endl;
   }
+
+  std::time_t end = std::time(nullptr);
+  std::cout << "Time taken: " << end - start << " seconds" << std::endl;
 
   return 0;
 }
