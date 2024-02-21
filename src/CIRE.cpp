@@ -1,4 +1,5 @@
 #include"CIRE.h"
+#include "ctime"
 
 CIRE::CIRE() {
   graph = new Graph();

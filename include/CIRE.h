@@ -8,11 +8,13 @@
 #include<string>
 #include<map>
 #include "Graph.h"
+#include "Results.h"
 
 // Conducting the whole scanning and parsing of Calc++.
 class CIRE {
 public:
   Graph *graph;
+  Results *results;
   // The name of the file being parsed.
   std::string file;
   bool abstraction = false;

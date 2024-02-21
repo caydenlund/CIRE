@@ -75,7 +75,7 @@ target_link_libraries(lib_tester PUBLIC
         ibex)
 
 # Building CIRE
-add_executable(CIRE src/CIRE.cpp)
+add_executable(CIRE src/CIRE.cpp src/Results.cpp)
 target_link_libraries(CIRE PUBLIC
         Graph
         ibex)
