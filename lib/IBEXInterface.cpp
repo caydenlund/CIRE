@@ -2,9 +2,11 @@
 
 IBEXInterface::IBEXInterface(ibex::IntervalVector InputIntervals,
                              ibex::Array<const ibex::ExprSymbol> Variables,
-                             ibex::Function *Function): _inputIntervals(InputIntervals),
+                             ibex::Function *Function,
+                             ibex::System *System): _inputIntervals(InputIntervals),
                                                         _variables(&Variables),
-                                                        _function(Function) {
+                                                        _function(Function),
+                                                        _system(System) {
 
 }
 
@@ -40,9 +42,21 @@ void IBEXInterface::setFunction(ibex::Function *Function) {
   _function = Function;
 }
 
+void IBEXInterface::setSystem(ibex::SystemFactory *Factory) {
+  _system = new ibex::System(*Factory);
+}
+
 void IBEXInterface::setFunction(ibex::ExprNode *Expression) {
   delete _function;
   _function = new ibex::Function(*_variables, *Expression);
+}
+
+ibex::Function *IBEXInterface::getFunction() {
+  return _function;
+}
+
+ibex::System *IBEXInterface::getSystem() {
+  return _system;
 }
 
 ibex::IntervalVector IBEXInterface::eval() {
@@ -50,15 +64,13 @@ ibex::IntervalVector IBEXInterface::eval() {
 }
 
 ibex::Interval IBEXInterface::FindMin(ibex::ExprNode *Expression) {
-//  setFunction((ibex::ExprNode*) &-*Expression);
   ibex::SystemFactory factory;
   for (auto &var : *_variables) {
     factory.add_var(var);
   }
   factory.add_goal(*Expression);
-
-  ibex::System sys(factory);
-  ibex::DefaultOptimizer opt(sys);
+  setSystem(&factory);
+  ibex::DefaultOptimizer opt(*_system);
   opt.optimize(_inputIntervals);
 //  std::cout << "temp: ";
 //  opt.report();
@@ -66,19 +78,35 @@ ibex::Interval IBEXInterface::FindMin(ibex::ExprNode *Expression) {
 }
 
 ibex::Interval IBEXInterface::FindMax(ibex::ExprNode *Expression) {
-//  setFunction(Expression);
   ibex::SystemFactory factory;
   for (auto &var : *_variables) {
     factory.add_var(var);
   }
   factory.add_goal(-*Expression);
-  ibex::System sys(factory);
-  ibex::DefaultOptimizer opt(sys);
+  setSystem(&factory);
+  ibex::DefaultOptimizer opt(*_system);
   opt.optimize(_inputIntervals);
 //  std::cout << "temp: ";
 //  opt.report();
   return {opt.get_uplo(), opt.get_loup()};
 }
 
+void IBEXInterface::dumpIbexFunctionToFile(std::string filename, ibex::ExprNode *Expression) {
+  setFunction(Expression);
+  std::ofstream file;
+  file.open(filename);
+  file << _function->minibex() << std::endl;
+//  *_function.
+  file.close();
+}
 
+void IBEXInterface::dumpIbexExpressionToFile(std::string filename, ibex::ExprNode *Expression) {
+  std::ofstream file;
+  file.open(filename);
+  file << *Expression << std::endl;
+  file.close();
+}
 
+ibex::Function IBEXInterface::parseIbexFunctionFromFile(const char *filename) {
+  return ibex::Function(filename);
+}

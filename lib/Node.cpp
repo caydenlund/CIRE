@@ -152,80 +152,48 @@ bool Integer::operator==(const Integer &other) const {
 }
 
 Node &Integer::operator+(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
   if (other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a+*b);
-    return *new Integer(*c);
+    return *new Integer(val + ((Integer*)&other)->val);
   } else if(other.isFloat()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a+*b);
-    return *new Float(*c);
+    return *new Float(val + ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a+*b);
-    return *new Double(*c);
+    return *new Double(val + ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &Integer::operator-(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
   if (other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a-*b);
-    return *new Integer(*c);
+    return *new Integer(val - ((Integer*)&other)->val);
   } else if(other.isFloat()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a-*b);
-    return *new Float(*c);
+    return *new Float(val - ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a-*b);
-    return *new Double(*c);
+    return *new Double(val - ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &Integer::operator*(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
   if (other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a**b);
-    return *new Integer(*c);
+    return *new Integer(val * ((Integer*)&other)->val);
   } else if(other.isFloat()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a**b);
-    return *new Float(*c);
+    return *new Float(val * ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a**b);
-    return *new Double(*c);
+    return *new Double(val * ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &Integer::operator/(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
   if (other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a/(*b));
-    return *new Integer(*c);
+    return *new Integer(val / ((Integer*)&other)->val);
   } else if(other.isFloat()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a/(*b));
-    return *new Float(*c);
+    return *new Float(val / ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a/(*b));
-    return *new Double(*c);
+    return *new Double(val / ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, DIV);
@@ -268,64 +236,48 @@ bool Float::operator==(const Float &other) const {
 }
 
 Node &Float::operator+(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a+*b);
-    return *new Float(*c);
+  if(other.isInteger()) {
+    return *new Float(val + ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Float(val + ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a+*b);
-    return *new Double(*c);
+    return *new Double(val + ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &Float::operator-(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a-*b);
-    return *new Float(*c);
+  if(other.isInteger()) {
+    return *new Float(val - ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Float(val - ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a-*b);
-    return *new Double(*c);
+    return *new Double(val - ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &Float::operator*(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a**b);
-    return *new Float(*c);
+  if(other.isInteger()) {
+    return *new Float(val * ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Float(val * ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a**b);
-    return *new Double(*c);
+    return *new Double(val * ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &Float::operator/(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a/(*b));
-    return *new Float(*c);
+  if(other.isInteger()) {
+    return *new Float(val / ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Float(val / ((Float*)&other)->val);
   } else if(other.isDouble()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a/(*b));
-    return *new Double(*c);
+    return *new Double(val / ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, DIV);
@@ -372,48 +324,48 @@ bool Double::operator==(const Double &other) const {
 }
 
 Node &Double::operator+(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isDouble() || other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a+*b);
-    return *new Double(*c);
+  if(other.isInteger()) {
+    return *new Double(val + ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Double(val + ((Float*)&other)->val);
+  } else if(other.isDouble()) {
+    return *new Double(val + ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, ADD);
 }
 
 Node &Double::operator-(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isDouble() || other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a-*b);
-    return *new Double(*c);
+  if(other.isInteger()) {
+    return *new Double(val - ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Double(val - ((Float*)&other)->val);
+  } else if(other.isDouble()) {
+    return *new Double(val - ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, SUB);
 }
 
 Node &Double::operator*(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isDouble() || other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a**b);
-    return *new Double(*c);
+  if(other.isInteger()) {
+    return *new Double(val * ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Double(val * ((Float*)&other)->val);
+  } else if(other.isDouble()) {
+    return *new Double(val * ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, MUL);
 }
 
 Node &Double::operator/(Node &other) const {
-  ibex::ExprNode *a = getExprNode();
-
-  if(other.isDouble() || other.isFloat() || other.isInteger()) {
-    ibex::ExprNode *b = other.getExprNode();
-    const ibex::ExprConstant *c = (ibex::ExprConstant*)&(*a/(*b));
-    return *new Double(*c);
+  if(other.isInteger()) {
+    return *new Double(val / ((Integer*)&other)->val);
+  } else if(other.isFloat()) {
+    return *new Double(val / ((Float*)&other)->val);
+  } else if(other.isDouble()) {
+    return *new Double(val / ((Double*)&other)->val);
   }
 
   return *new BinaryOp((Node *) this, (Node *) &other, DIV);

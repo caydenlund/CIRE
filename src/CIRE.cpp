@@ -1,4 +1,6 @@
 #include"CIRE.h"
+
+#include <utility>
 #include "ctime"
 
 CIRE::CIRE() {
@@ -10,7 +12,7 @@ CIRE::~CIRE() {
 }
 
 void CIRE::setFile(std::string _file) {
-  file = _file;
+  file = std::move(_file);
 }
 
 void CIRE::setAbstaction(bool _value) {
@@ -37,7 +39,10 @@ std::map<Node *, std::vector<ibex::Interval>> CIRE::performErrorAnalysis() {
   for (auto &output : graph->outputs) {
     output_set.insert(graph->findVarNode(output));
   }
-  return graph->SimplifyWithAbstraction(output_set, 0, true);
+
+  std::map<Node *, std::vector<ibex::Interval>> optima_map = graph->SimplifyWithAbstraction(output_set, 0, true);
+
+  return optima_map;
 
 }
 
@@ -86,6 +91,13 @@ int main(int argc, char *argv[]) {
           cire.setMaxDepth(std::stoi(argv[++i]));
         } else {
           std::cerr << "--max-depth option requires one argument." << std::endl;
+          return 1;
+        }
+      } else if((arg == "-c") || (arg == "--compare")) {
+        if (i + 1 < argc) {
+          cire.graph->setValidationFile(argv[++i]);
+        } else {
+          std::cerr << "--compare option requires one argument." << std::endl;
           return 1;
         }
       } else {

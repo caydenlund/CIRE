@@ -22,8 +22,12 @@ public:
   ErrorAnalyzer *errorAnalyzer = new ErrorAnalyzer();
   IBEXInterface *ibexInterface = new IBEXInterface();
 
+  std::string validationFile;
+
   Graph() = default;
   ~Graph();
+
+  void setValidationFile(std::string _validationFile);
 
   virtual void write(std::ostream &os) const;
 
@@ -41,6 +45,8 @@ public:
   void errorComputingDriver(std::set<Node*> candidate_nodes);
   void generateExprDriver(std::set<Node *> candidate_nodes);
   void generateExpr(Node *node);
+
+  bool compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2);
 
   // Abstraction related functions
   std::set<Node*> FlattenSubDAGS(Node* node, unsigned int min_depth, unsigned int max_depth);
@@ -67,7 +73,6 @@ public:
 
   // Run the parser on file F.  Return 0 on success.
   int parse(const char &f);
-
 };
 
 // Give Flex the prototype of yylex we want ...

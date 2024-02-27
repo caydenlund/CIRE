@@ -1,4 +1,6 @@
 #include "../include/Graph.h"
+
+#include <utility>
 #include "lib/parser.h"
 
 int SymbolTable::SCOPE_COUNTER = 0;
@@ -12,6 +14,10 @@ Graph::~Graph() {
   }
   delete errorAnalyzer;
   delete ibexInterface;
+}
+
+void Graph::setValidationFile(std::string _validationFile) {
+  validationFile = std::move(_validationFile);
 }
 
 std::ostream &operator<<(std::ostream &os, const Graph &graph) {
@@ -216,6 +222,58 @@ void Graph::generateExpr(Node *node) {
       std::cout << "Unknown node type" << std::endl;
       break;
   }
+}
+
+bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
+  if (expr1.type_id() == expr2.type_id()) {
+    switch (expr1.type_id()) {
+      case ibex::ExprNode::NumExprSymbol:
+        return true;
+      case ibex::ExprNode::NumExprConstant:
+        return expr1 == expr2;
+      case ibex::ExprNode::NumExprAdd:
+        return compareDAGs(((ibex::ExprAdd*)&expr1)->left, ((ibex::ExprAdd*)&expr2)->left) &&
+               compareDAGs(((ibex::ExprAdd*)&expr1)->right, ((ibex::ExprAdd*)&expr2)->right);
+      case ibex::ExprNode::NumExprMul:
+        return compareDAGs(((ibex::ExprMul*)&expr1)->left, ((ibex::ExprMul*)&expr2)->left) &&
+               compareDAGs(((ibex::ExprMul*)&expr1)->right, ((ibex::ExprMul*)&expr2)->right);
+      case ibex::ExprNode::NumExprSub:
+        return compareDAGs(((ibex::ExprSub*)&expr1)->left, ((ibex::ExprSub*)&expr2)->left) &&
+               compareDAGs(((ibex::ExprSub*)&expr1)->right, ((ibex::ExprSub*)&expr2)->right);
+      case ibex::ExprNode::NumExprDiv:
+        return compareDAGs(((ibex::ExprDiv*)&expr1)->left, ((ibex::ExprDiv*)&expr2)->left) &&
+               compareDAGs(((ibex::ExprDiv*)&expr1)->right, ((ibex::ExprDiv*)&expr2)->right);
+      case ibex::ExprNode::NumExprSin:
+        return compareDAGs(((ibex::ExprSin*)&expr1)->expr, ((ibex::ExprSin*)&expr2)->expr);
+      case ibex::ExprNode::NumExprCos:
+        return compareDAGs(((ibex::ExprCos*)&expr1)->expr, ((ibex::ExprCos*)&expr2)->expr);
+      case ibex::ExprNode::NumExprTan:
+        return compareDAGs(((ibex::ExprTan*)&expr1)->expr, ((ibex::ExprTan*)&expr2)->expr);
+      case ibex::ExprNode::NumExprSinh:
+        return compareDAGs(((ibex::ExprSinh*)&expr1)->expr, ((ibex::ExprSinh*)&expr2)->expr);
+      case ibex::ExprNode::NumExprCosh:
+        return compareDAGs(((ibex::ExprCosh*)&expr1)->expr, ((ibex::ExprCosh*)&expr2)->expr);
+      case ibex::ExprNode::NumExprTanh:
+        return compareDAGs(((ibex::ExprTanh*)&expr1)->expr, ((ibex::ExprTanh*)&expr2)->expr);
+      case ibex::ExprNode::NumExprAsin:
+        return compareDAGs(((ibex::ExprAsin*)&expr1)->expr, ((ibex::ExprAsin*)&expr2)->expr);
+      case ibex::ExprNode::NumExprAcos:
+        return compareDAGs(((ibex::ExprAcos*)&expr1)->expr, ((ibex::ExprAcos*)&expr2)->expr);
+      case ibex::ExprNode::NumExprAtan:
+        return compareDAGs(((ibex::ExprAtan*)&expr1)->expr, ((ibex::ExprAtan*)&expr2)->expr);
+      case ibex::ExprNode::NumExprLog:
+        return compareDAGs(((ibex::ExprLog*)&expr1)->expr, ((ibex::ExprLog*)&expr2)->expr);
+      case ibex::ExprNode::NumExprSqrt:
+        return compareDAGs(((ibex::ExprSqrt*)&expr1)->expr, ((ibex::ExprSqrt*)&expr2)->expr);
+      case ibex::ExprNode::NumExprExp:
+        return compareDAGs(((ibex::ExprExp*)&expr1)->expr, ((ibex::ExprExp*)&expr2)->expr);
+      default:
+        std::cout << "Unknown node type" << std::endl;
+        break;
+    }
+  }
+
+  return false;
 }
 
 /*
@@ -716,6 +774,17 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
     min[node] = ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]);
     // print the error expression
     std::cout << "Error expression 1: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+  }
+
+  if(!validationFile.empty()) {
+    std::cout << "Comparing Error expression with validation file: " << validationFile << std::endl;
+    try {
+      ibex::Function f = ibexInterface->parseIbexFunctionFromFile(validationFile.c_str());
+      std::cout << "Function: " << f << std::endl;
+//      compareDAGs(f.expr(), ibexInterface->getSystem()->goal->expr());
+    } catch(ibex::SyntaxError& e) {
+      std::cout << e << std::endl;
+    }
   }
 
   generateIbexSymbols();
