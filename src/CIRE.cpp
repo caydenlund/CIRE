@@ -53,6 +53,7 @@ void show_usage(std::string name) {
             << "\t-a,--abstraction\t\tEnable abstraction\n"
             << "\t-m,--min-depth\t\tSet minimum depth for abstraction\n"
             << "\t-M,--max-depth\t\tSet maximum depth for abstraction\n"
+            << "\t-c,--compare\t\tValidate the generated error expression with the one in the file\n"
             << std::endl;
 }
 

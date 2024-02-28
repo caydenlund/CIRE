@@ -161,8 +161,12 @@ void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
     }
 
     errorAnalyzer->ErrAccumulator[output] =
-            (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[output] *
-                                pow(2, -53));
+            (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[output]
+            // The power term is the value of double ULP. We dont multiply by it here so optimizer can function better
+            // AND we get the optimal value in terms of number of ULPs.
+            // If uncommenting, comment the power term in the error computation
+//                                * pow(2, -53)
+                                );
   }
 }
 
@@ -806,7 +810,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
     if (min[node].lb() <= -max[node].lb() ) {
-      extrema[node] = ibex::Interval(min[node].lb(), -max[node].lb());
+      extrema[node] = ibex::Interval(min[node].lb()* pow(2, -53), -max[node].lb()* pow(2, -53));
     } else {
       std::cout << "Error extrema is empty! Setting to 0" << std::endl;
       extrema[node] = ibex::Interval(0, 0);
@@ -911,7 +915,7 @@ void Graph::RebuildAST() {
   }
 
   // Get max depth among nodes in probe_list
-  unsigned int max_depth = -1;
+  int max_depth = -1;
   for (auto &node : probe_list) {
     if (node->depth > max_depth) {
       max_depth = node->depth;

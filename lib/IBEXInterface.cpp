@@ -71,7 +71,11 @@ ibex::Interval IBEXInterface::FindMin(ibex::ExprNode *Expression) {
   factory.add_goal(*Expression);
   setSystem(&factory);
   ibex::DefaultOptimizer opt(*_system);
-  opt.optimize(_inputIntervals);
+  try {
+    opt.optimize(_inputIntervals);
+  } catch (soplex::SPxInternalCodeException &e) {
+    std::cerr << "Caught exception: " << e.what() << std::endl;
+  }
 //  std::cout << "temp: ";
 //  opt.report();
   return {opt.get_uplo(), opt.get_loup()};

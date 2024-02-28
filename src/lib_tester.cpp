@@ -23,8 +23,16 @@ int main(int argc, char * argv[]) {
   symbols1->add(a);
   symbols1->add(b);
 
-  Function f1(*symbols1, a+b);
+  Function f1(*symbols1, sin(a));
   cout << "f1=" << f1.eval(m) << endl;
+  SystemFactory factory;
+  factory.add_var(a);
+  factory.add_var(b);
+  factory.add_goal(-sin(a));
+  System sys(factory);
+  DefaultOptimizer opt(sys);
+  opt.optimize(m);
+  opt.report();
 
 
   symbols1 = new ibex::Array<const ExprSymbol>;
