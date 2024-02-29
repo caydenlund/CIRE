@@ -1,10 +1,10 @@
 #include"CIRE.h"
 
 #include <utility>
-#include "ctime"
 
 CIRE::CIRE() {
   graph = new Graph();
+  results = new Results();
 }
 
 CIRE::~CIRE() {
@@ -54,6 +54,7 @@ void show_usage(std::string name) {
             << "\t-m,--min-depth\t\tSet minimum depth for abstraction\n"
             << "\t-M,--max-depth\t\tSet maximum depth for abstraction\n"
             << "\t-c,--compare\t\tValidate the generated error expression with the one in the file\n"
+            << "\t-o,--output\t\tSet the output file\n"
             << std::endl;
 }
 
@@ -62,7 +63,7 @@ void show_usage(std::string name) {
 int main(int argc, char *argv[]) {
   CIRE cire;
 
-  std::time_t start = std::time(nullptr);
+  const auto start = std::chrono::high_resolution_clock::now();
 
   if (argc < 2) {
     show_usage(argv[0]);
@@ -101,6 +102,13 @@ int main(int argc, char *argv[]) {
           std::cerr << "--compare option requires one argument." << std::endl;
           return 1;
         }
+      } else if((arg == "-o" || (arg == "--output"))) {
+        if (i + 1 < argc) {
+          cire.results->setFile(argv[++i]);
+        } else {
+          std::cerr << "--output option requires one argument." << std::endl;
+          return 1;
+        }
       } else {
         cire.setFile(argv[i]);
       }
@@ -110,14 +118,22 @@ int main(int argc, char *argv[]) {
   cire.graph->parse(*cire.file.c_str());
   // print graph input
   std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
+
+  unsigned i = 0;
   // print the answer map
-  for (auto &node : answer) {
-    std::cout << *node.first << " : " << "\n\tOutput: " << node.second[0] << ","
-                                      << "\n\tError: " << node.second[1] << std::endl;
+  for (auto const&[node, result] : answer) {
+    // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
+    // always the case
+    assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
+    std::cout << *node << " : " << "\n\tOutput: " << result[0] << ","
+                                << "\n\tError: " << result[1] << std::endl;
   }
 
-  std::time_t end = std::time(nullptr);
-  std::cout << "Time taken: " << end - start << " seconds" << std::endl;
+  const auto end = std::chrono::high_resolution_clock::now();
+  cire.time_map["Total"] = end - start;
+  std::cout << "Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+
+  cire.results->writeResults(cire.graph->outputs, answer, cire.time_map);
 
   return 0;
 }

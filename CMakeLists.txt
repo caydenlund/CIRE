@@ -3,6 +3,11 @@ project(CIRE)
 
 set(CMAKE_CXX_STANDARD 17 CACHE STRING "")
 
+include(FetchContent)
+
+FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
+FetchContent_MakeAvailable(json)
+
 add_subdirectory(lib)
 add_subdirectory(benchmarks)
 
@@ -56,9 +61,9 @@ endif()
 add_library(CIRE_LLVM SHARED
             src/CIRE_LLVM.cpp
             src/CIRE.cpp)
-target_link_libraries(CIRE_LLVM PUBLIC
-                        Graph
-                        ibex)
+target_link_libraries(CIRE_LLVM
+                        PUBLIC Graph ibex
+                        PRIVATE nlohmann_json::nlohmann_json)
 
 # Allow undefined symbols in shared objects on Darwin (this is the default
 # behaviour on Linux)
@@ -70,12 +75,12 @@ ENDIF(ENABLE_LLVM_FRONTEND)
 
 # Building lib_tester
 add_executable(lib_tester src/lib_tester.cpp)
-target_link_libraries(lib_tester PUBLIC
-        Graph
-        ibex)
+target_link_libraries(lib_tester
+                        PUBLIC Graph ibex
+                        PRIVATE nlohmann_json::nlohmann_json)
 
 # Building CIRE
 add_executable(CIRE src/CIRE.cpp src/Results.cpp)
-target_link_libraries(CIRE PUBLIC
-        Graph
-        ibex)
+target_link_libraries(CIRE
+                        PUBLIC Graph ibex
+                        PRIVATE nlohmann_json::nlohmann_json)
