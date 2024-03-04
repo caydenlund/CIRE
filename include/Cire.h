@@ -11,7 +11,7 @@
 #include "Results.h"
 
 // Conducting the whole scanning and parsing of Calc++.
-class CIRE {
+class Cire {
 public:
   Graph *graph;
   Results *results;
@@ -23,8 +23,8 @@ public:
   // Map of the time taken by each phase of the program.
   std::map<std::string, std::chrono::duration<double>> time_map;
 
-  CIRE();
-  ~CIRE();
+  Cire();
+  ~Cire();
 
   void setFile(std::string file);
   void setAbstaction(bool value);

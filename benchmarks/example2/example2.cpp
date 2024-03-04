@@ -2,12 +2,12 @@
 
 using namespace std;
 
+double f(double x, double y) {
+  return x-y;
+}
+
 int main() {
-  double x = 2;
-  double y = 3;
 
-  float res = x-y+y;
-
-  cout << res << endl;
+  cout << f(2, 3) << endl;
   return 0;
 }

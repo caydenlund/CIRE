@@ -30,7 +30,7 @@ Use `wget` command below or download `ibex-lib-ibex-2.8.9.tar.gz` (the tar file)
 wget https://github.com/ibex-team/ibex-lib/archive/refs/tags/ibex-2.8.9.tar.gz
 tar xvfz ibex-2.8.9.tgz
 cd ibex-2.8.9
-sudo ./waf configure --enable-shared
+sudo ./waf configure [--enable-shared]
 sudo ./waf install
 ```
 
@@ -82,3 +82,19 @@ LD_LIBRARY_PATH=/usr/local/lib
 ```
 
 ## LLVM Frontend
+There are two ways to utilize the LLVM Frontend. As an LLVM pass or as a standalone tool.
+Make sure you run -O1 or higher to generate LLVM IR to simplify the function removing all memory operations.
+
+```bash
+clang -S -emit-llvm -O1 <path/to/c/file>
+```
+
+### As an LLVM pass
+```bash
+<path/to/opt> -load-pass-plugin=<path/to/libCIRE_LLVM.so> -passes="cire" --function=<function_name> --input=<path/to/.txt/file> --disable-output <path/to/llvm/ir/file>
+```
+
+### As a standalone tool
+```bash
+./build-debug/CIRE_LLVM <path/to/llvm/ir/file> --function=<function_name> --input=<path/to/.txt/file>
+```

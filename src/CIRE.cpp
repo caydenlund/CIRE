@@ -1,50 +1,4 @@
-#include"CIRE.h"
-
-#include <utility>
-
-CIRE::CIRE() {
-  graph = new Graph();
-  results = new Results();
-}
-
-CIRE::~CIRE() {
-  delete graph;
-}
-
-void CIRE::setFile(std::string _file) {
-  file = std::move(_file);
-}
-
-void CIRE::setAbstaction(bool _value) {
-  abstraction = _value;
-}
-
-void CIRE::setAbstractionWindow(std::pair<unsigned int, unsigned int> window) {
-  abstractionWindow = window;
-}
-
-void CIRE::setMinDepth(unsigned int depth) {
-  abstractionWindow.first = depth;
-}
-
-void CIRE::setMaxDepth(unsigned int depth) {
-  abstractionWindow.second = depth;
-}
-
-std::map<Node *, std::vector<ibex::Interval>> CIRE::performErrorAnalysis() {
-  if (abstraction) {
-    graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
-  }
-  std::set<Node*> output_set;
-  for (auto &output : graph->outputs) {
-    output_set.insert(graph->findVarNode(output));
-  }
-
-  std::map<Node *, std::vector<ibex::Interval>> optima_map = graph->SimplifyWithAbstraction(output_set, 0, true);
-
-  return optima_map;
-
-}
+#include "Cire.h"
 
 void show_usage(std::string name) {
   std::cerr << "Usage: " << name << " <option(s)> <input_file>"
@@ -58,10 +12,8 @@ void show_usage(std::string name) {
             << std::endl;
 }
 
-
-
 int main(int argc, char *argv[]) {
-  CIRE cire;
+  Cire cire;
 
   const auto start = std::chrono::high_resolution_clock::now();
 
@@ -95,14 +47,14 @@ int main(int argc, char *argv[]) {
           std::cerr << "--max-depth option requires one argument." << std::endl;
           return 1;
         }
-      } else if((arg == "-c") || (arg == "--compare")) {
+      } else if ((arg == "-c") || (arg == "--compare")) {
         if (i + 1 < argc) {
           cire.graph->setValidationFile(argv[++i]);
         } else {
           std::cerr << "--compare option requires one argument." << std::endl;
           return 1;
         }
-      } else if((arg == "-o" || (arg == "--output"))) {
+      } else if ((arg == "-o" || (arg == "--output"))) {
         if (i + 1 < argc) {
           cire.results->setFile(argv[++i]);
         } else {
@@ -121,12 +73,12 @@ int main(int argc, char *argv[]) {
 
   unsigned i = 0;
   // print the answer map
-  for (auto const&[node, result] : answer) {
+  for (auto const &[node, result]: answer) {
     // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
     // always the case
     assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
     std::cout << *node << " : " << "\n\tOutput: " << result[0] << ","
-                                << "\n\tError: " << result[1] << std::endl;
+              << "\n\tError: " << result[1] << std::endl;
   }
 
   const auto end = std::chrono::high_resolution_clock::now();
