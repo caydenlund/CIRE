@@ -1,3 +1,4 @@
+#include <llvm/IR/Instructions.h>
 #include "llvm_frontend.h"
 
 using namespace llvm;
@@ -142,7 +143,43 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       case Instruction::ICmp:
       case Instruction::FCmp:
       case Instruction::PHI:
-      case Instruction::Call:
+      case Instruction::Call: {
+        auto CI = dyn_cast<CallInst>(&I);
+        if(CI->getCalledFunction()->arg_size() == 1) {
+          auto CalledFunctionName = CI->getCalledFunction()->getNameOrAsOperand();
+          auto op1 = llvmToCireNodeMap.find(CI->getArgOperand(0))->second;
+
+          if(CalledFunctionName == "sin") {
+            addDataForCreatedNode(I, g, &sin(*op1));
+          } else if(CalledFunctionName == "cos") {
+            addDataForCreatedNode(I, g, &cos(*op1));
+          } else if(CalledFunctionName == "tan") {
+            addDataForCreatedNode(I, g, &tan(*op1));
+          } else if(CalledFunctionName == "sinh") {
+            addDataForCreatedNode(I, g, &sinh(*op1));
+          } else if(CalledFunctionName == "cosh") {
+            addDataForCreatedNode(I, g, &cosh(*op1));
+          } else if(CalledFunctionName == "tanh") {
+            addDataForCreatedNode(I, g, &tanh(*op1));
+          } else if(CalledFunctionName == "asin") {
+            addDataForCreatedNode(I, g, &asin(*op1));
+          } else if(CalledFunctionName == "acos") {
+            addDataForCreatedNode(I, g, &acos(*op1));
+          } else if(CalledFunctionName == "atan") {
+            addDataForCreatedNode(I, g, &atan(*op1));
+          } else if(CalledFunctionName == "log") {
+            addDataForCreatedNode(I, g, &log(*op1));
+          } else if(CalledFunctionName == "sqrt") {
+            addDataForCreatedNode(I, g, &sqrt(*op1));
+          } else if(CalledFunctionName == "exp") {
+            addDataForCreatedNode(I, g, &exp(*op1));
+          } else {
+            outs() << "Unhandled Function in Call Instruction:" << I << "\n";
+          }
+        }
+
+        break;
+      }
       case Instruction::Select:
       case Instruction::UserOp1:
       case Instruction::UserOp2:
