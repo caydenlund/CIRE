@@ -1,9 +1,18 @@
 #include "llvm_frontend.h"
 
 using namespace llvm;
+using namespace std;
 
 // Map from LLVM Values to CIRE Nodes
 std::map<llvm::Value *, Node *> llvmToCireNodeMap;
+
+void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
+  g.nodes.insert(res);
+  g.depthTable[res->depth].insert(res);
+
+  llvmToCireNodeMap[&I] = res;
+  g.symbolTables[g.currentScope]->insert(I.getNameOrAsOperand(), res);
+}
 
 void parseExprsInLLVM(Graph &g, Function &F) {
   // TODO: Make this work for multiple Basic blocks after you have support for
@@ -56,11 +65,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
         if (I.getType()->isFloatingPointTy()) {
           auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
           auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
-          auto res = &(*op1+*op2);
-          g.nodes.insert(res);
-          g.depthTable[res->depth].insert(res);
 
-          llvmToCireNodeMap[&I] = res;
+          addDataForCreatedNode(I, g, &(*op1+op2));
         }
         break;
       }
@@ -72,11 +78,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
         if (I.getType()->isFloatingPointTy()) {
           auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
           auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
-          auto res = &(*op1-*op2);
-          g.nodes.insert(res);
-          g.depthTable[res->depth].insert(res);
 
-          llvmToCireNodeMap[&I] = res;
+          addDataForCreatedNode(I, g, &(*op1-op2));
         }
         break;
       }
@@ -88,11 +91,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
         if (I.getType()->isFloatingPointTy()) {
           auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
           auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
-          auto res = &(*op1+*op2);
-          g.nodes.insert(res);
-          g.depthTable[res->depth].insert(res);
 
-          llvmToCireNodeMap[&I] = res;
+          addDataForCreatedNode(I, g, &(*op1*op2));
         }
         break;
       }
@@ -105,11 +105,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
         if (I.getType()->isFloatingPointTy()) {
           auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
           auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
-          auto res = &(*op1+*op2);
-          g.nodes.insert(res);
-          g.depthTable[res->depth].insert(res);
 
-          llvmToCireNodeMap[&I] = res;
+          addDataForCreatedNode(I, g, &(*op1/op2));
         }
         break;
       }
