@@ -68,7 +68,6 @@ int main(int argc, char *argv[]) {
   }
 
   cire.graph->parse(*cire.file.c_str());
-  // print graph input
   std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
 
   unsigned i = 0;

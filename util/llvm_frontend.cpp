@@ -2,6 +2,9 @@
 
 using namespace llvm;
 
+// Map from LLVM Values to CIRE Nodes
+std::map<llvm::Value *, Node *> llvmToCireNodeMap;
+
 void parseExprsInLLVM(Graph &g, Function &F) {
   // TODO: Make this work for multiple Basic blocks after you have support for
   //  conditionals
@@ -16,7 +19,12 @@ void parseExprsInLLVM(Graph &g, Function &F) {
     auto opcode = I.getOpcode();
 
     switch(opcode) {
-      case Instruction::Ret:
+      case Instruction::Ret: {
+        if (I.getOperand(0)->getType()->isFloatingPointTy()) {
+          g.outputs.push_back(I.getOperand(0)->getNameOrAsOperand());
+        }
+        break;
+      }
       case Instruction::Br:
       case Instruction::Switch:
       case Instruction::IndirectBr:
@@ -26,48 +34,101 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       case Instruction::CleanupRet:
       case Instruction::CatchRet:
       case Instruction::CatchSwitch:
-      case Instruction::CallBr:{
-        std::cout << "Unhandled class: Terminators" << std::endl;
+      case Instruction::CallBr: {
+        outs() << "Unhandled Instruction:" << I << "\n";
         break;
       }
       case Instruction::FNeg: {
-        std::cout << "Unhandled class: Unary operators" << std::endl;
+        if (I.getType()->isFloatingPointTy()) {
+          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
+          auto res = &(-*op1);
+          g.nodes.insert(res);
+
+          llvmToCireNodeMap[&I] = res;
+        }
         break;
       }
-      case Instruction::Add:
-      case Instruction::FAdd:
-      case Instruction::Sub:
-      case Instruction::FSub:
-      case Instruction::Mul:
-      case Instruction::FMul:
+      case Instruction::Add: {
+        outs() << "Unhandled Instruction:" << I << "\n";
+        break;
+      }
+      case Instruction::FAdd: {
+        if (I.getType()->isFloatingPointTy()) {
+          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
+          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto res = &(*op1+*op2);
+          g.nodes.insert(res);
+          g.depthTable[res->depth].insert(res);
+
+          llvmToCireNodeMap[&I] = res;
+        }
+        break;
+      }
+      case Instruction::Sub: {
+        outs() << "Unhandled Instruction:" << I << "\n";
+        break;
+      }
+      case Instruction::FSub: {
+        if (I.getType()->isFloatingPointTy()) {
+          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
+          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto res = &(*op1-*op2);
+          g.nodes.insert(res);
+          g.depthTable[res->depth].insert(res);
+
+          llvmToCireNodeMap[&I] = res;
+        }
+        break;
+      }
+      case Instruction::Mul: {
+        outs() << "Unhandled Instruction:" << I << "\n";
+        break;
+      }
+      case Instruction::FMul: {
+        if (I.getType()->isFloatingPointTy()) {
+          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
+          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto res = &(*op1+*op2);
+          g.nodes.insert(res);
+          g.depthTable[res->depth].insert(res);
+
+          llvmToCireNodeMap[&I] = res;
+        }
+        break;
+      }
       case Instruction::UDiv:
-      case Instruction::SDiv:
-      case Instruction::FDiv:
+      case Instruction::SDiv: {
+        outs() << "Unhandled Instruction:" << I << "\n";
+        break;
+      }
+      case Instruction::FDiv: {
+        if (I.getType()->isFloatingPointTy()) {
+          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
+          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto res = &(*op1+*op2);
+          g.nodes.insert(res);
+          g.depthTable[res->depth].insert(res);
+
+          llvmToCireNodeMap[&I] = res;
+        }
+        break;
+      }
       case Instruction::URem:
       case Instruction::SRem:
-      case Instruction::FRem: {
-        std::cout << "Unhandled class: Binary operators" << std::endl;
-        break;
-      }
+      case Instruction::FRem:
       case Instruction::Shl:
       case Instruction::LShr:
       case Instruction::AShr:
       case Instruction::And:
       case Instruction::Or:
-      case Instruction::Xor: {
-        std::cout << "Unhandled class: Bitwise operators" << std::endl;
-        break;
-      }
+      case Instruction::Xor:
       case Instruction::Alloca:
       case Instruction::Load:
       case Instruction::Store:
       case Instruction::GetElementPtr:
       case Instruction::Fence:
       case Instruction::AtomicCmpXchg:
-      case Instruction::AtomicRMW: {
-        std::cout << "Unhandled class: Memory operators" << std::endl;
-        break;
-      }
+      case Instruction::AtomicRMW:
       case Instruction::Trunc:
       case Instruction::ZExt:
       case Instruction::SExt:
@@ -80,10 +141,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       case Instruction::PtrToInt:
       case Instruction::IntToPtr:
       case Instruction::BitCast:
-      case Instruction::AddrSpaceCast: {
-        std::cout << "Unhandled class: Cast operators" << std::endl;
-        break;
-      }
+      case Instruction::AddrSpaceCast:
       case Instruction::ICmp:
       case Instruction::FCmp:
       case Instruction::PHI:
@@ -99,7 +157,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       case Instruction::InsertValue:
       case Instruction::LandingPad:
       case Instruction::Freeze: {
-        std::cout << "Unhandled class: Other operators" << std::endl;
+        outs() << "Unhandled Instruction:" << I << "\n";
         break;
       }
     }

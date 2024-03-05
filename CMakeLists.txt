@@ -77,7 +77,7 @@ if(ENABLE_LLVM_FRONTEND)
     add_library(cire SHARED
             src/cire.cpp
             src/Cire.cpp
-                src/Results.cpp)
+            src/Results.cpp)
     target_link_libraries(cire
                             PUBLIC Graph ibex
                             PRIVATE nlohmann_json::nlohmann_json llvm_util util)

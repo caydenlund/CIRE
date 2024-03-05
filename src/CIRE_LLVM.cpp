@@ -1,6 +1,7 @@
 // Project files
 #include "utils.h"
 #include "Cire.h"
+#include "../util/llvm_frontend.cpp"
 
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
@@ -34,6 +35,7 @@ namespace {
 
 
 int main(int argc, char **argv) {
+  const auto start = std::chrono::high_resolution_clock::now();
   if (true) {
     // FIXME remove when done debugging
     for (int i = 0; i < argc; ++i)
@@ -55,6 +57,12 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  // TODO: Think about what programs you cannot accept and handle them.
+  //  Programs with no return values - Let through. Cant analyze
+  //  Programs with no inputs - Let through. Cant analyze
+  //  Programs with no floating-point inputs OR return values - Let through. Cant analyze
+  //  Programs with vectors as inputs or outputs can be left for later - Cant analyze
+
   Cire cire;
   if(!Func.empty()) {
     auto F = findFunction(*M, Func);
@@ -64,15 +72,34 @@ int main(int argc, char **argv) {
     }
     cire.graph->parse(*Input.c_str());
 
+    // map the LLVM function arguments to the CIRE inputs
+    // Iterate the function arguments
+    for (auto &arg : F->args()) {
+      if (arg.getType()->isFloatingPointTy()) {
+        llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand()];
+      }
+    }
 
+    parseExprsInLLVM(*cire.graph, *F);
   }
 
 
-//  cire.setFile(Input);
-//  cire.setAbstaction(true);
-//  cire.setAbstractionWindow(std::make_pair(10, 40));
-//  cire.setMinDepth(1);
-//  cire.setMaxDepth(10);
-//  cire.performErrorAnalysis();
+  std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
+
+  unsigned i = 0;
+  // print the answer map
+  for (auto const &[node, result]: answer) {
+    // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
+    // always the case
+    assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
+    std::cout << *node << " : " << "\n\tOutput: " << result[0] << ","
+              << "\n\tError: " << result[1] << std::endl;
+  }
+
+  const auto end = std::chrono::high_resolution_clock::now();
+  cire.time_map["Total"] = end - start;
+  std::cout << "Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+
+//  cire.results->writeResults(cire.graph->outputs, answer, cire.time_map);
   return 0;
 }
