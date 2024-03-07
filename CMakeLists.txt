@@ -107,3 +107,10 @@ add_executable(CIRE src/CIRE.cpp src/Cire.cpp src/Results.cpp)
 target_link_libraries(CIRE
                         PUBLIC Graph ibex
                         PRIVATE nlohmann_json::nlohmann_json)
+
+add_custom_target("check"
+                   COMMAND "python3"
+                           "${PROJECT_SOURCE_DIR}/scripts/lit/lit.py"
+                           "${PROJECT_SOURCE_DIR}/benchmarks"
+                   USES_TERMINAL
+                 )
