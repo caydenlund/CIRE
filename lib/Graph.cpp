@@ -732,7 +732,7 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(node->getExprNode());
     // print the output expression
-    std::cout << "Output expression 1: " << *node->getExprNode() << std::endl;
+//    std::cout << "Output expression: " << *node->getExprNode() << std::endl;
   }
 
   generateIbexSymbols();
@@ -744,7 +744,7 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(node->getExprNode());
     // print the output expression
-//    std::cout << "Output expression 2: " << *node->getExprNode() << std::endl;
+//    std::cout << "Output expression: " << *node->getExprNode() << std::endl;
   }
 
   std::map<Node *, ibex::Interval> extrema;
@@ -777,7 +777,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]);
     // print the error expression
-    std::cout << "Error expression 1: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+//    std::cout << "Error expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
   }
 
   if(!validationFile.empty()) {
@@ -804,7 +804,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
   for (auto &node : candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(errorAnalyzer->ErrAccumulator[node]);
-//    std::cout << "Error expression 2: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+//    std::cout << "Error expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
   }
 
   std::map<Node *, ibex::Interval> extrema;
@@ -838,9 +838,12 @@ std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(con
   AbstractNodes(results);
   RebuildAST();
 
+
   for (auto &node : results) {
-    std::cout << *node.first << " : " << "\n\tOutput: " << node.second[0] << ","
-                                      << "\n\tError: " << node.second[1] << std::endl;
+    std::cout
+//              << *node.first << " : "
+              << "\n\tOutput: " << node.second[0] << ","
+              << "\n\tError: " << node.second[1] << std::endl;
   }
 
   return results;

@@ -2,15 +2,25 @@
 
 Cire::Cire() {
   graph = new Graph();
+  graph->log.openFile();
   results = new Results();
 }
 
 Cire::~Cire() {
+  graph->log.closeFile();
   delete graph;
 }
 
 void Cire::setFile(std::string _file) {
   file = std::move(_file);
+}
+
+void Cire::setDebugLevel(unsigned int level) {
+  debugLevel = level;
+}
+
+void Cire::setLogLevel(unsigned int level) {
+  logLevel = level;
 }
 
 void Cire::setAbstaction(bool _value) {

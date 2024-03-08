@@ -61,6 +61,22 @@ int main(int argc, char *argv[]) {
           std::cerr << "--output option requires one argument." << std::endl;
           return 1;
         }
+      } else if ((arg == "-d" || (arg == "--debug-level"))) {
+        if (i + 1 < argc) {
+          cire.setDebugLevel(std::stoi(argv[++i]));
+          cire.graph->debugLevel = cire.debugLevel;
+        } else {
+          std::cerr << "--debug-level option requires one argument." << std::endl;
+          return 1;
+        }
+      } else if ((arg == "-l" || (arg == "--log-level"))) {
+        if (i + 1 < argc) {
+          cire.setLogLevel(std::stoi(argv[++i]));
+          cire.graph->logLevel = cire.logLevel;
+        } else {
+          std::cerr << "--log-level option requires one argument." << std::endl;
+          return 1;
+        }
       } else {
         cire.setFile(argv[i]);
       }

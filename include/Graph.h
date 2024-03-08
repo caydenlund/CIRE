@@ -4,10 +4,14 @@
 #include "SymbolTable.h"
 #include "ErrorAnalyzer.h"
 #include "IBEXInterface.h"
+#include "Logging.h"
 
 class Graph {
 private:
 public:
+  Logging log;
+  unsigned int debugLevel = 0;
+  unsigned int logLevel = 0;
   std::map<int, SymbolTable *> symbolTables;
   int currentScope = 0;
   // Connects a variable name to a FreeVariable representing an interval

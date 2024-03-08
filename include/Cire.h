@@ -18,6 +18,8 @@ public:
   // The name of the file being parsed.
   std::string file;
   bool abstraction = false;
+  unsigned debugLevel = 0;
+  unsigned logLevel = 0;
   std::pair<unsigned int, unsigned int> abstractionWindow =
           std::make_pair(10, 40);
   // Map of the time taken by each phase of the program.
@@ -28,6 +30,8 @@ public:
 
   void setFile(std::string file);
   void setAbstaction(bool value);
+  void setDebugLevel(unsigned int level);
+  void setLogLevel(unsigned int level);
   void setAbstractionWindow(std::pair<unsigned int, unsigned int> window);
   void setMinDepth(unsigned int depth);
   void setMaxDepth(unsigned int depth);

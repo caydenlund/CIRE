@@ -29,4 +29,6 @@ bool Results::writeResults(std::vector<std::string> outputs,
   }
   std::ofstream out(file);
   out << std::setw(4) << json_object;
+
+  return true;
 }
