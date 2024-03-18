@@ -1,5 +1,5 @@
 __author__ = 'Tanmay Tirpankar'
-__email__ = 'tirpankartanmay@gmail.com
+__email__ = 'tirpankartanmay@gmail.com'
 
 __all__ = []
 

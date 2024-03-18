@@ -112,5 +112,6 @@ add_custom_target("check"
                    COMMAND "python3"
                            "${PROJECT_SOURCE_DIR}/scripts/lit/lit.py"
                            "${PROJECT_SOURCE_DIR}/benchmarks"
+                   DEPENDS CIRE_LLVM
                    USES_TERMINAL
                  )

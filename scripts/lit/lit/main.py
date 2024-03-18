@@ -74,10 +74,17 @@ def executeCommand(command):
 
 
 def execute(test):
-    alive_tv_4 = test.endswith('.aarch64.ll')
+    """
+    execute(test)
+    :param test:
+    :return:
 
-    if alive_tv_4:
-        cmd = ['./backend-tv', '-smt-to=20000', '-always-verify']
+    Form command for using CIRE_LLVM, execute it, and interpret the result.
+    """
+    cire_llvm = test.endswith('.ll')
+
+    if cire_llvm:
+        cmd = ['./CIRE_LLVM']
         if not os.path.isfile('backend-tv'):
             return lit.Test.UNSUPPORTED, ''
 
@@ -88,12 +95,9 @@ def execute(test):
 
 def execute_tests(display, tests):
     """
-    execute_tests(display, [max_time])
+    execute_tests(display, tests)
 
     Execute each of the tests in the run, and inform the display of result.
-
-    If max_time is non-None, it should be a time in seconds after which to
-    stop executing tests.
 
     The display object will have its update method called with each test as
     it is completed.
@@ -124,6 +128,8 @@ def main():
     opts = parser.parse_args()
     args = opts.test_paths
 
+    print("Running CIRE on: ", args)
+
     if not args:
         print("No test paths specified")
 
@@ -131,5 +137,9 @@ def main():
     startTime = time.time()
     display = TestingProgressDisplay(opts, len(args), progressBar)
 
+    try:
+        execute_tests(display, args)
+    except KeyboardInterrupt:
+        print("\nInterrupted")
     display.finish()
     testing_time = time.time() - startTime
