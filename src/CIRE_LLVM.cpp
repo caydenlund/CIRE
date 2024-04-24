@@ -82,9 +82,12 @@ int main(int argc, char **argv) {
 
     parseExprsInLLVM(*cire.graph, *F);
   }
+  const auto parse_end = std::chrono::high_resolution_clock::now();
 
 
   std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
+
+  const auto error_analysis_end = std::chrono::high_resolution_clock::now();
 
   unsigned i = 0;
   // print the answer map
@@ -97,8 +100,13 @@ int main(int argc, char **argv) {
   }
 
   const auto end = std::chrono::high_resolution_clock::now();
+  cire.time_map["Parsing"] = parse_end - start;
+  cire.time_map["Error_Analysis"] = error_analysis_end - parse_end;
   cire.time_map["Total"] = end - start;
-  std::cout << "Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+
+  std::cout << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
+  std::cout << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
+  std::cout << "Total Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
 
 //  cire.results->writeResults(cire.graph->outputs, answer, cire.time_map);
   return 0;

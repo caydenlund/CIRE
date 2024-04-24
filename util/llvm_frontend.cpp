@@ -50,7 +50,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       }
       case Instruction::FNeg: {
         if (I.getType()->isFloatingPointTy()) {
-          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
+          auto op1 = llvmToCireNodeMap[I.getOperand(0)];
           auto res = &(-*op1);
           g.nodes.insert(res);
 
@@ -64,8 +64,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       }
       case Instruction::FAdd: {
         if (I.getType()->isFloatingPointTy()) {
-          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
-          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto op1 = llvmToCireNodeMap[I.getOperand(0)];
+          auto op2 = llvmToCireNodeMap[I.getOperand(1)];
 
           addDataForCreatedNode(I, g, &(*op1+op2));
         }
@@ -77,8 +77,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       }
       case Instruction::FSub: {
         if (I.getType()->isFloatingPointTy()) {
-          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
-          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto op1 = llvmToCireNodeMap[I.getOperand(0)];
+          auto op2 = llvmToCireNodeMap[I.getOperand(1)];
 
           addDataForCreatedNode(I, g, &(*op1-op2));
         }
@@ -90,8 +90,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       }
       case Instruction::FMul: {
         if (I.getType()->isFloatingPointTy()) {
-          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
-          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto op1 = llvmToCireNodeMap[I.getOperand(0)];
+          auto op2 = llvmToCireNodeMap[I.getOperand(1)];
 
           addDataForCreatedNode(I, g, &(*op1*op2));
         }
@@ -104,8 +104,8 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       }
       case Instruction::FDiv: {
         if (I.getType()->isFloatingPointTy()) {
-          auto op1 = llvmToCireNodeMap.find(I.getOperand(0))->second;
-          auto op2 = llvmToCireNodeMap.find(I.getOperand(1))->second;
+          auto op1 = llvmToCireNodeMap[I.getOperand(0)];
+          auto op2 = llvmToCireNodeMap[I.getOperand(1)];
 
           addDataForCreatedNode(I, g, &(*op1/op2));
         }
@@ -147,7 +147,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
         auto CI = dyn_cast<CallInst>(&I);
         if(CI->getCalledFunction()->arg_size() == 1) {
           auto CalledFunctionName = CI->getCalledFunction()->getNameOrAsOperand();
-          auto op1 = llvmToCireNodeMap.find(CI->getArgOperand(0))->second;
+          auto op1 = llvmToCireNodeMap[CI->getOperand(0)];
 
           if(CalledFunctionName == "sin") {
             addDataForCreatedNode(I, g, &sin(*op1));

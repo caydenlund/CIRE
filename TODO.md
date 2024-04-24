@@ -1,4 +1,4 @@
-* Add support for input json file in the LLVM frontend file
+* Add support for abstraction and other flags to the LLVM frontend
 * Add logging support
 * Reformat entire codebase using clang-format
 * 
