@@ -7,7 +7,6 @@
 #include "llvm/Support/Signals.h"
 #include "llvm/Passes/PassBuilder.h"
 
-
 using namespace std;
 using namespace llvm;
 using namespace llvm_util;
@@ -29,6 +28,19 @@ namespace {
                           cl::value_desc("Looks for the input file in the current directory"),
                           cl::init(""),
                           cl::Required);
+
+    cl::opt<bool> Abstraction("abstraction",
+                              cl::desc("Enable abstraction"),
+                              cl::init(false));
+
+    cl::opt<unsigned> MinDepth("min-depth",
+                               cl::desc("Minimum depth for abstraction"),
+                               cl::init(5));
+
+    cl::opt<unsigned> MaxDepth("max-depth",
+                                cl::desc("Maximum depth for abstraction"),
+                                cl::init(10));
+
 
 
 }
@@ -70,7 +82,13 @@ int main(int argc, char **argv) {
       errs() << "Error: Unable to find function " << Func << " in the input file\n";
       return 1;
     }
-    cire.graph->parse(*Input.c_str());
+
+    if(!Input.empty()) {
+      cire.graph->parse(*Input.c_str());
+    }
+    else {
+      parseInputsInLLVM(*cire.graph, *F);
+    }
 
     // map the LLVM function arguments to the CIRE inputs
     // Iterate the function arguments

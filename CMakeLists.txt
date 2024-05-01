@@ -37,7 +37,7 @@ if(ENABLE_LLVM_FRONTEND)
 
     # Add the location of LLVMConfig.cmake to CMake search paths (so that
     # find_package can locate it)
-    list(APPEND CMAKE_PREFIX_PATH "${LT_LLVM_INSTALL_DIR}/lib/cmake/llvm/")
+    list(PREPEND CMAKE_PREFIX_PATH "${LT_LLVM_INSTALL_DIR}/lib/cmake/llvm/")
 
     find_package(LLVM REQUIRED CONFIG)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")

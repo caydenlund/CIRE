@@ -15,6 +15,10 @@ void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
   g.symbolTables[g.currentScope]->insert(I.getNameOrAsOperand(), res);
 }
 
+void parseInputsInLLVM(Graph &g, Function &F) {
+
+}
+
 void parseExprsInLLVM(Graph &g, Function &F) {
   // TODO: Make this work for multiple Basic blocks after you have support for
   //  conditionals
