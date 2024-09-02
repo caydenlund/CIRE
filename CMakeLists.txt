@@ -8,22 +8,20 @@ include(FetchContent)
 FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
+
 add_subdirectory(lib)
 add_subdirectory(benchmarks)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    include_directories(include
+include_directories(include
             /usr/local/include
             /usr/local/include/ibex
+            /usr/local/include/soplex
             /usr/local/include/ibex/3rd
             /usr/local/include/ibex/3rd/gaol)
-    link_directories(/usr/local/lib)
-else()
-    include_directories(include
-            /usr/local/include/ibex
-            /usr/local/include/ibex/3rd
-            /usr/local/include/ibex/3rd/gaol)
-endif()
+link_directories(/usr/local/lib
+                /usr/local/lib64
+                /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/gaol-4.2.0/lib
+                /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/mathlib-2.1.0/lib)
 
 option(ENABLE_LLVM_FRONTEND "Enable the LLVM frontend" OFF)
 
@@ -74,18 +72,18 @@ if(ENABLE_LLVM_FRONTEND)
     #===============================================================================
     # 3. ADD THE TARGET
     #===============================================================================
-    add_library(cire SHARED
+    add_library(cire STATIC
             src/cire.cpp
             src/Cire.cpp
             src/Results.cpp)
     target_link_libraries(cire
-                            PUBLIC Graph ibex
+                            PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
                             PRIVATE nlohmann_json::nlohmann_json llvm_util util)
 
     add_llvm_executable(CIRE_LLVM src/CIRE_LLVM.cpp src/Cire.cpp src/Results.cpp)
     llvm_map_components_to_libnames(llvm_libs support core irreader)
     target_link_libraries(CIRE_LLVM
-            PUBLIC Graph ibex
+            PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
             PRIVATE nlohmann_json::nlohmann_json llvm_util util ${llvm_libs})
 
     # Allow undefined symbols in shared objects on Darwin (this is the default
@@ -105,7 +103,7 @@ target_link_libraries(lib_tester
 # Building CIRE
 add_executable(CIRE src/CIRE.cpp src/Cire.cpp src/Results.cpp)
 target_link_libraries(CIRE
-                        PUBLIC Graph ibex
+                        PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
                         PRIVATE nlohmann_json::nlohmann_json)
 
 add_custom_target("check"

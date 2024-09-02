@@ -2,20 +2,14 @@
 find_package(BISON REQUIRED)
 find_package(FLEX REQUIRED)
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/..
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/..
             /usr/local/include
             /usr/local/include/ibex
+            /usr/local/include/soplex
             /usr/local/include/ibex/3rd
             /usr/local/include/ibex/3rd/gaol)
-    link_directories(/usr/local/lib)
-else()
-    include_directories(${CMAKE_CURRENT_BINARY_DIR}/..
-            /usr/local/include/ibex
-            /usr/local/include/ibex/3rd
-            /usr/local/include/ibex/3rd/gaol)
-endif()
-
+link_directories(/usr/local/lib
+                /usr/local/lib64)
 
 
 BISON_TARGET(MyParser
@@ -35,5 +29,3 @@ add_library(Graph SHARED
         Graph.cpp
         ${BISON_MyParser_OUTPUTS}
         ${FLEX_MyScanner_OUTPUTS})
-
-target_link_libraries(Graph PUBLIC ibex)

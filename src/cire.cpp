@@ -21,6 +21,7 @@
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
 #include "Cire.h"
+#include "llvm_frontend.h"
 
 using namespace llvm;
 
@@ -50,22 +51,22 @@ namespace {
         // Main entry point, takes IR unit to run the pass on (&F) and the
         // corresponding pass manager (to be queried if need be)
         PreservedAnalyses run(Function &F, FunctionAnalysisManager &) {
-          visitor(F);
+            visitor(F);
 
-          // Identify the function
-          if (F.getName() == Func) {
-            CIRE cire;
+            // Identify the function
+            if (F.getName() == Func) {
+              Cire cire;
 
-            // Parse the input file
-            cire.graph->parse(*Input.c_str());
+              // Parse the input file
+              cire.graph->parse(*Input.c_str());
 
-            // Parse the function
-            parseExprsInLLVM(*cire.graph, F);
-          }
+              // Parse the function
+              parseExprsInLLVM(*cire.graph, F);
+            }
 
 
 
-          return PreservedAnalyses::all();
+            return PreservedAnalyses::all();
         }
 
         // Without isRequired returning true, this pass will be skipped for functions

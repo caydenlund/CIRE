@@ -6,6 +6,7 @@
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
 #include "llvm/Passes/PassBuilder.h"
+#include "llvm/IR/Module.h"
 
 using namespace std;
 using namespace llvm;
@@ -57,7 +58,6 @@ int main(int argc, char **argv) {
 
   sys::PrintStackTraceOnErrorSignal(argv[0]);
   llvm::EnableDebugBuffering = true;
-  llvm::llvm_shutdown_obj llvm_shutdown; // Call llvm_shutdown() on exit.
   llvm::LLVMContext Context;
 
   string Usage = "CIRE stand-alone worst-case floating-point round-off error estimator\n";

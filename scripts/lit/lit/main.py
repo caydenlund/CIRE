@@ -36,6 +36,26 @@ class TestingProgressDisplay(object):
         sys.stdout.flush()
 
 
+def find_files_with_extension(path, extension):
+    """
+    find_files_with_extension_recursively(path, extension)
+
+    Find all files with the given extension in the given path and its
+    subdirectories.
+    """
+    if os.path.isfile(path):
+        if path.endswith('.ll'):
+            return [path]
+        else:
+            return []
+
+    files = []
+    for root, dirnames, filenames in os.walk(path):
+        for filename in filenames:
+            if filename.endswith(extension):
+                files.append(os.path.join(root, filename))
+    return files
+
 def _execute_test_impl(test):
     """Execute one test"""
 
@@ -85,10 +105,25 @@ def execute(test):
 
     if cire_llvm:
         cmd = ['./CIRE_LLVM']
-        if not os.path.isfile('backend-tv'):
+        if not os.path.isfile('./CIRE_LLVM'):
             return lit.Test.UNSUPPORTED, ''
+        cmd.append(test)
 
+    function_name_arg = '--function='
+    function_name_arg += 'src'
+
+    input_file = '--input='
+    root = os.path.splitext(test)[0]
+    input_file += root+'_input.txt'
+
+    cmd.append(function_name_arg)
+    cmd.append(input_file)
     out, err, exitCode = executeCommand(cmd)
+
+    print("Output: ")
+    print(out)
+    print("Error: ")
+    print(err)
 
     return lit.Test.PASS, ''
 
@@ -108,7 +143,16 @@ def execute_tests(display, tests):
 
     failure_count = 0
 
-    for test_index, test in enumerate(tests):
+    all_tests = []
+
+    # Create a list of all tests to run.
+    for test in tests:
+        all_tests.extend(find_files_with_extension(test, '.ll'))
+
+    # print(all_tests)
+
+    for test_index, test in enumerate(all_tests):
+
         result = _execute_test_impl(test)
 
         (test_index, test_with_result) = result

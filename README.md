@@ -98,3 +98,12 @@ clang -S -emit-llvm -O1 <path/to/c/file>
 ```bash
 ./build-debug/CIRE_LLVM <path/to/llvm/ir/file> --function=<function_name> --input=<path/to/.txt/file>
 ```
+
+## Writing LLVM tests
+
+Steps to comply to make CIRE test script work
+- The test file should have extension .ll
+- The function to be tested should be named "src"
+- The function argument names should be "v_i" where i is the index of the variable in the function
+- The input file should be named "test_input.txt"
+- If a there is no corresponding input file, default input values should be assumed.

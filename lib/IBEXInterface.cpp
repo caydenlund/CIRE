@@ -1,3 +1,4 @@
+#include "soplex.h"
 #include "../include/IBEXInterface.h"
 
 IBEXInterface::IBEXInterface(ibex::IntervalVector InputIntervals,

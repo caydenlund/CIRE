@@ -16,7 +16,7 @@ module asm ".globl _ZSt21ios_base_library_initv"
 @_ZSt4cout = external dso_local global %"class.std::basic_ostream", align 8
 
 ; Function Attrs: mustprogress nofree nounwind willreturn memory(write) uwtable
-define dso_local noundef double @_Z1fd(double noundef %x) local_unnamed_addr #0 {
+define dso_local noundef double @src(double noundef %x) local_unnamed_addr #0 {
   %1 = tail call double @sin(double noundef %x) #5
   ret double %1
 }
