@@ -12,8 +12,8 @@ CIRE requires the following softwares installed on your system. The tool will no
   * [Github](https://github.com/ibex-team/ibex-lib)
   * [Original Installation instructions](http://ibex-team.github.io/ibex-lib/install.html)
 * python2.x > 2.7 (Ibex scripts are currently not compatible with python3)
-* g++
-* gcc
+* g++ (version 13 because of IBEX)
+* gcc (version 13 because of IBEX)
 * bison
 * flex
 * cmake
@@ -25,22 +25,62 @@ This version is necessary since the frontend uses the new pass manager by defaul
 ## IBEX installation
 ### Linux and MacOS
 Use `wget` command below or download `ibex-lib-ibex-2.8.9.tar.gz` (the tar file) from 
-[here](https://github.com/ibex-team/ibex-lib/releases/tag/ibex-2.8.9) then run the successive commands.
+[here](https://github.com/ibex-team/ibex-lib/releases/tag/ibex-2.8.9).
 ```bash
 wget https://github.com/ibex-team/ibex-lib/archive/refs/tags/ibex-2.8.9.tar.gz
+```
+
+#### Installing IBEX through waflib (RECOMMENDED)
+```bash
 tar xvfz ibex-2.8.9.tgz
 cd ibex-2.8.9
 sudo ./waf configure [--enable-shared]
 sudo ./waf install
 ```
 
-To Uninstall
+**In case the waflib configuration fails** for some reason, you may need to install one or more of the libraries listed below, 
+that are archived in IBEX, manually and use the CMake build instead:
+* Mathlib
+* GAOL
+* Soplex (Most likely to fail)
+
+Both waflib and CMake attempt to build each library automatically if it is not detected on your system so you only need
+to build the libraries that the CMake system fails to build.
+So after unzipping ibex tar ball and moving into the unzipped folder,
+
+#### Installing Soplex
+```bash
+cd lp_lib_wrapper/soplex/3rd
+tar soplex-4.0.2.tar
+cd soplex-4.0.2
+mkdir build && cd build
+cmake ..
+make -j16 USRCPPFLAGS=-fPIC
+sudo make install
+```
+
+#### Installing IBEX through CMake
+```bash
+mkdir build && cd build
+cmake -DLP_LIB=soplex ..
+make -j16
+sudo make install
+```
+
+#### To Uninstall 
+##### If waflib was used to install
 ```bash
 sudo ./waf uninstall
 sudo ./waf distclean
 ```
 
-# Building
+##### If CMake was used to install
+```bash
+cd build
+sudo make uninstall
+```
+
+# Building CIRE
 
 The CMakeLists.txt file is configured to build the library and the executable in the build directory.
 Make sure the shared library files are in your PATH. If not, set the LD_LIBRARY_PATH environment variable to where your
