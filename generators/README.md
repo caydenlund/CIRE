@@ -1,0 +1,1 @@
+This directory contains python generator scripts to generate C++/C code to be analyzed by CIRE.
