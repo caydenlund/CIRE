@@ -21,14 +21,12 @@ namespace {
     cl::opt<string> Func("function",
                          cl::desc("Function to analyze"),
                          cl::value_desc("Used for matching the function name"),
-                         cl::init(""),
-                         cl::Required);
+                         cl::init(""));
 
     cl::opt<string> Input("input",
                           cl::desc("Input file for CIRE containing INPUTS and OUTPUTS"),
                           cl::value_desc("Looks for the input file in the current directory"),
-                          cl::init(""),
-                          cl::Required);
+                          cl::init(""));
 
     cl::opt<bool> Abstraction("abstraction",
                               cl::desc("Enable abstraction"),
@@ -99,6 +97,30 @@ int main(int argc, char **argv) {
     }
 
     parseExprsInLLVM(*cire.graph, *F);
+  } else {
+    for (auto &srcFn : *M) {
+      if (srcFn.isDeclaration()) {
+        continue;
+      }
+
+      if(!Input.empty()) {
+        cire.graph->parse(*Input.c_str());
+      }
+      else {
+        parseInputsInLLVM(*cire.graph, srcFn);
+      }
+
+      // map the LLVM function arguments to the CIRE inputs
+      // Iterate the function arguments
+      for (auto &arg : srcFn.args()) {
+        if (arg.getType()->isFloatingPointTy()) {
+          llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand()];
+        }
+      }
+
+      parseExprsInLLVM(*cire.graph, srcFn);
+      break;
+    }
   }
   const auto parse_end = std::chrono::high_resolution_clock::now();
 

@@ -200,7 +200,7 @@ private:
 
 public:
   const ibex::Interval *var = nullptr;
-  FreeVariable() = default;
+  FreeVariable();
   explicit FreeVariable(const ibex::Interval &var);
   ~FreeVariable() = default;
 

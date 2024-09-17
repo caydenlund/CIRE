@@ -16,7 +16,44 @@ void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
 }
 
 void parseInputsInLLVM(Graph &g, Function &F) {
+  g.createNewSymbolTable();
 
+  // Iterate the function arguments
+  for (auto &arg : F.args()) {
+    VariableNode *new_variable = new VariableNode();
+    Type *arg_type = arg.getType();
+    Node::RoundingType rounding_type;
+
+    // Getting the CIRE type of argument corresponding the LLVM type
+    switch (arg_type->getTypeID()) {
+      case Type::TypeID::IntegerTyID: {
+        rounding_type = Node::RoundingType::INT;
+        break;
+      }
+      case Type::TypeID::HalfTyID: {
+        rounding_type = Node::RoundingType::FL16;
+        break;
+      }
+      case Type::TypeID::FloatTyID: {
+        rounding_type = Node::RoundingType::FL32;
+        break;
+      }
+      case Type::TypeID::DoubleTyID: {
+        rounding_type = Node::RoundingType::FL64;
+        break;
+      }
+      default: {
+        outs() << "Unhandled Type:" << arg_type << "\n";
+        break;
+      }
+    }
+
+    new_variable->setRoundingFromType(rounding_type);
+    g.nodes.insert(new_variable);
+    g.symbolTables[g.currentScope]->insert(arg.getNameOrAsOperand(), new_variable);
+    g.inputs[arg.getNameOrAsOperand()] = new FreeVariable();
+    g.nodes.insert(g.inputs[arg.getNameOrAsOperand()]);
+  }
 }
 
 void parseExprsInLLVM(Graph &g, Function &F) {

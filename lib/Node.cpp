@@ -386,6 +386,11 @@ Node *Double::getChildNode(int index) const {
   exit(1);
 }
 
+FreeVariable::FreeVariable() {
+  var = new ibex::Interval(0.1, 100);
+  type = FREE_VARIABLE;
+}
+
 FreeVariable::FreeVariable(const ibex::Interval &var): var(&var) {
   type = FREE_VARIABLE;
 }

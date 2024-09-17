@@ -17,6 +17,8 @@ id [a-zA-Z][a-zA-Z0-9_]*
 "else" { return ELSE; }
 "endif" { return ENDIF; }
 
+"int" { yylval.rnd_type = Node::RoundingType::INT;
+        return INTTYPE; }
 "fl16" { yylval.rnd_type = Node::RoundingType::FL16;
          return FPTYPE; }
 "fl32" { yylval.rnd_type = Node::RoundingType::FL32;
