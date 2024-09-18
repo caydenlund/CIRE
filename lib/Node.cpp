@@ -703,7 +703,9 @@ ibex::ExprNode &BinaryOp::generateSymExpr() {
     case SUB: return (ibex::ExprNode &) (*leftOperand->getExprNode() - *rightOperand->getExprNode());
     case MUL: return (ibex::ExprNode &) (*leftOperand->getExprNode() * *rightOperand->getExprNode());
     case DIV: return (ibex::ExprNode &) (*leftOperand->getExprNode() / *rightOperand->getExprNode());
-    default: return (ibex::ExprNode &) (*leftOperand->getExprNode() + *rightOperand->getExprNode());
+    default:
+      std::cout << "ERROR: Unknown operator" << std::endl;
+      exit(1);;
   }
 }
 
@@ -718,9 +720,10 @@ Node *BinaryOp::getChildNode(int index) const {
   }
 }
 
-TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right): leftOperand(Left),
+TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right, Op op): leftOperand(Left),
                                                               middleOperand(Middle),
-                                                              rightOperand(Right) {
+                                                              rightOperand(Right),
+                                                              op(op) {
   depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
   type = TERNARY_OP;
   leftOperand->parents.insert(this);
@@ -771,8 +774,12 @@ double TernaryOp::getRounding() {
 }
 
 ibex::ExprNode &TernaryOp::generateSymExpr() {
-  // TODO: Generate ibex expressions after adding an enum Op with Unary operations
-  return Node::generateSymExpr();
+  switch (op) {
+    case FMA: return (ibex::ExprNode &) ((*leftOperand->getExprNode() * *rightOperand->getExprNode()) + *rightOperand->getExprNode());
+    default:
+      std::cout << "ERROR: Unknown operator" << std::endl;
+      exit(1);
+  }
 }
 
 Node *TernaryOp::getChildNode(int index) const {
@@ -859,6 +866,10 @@ Node &sqrt(Node &x) {
 
 Node &exp(Node &x) {
   return *new UnaryOp(&x, Node::EXP);
+}
+
+Node &fma(Node &x, Node &y, Node &z) {
+  return *new TernaryOp(&x, &y, &z, Node::FMA);
 }
 
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right) {

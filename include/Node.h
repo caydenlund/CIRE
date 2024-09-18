@@ -37,6 +37,7 @@ public:
     LOG,
     SQRT,
     EXP,
+    FMA,
   };
   // The amount of error on these operations
   std::map<Op, double> OpErrorULPs = {
@@ -55,7 +56,8 @@ public:
           {ATAN, 2.0},  // Check whether 2.0 is correct
           {LOG, 2.0},
           {SQRT, 1.0},
-          {EXP, 2.0},};
+          {EXP, 2.0},
+          {FMA, 2.0},};
   enum RoundingType {
     CONST,
     INT,
@@ -294,8 +296,9 @@ public:
   Node* leftOperand;
   Node* middleOperand;
   Node* rightOperand;
+  Op op;
   TernaryOp() = default;
-  TernaryOp(Node* leftOperand, Node* middleOperand, Node* rightOperand);
+  TernaryOp(Node* leftOperand, Node* middleOperand, Node* rightOperand, Op op);
   ~TernaryOp() = default;
 
   // Prints string representation of this node

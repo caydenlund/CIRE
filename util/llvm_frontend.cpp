@@ -190,33 +190,48 @@ void parseExprsInLLVM(Graph &g, Function &F) {
           auto CalledFunctionName = CI->getCalledFunction()->getNameOrAsOperand();
           auto op1 = llvmToCireNodeMap[CI->getOperand(0)];
 
-          if(CalledFunctionName == "sin") {
+          if(CalledFunctionName == "sin" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::sin) {
             addDataForCreatedNode(I, g, &sin(*op1));
-          } else if(CalledFunctionName == "cos") {
+          } else if(CalledFunctionName == "cos" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::cos) {
             addDataForCreatedNode(I, g, &cos(*op1));
-          } else if(CalledFunctionName == "tan") {
+          } else if(CalledFunctionName == "tan" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::tan) {
             addDataForCreatedNode(I, g, &tan(*op1));
-          } else if(CalledFunctionName == "sinh") {
+          } else if(CalledFunctionName == "sinh" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::sinh) {
             addDataForCreatedNode(I, g, &sinh(*op1));
-          } else if(CalledFunctionName == "cosh") {
+          } else if(CalledFunctionName == "cosh" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::cosh) {
             addDataForCreatedNode(I, g, &cosh(*op1));
-          } else if(CalledFunctionName == "tanh") {
+          } else if(CalledFunctionName == "tanh" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::tanh) {
             addDataForCreatedNode(I, g, &tanh(*op1));
-          } else if(CalledFunctionName == "asin") {
+          } else if(CalledFunctionName == "asin" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::asin) {
             addDataForCreatedNode(I, g, &asin(*op1));
-          } else if(CalledFunctionName == "acos") {
+          } else if(CalledFunctionName == "acos" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::acos) {
             addDataForCreatedNode(I, g, &acos(*op1));
-          } else if(CalledFunctionName == "atan") {
+          } else if(CalledFunctionName == "atan" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::atan) {
             addDataForCreatedNode(I, g, &atan(*op1));
-          } else if(CalledFunctionName == "log") {
+          } else if(CalledFunctionName == "log" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::log) {
             addDataForCreatedNode(I, g, &log(*op1));
-          } else if(CalledFunctionName == "sqrt") {
+          } else if(CalledFunctionName == "sqrt" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::sqrt) {
             addDataForCreatedNode(I, g, &sqrt(*op1));
-          } else if(CalledFunctionName == "exp") {
+          } else if(CalledFunctionName == "exp" || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::exp) {
             addDataForCreatedNode(I, g, &exp(*op1));
           } else {
             outs() << "Unhandled Function in Call Instruction:" << I << "\n";
           }
+        } else if(CI->getCalledFunction()->arg_size() == 3) {
+          auto CalledFunctionName = CI->getCalledFunction()->getNameOrAsOperand();
+          auto op1 = llvmToCireNodeMap[CI->getOperand(0)];
+          auto op2 = llvmToCireNodeMap[CI->getOperand(1)];
+          auto op3 = llvmToCireNodeMap[CI->getOperand(2)];
+
+          if(CI->getCalledFunction()->getIntrinsicID() == Intrinsic::fma
+          || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::fmuladd) {
+            addDataForCreatedNode(I, g, &sin(*op1));
+          } else {
+            outs() << "Unhandled Function in Call Instruction:" << I << "\n";
+          }
+        } else {
+          outs() << "Function with " << CI->getCalledFunction()->arg_size() << " arguments in Call Instruction not handled:"
+          << I << "\n";
         }
 
         break;

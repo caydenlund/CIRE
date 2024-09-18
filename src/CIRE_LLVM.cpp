@@ -124,6 +124,7 @@ int main(int argc, char **argv) {
   }
   const auto parse_end = std::chrono::high_resolution_clock::now();
 
+  std::cout << "Parsing complete" << std::endl;
 
   std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
 
