@@ -51,6 +51,7 @@
 %token ASIN ACOS ATAN
 %token SINH COSH TANH
 %token SQRT EXP LOG
+%token FMA
 %token LBRACE RBRACE LPAREN RPAREN LBRACKET RBRACKET
 %token COMMA COLON SEMICOLON ASSIGN
 %token<str> ID
@@ -275,6 +276,12 @@ arith_fact: number { $$ = $1; }
         }
         | EXP LPAREN arith_exp RPAREN {
             $$ = &exp(*$3);
+            graph->nodes.insert($$);
+            graph->depthTable[$$->depth].insert($$);
+            // std::cout << *$$ << std::endl;
+        }
+        | FMA LPAREN arith_exp COMMA arith_exp COMMA arith_exp RPAREN {
+            $$ = &fma(*$3, *$5, *$7);
             graph->nodes.insert($$);
             graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;

@@ -225,7 +225,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
 
           if(CI->getCalledFunction()->getIntrinsicID() == Intrinsic::fma
           || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::fmuladd) {
-            addDataForCreatedNode(I, g, &sin(*op1));
+            addDataForCreatedNode(I, g, &fma(*op1, *op2, *op3));
           } else {
             outs() << "Unhandled Function in Call Instruction:" << I << "\n";
           }

@@ -297,6 +297,8 @@ public:
   Node* middleOperand;
   Node* rightOperand;
   Op op;
+  // IBEX does not have a Ternary Expr so we use a Binary Expr corresponding the last op in the Ternaary Op
+  const ibex::ExprBinaryOp* expr;
   TernaryOp() = default;
   TernaryOp(Node* leftOperand, Node* middleOperand, Node* rightOperand, Op op);
   ~TernaryOp() = default;
@@ -315,6 +317,7 @@ public:
 };
 
 std::ostream &operator<<(std::ostream &os, const Node &node);
+Node &fma(Node &x, Node &y, Node &z);
 Node &operator+(Node &x, Node *y);
 Node &operator-(Node &x, Node *y);
 Node &operator*(Node &x, Node *y);

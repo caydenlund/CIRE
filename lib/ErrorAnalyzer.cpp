@@ -151,7 +151,7 @@ void ErrorAnalyzer::printBwdDerivativesIbexExprs() {
 
 
 void ErrorAnalyzer::errorComputing(Node *node) {
-  Node *Operand, *leftOperand, *rightOperand;
+  Node *Operand, *leftOperand, *middleOperand, *rightOperand;
 
   switch (node->type) {
     case DEFAULT:
@@ -182,7 +182,23 @@ void ErrorAnalyzer::errorComputing(Node *node) {
       }
       break;
     case TERNARY_OP:
-      // TODO: Complete this on adding ternary operations
+      leftOperand = ((TernaryOp *) node)->leftOperand;
+      if(errorComputedNodes[leftOperand->depth].find(leftOperand) ==
+         errorComputedNodes[leftOperand->depth].end()) {
+        errorComputing(leftOperand);
+      }
+
+      middleOperand = ((TernaryOp *) node)->middleOperand;
+      if(errorComputedNodes[middleOperand->depth].find(middleOperand) ==
+         errorComputedNodes[middleOperand->depth].end()) {
+        errorComputing(middleOperand);
+      }
+
+      rightOperand = ((TernaryOp *) node)->rightOperand;
+      if(errorComputedNodes[rightOperand->depth].find(rightOperand) ==
+         errorComputedNodes[rightOperand->depth].end()) {
+        errorComputing(rightOperand);
+      }
       break;
   }
 

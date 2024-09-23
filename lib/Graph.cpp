@@ -216,11 +216,12 @@ void Graph::generateExpr(Node *node) {
       generateExpr(((TernaryOp *)node)->leftOperand);
       generateExpr(((TernaryOp *)node)->middleOperand);
       generateExpr(((TernaryOp *)node)->rightOperand);
-//      ((TernaryOp *)node)->expr = (ibex::ExprTernaryOp *)&node->generateSymExpr();
+      // Ibex does not have a TernaryOp so we split the Op into two BinaryOps
+      ((TernaryOp *)node)->expr = (ibex::ExprBinaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->middleOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->rightOperand].insert(node);
-      // Ibex does not have a TernaryOp
+//      std::cout << "TernaryOp: " << *((TernaryOp *)node)->expr << std::endl;
       break;
     default:
       std::cout << "Unknown node type" << std::endl;

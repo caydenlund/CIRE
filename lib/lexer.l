@@ -63,6 +63,8 @@ id [a-zA-Z][a-zA-Z0-9_]*
 "exp" { return EXP; }
 "log" { return LOG; }
 
+"fma" { return FMA; }
+
 "{" {return LBRACE; }
 "}" {return RBRACE; }
 "(" {return LPAREN; }

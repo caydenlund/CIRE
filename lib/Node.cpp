@@ -92,17 +92,17 @@ Node &Node::operator+(Node &other) const {
 }
 
 Node &Node::operator-(Node &other) const {
-  std::cout << "ERROR: Base class operator+ called" << std::endl;
+  std::cout << "ERROR: Base class operator- called" << std::endl;
   exit(1);
 }
 
 Node &Node::operator*(Node &other) const {
-  std::cout << "ERROR: Base class operator+ called" << std::endl;
+  std::cout << "ERROR: Base class operator* called" << std::endl;
   exit(1);
 }
 
 Node &Node::operator/(Node &other) const {
-  std::cout << "ERROR: Base class operator+ called" << std::endl;
+  std::cout << "ERROR: Base class operator/ called" << std::endl;
   exit(1);
 }
 
@@ -742,7 +742,7 @@ void TernaryOp::write(std::ostream &os) const {
 }
 
 ibex::ExprNode *TernaryOp::getExprNode() const {
-  return Node::getExprNode();
+  return (ibex::ExprNode*)expr;
 }
 
 bool TernaryOp::operator==(const TernaryOp &other) const {
@@ -775,7 +775,7 @@ double TernaryOp::getRounding() {
 
 ibex::ExprNode &TernaryOp::generateSymExpr() {
   switch (op) {
-    case FMA: return (ibex::ExprNode &) ((*leftOperand->getExprNode() * *rightOperand->getExprNode()) + *rightOperand->getExprNode());
+    case FMA: return (ibex::ExprNode &) ((*leftOperand->getExprNode() * *middleOperand->getExprNode()) + *rightOperand->getExprNode());
     default:
       std::cout << "ERROR: Unknown operator" << std::endl;
       exit(1);
@@ -869,7 +869,8 @@ Node &exp(Node &x) {
 }
 
 Node &fma(Node &x, Node &y, Node &z) {
-  return *new TernaryOp(&x, &y, &z, Node::FMA);
+  return x*y+z;
+//  return *new TernaryOp(&x, &y, &z, Node::FMA);
 }
 
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right) {
