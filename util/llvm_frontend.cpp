@@ -6,12 +6,14 @@ using namespace std;
 
 // Map from LLVM Values to CIRE Nodes
 std::map<llvm::Value *, Node *> llvmToCireNodeMap;
+std::map<Node *, llvm::Value *> cireToLLVMNodeMap;
 
 void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
   g.nodes.insert(res);
   g.depthTable[res->depth].insert(res);
 
   llvmToCireNodeMap[&I] = res;
+  cireToLLVMNodeMap[res] = &I;
   g.symbolTables[g.currentScope]->insert(I.getNameOrAsOperand(), res);
 }
 
@@ -92,10 +94,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       case Instruction::FNeg: {
         if (I.getType()->isFloatingPointTy()) {
           auto op1 = llvmToCireNodeMap[I.getOperand(0)];
-          auto res = &(-*op1);
-          g.nodes.insert(res);
-
-          llvmToCireNodeMap[&I] = res;
+          addDataForCreatedNode(I, g, &(-*op1));
         }
         break;
       }

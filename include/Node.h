@@ -7,10 +7,10 @@
 
 enum NodeType {
   DEFAULT,        // Default node type
-  INTEGER,         // Represents integers
+  INTEGER,        // Represents integers
   FLOAT,          // Represents single precision floating point numbers TODO: Remove FLOAT if not using
   DOUBLE,         // Represents double precision floating point numbers
-  FREE_VARIABLE,  // For Input variables
+  FREE_VARIABLE,  // For Input values
   VARIABLE,       // For variables in expressions
   UNARY_OP,       // For unary operations
   BINARY_OP,      // For binary operations
