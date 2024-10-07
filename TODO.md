@@ -3,7 +3,6 @@
 * Transfer the Ibex::Interval field from FreeVariable to Variable node and remove the FreeVariable node
 * Add an LLVM Instruction field to node.
 * Reformat entire codebase using clang-format
-* 
 
 # Completed
 * Add support for abstraction and other flags to the LLVM frontend
