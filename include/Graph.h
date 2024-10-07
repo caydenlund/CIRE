@@ -4,7 +4,6 @@
 #include "SymbolTable.h"
 #include "ErrorAnalyzer.h"
 #include "IBEXInterface.h"
-#include "Logging.h"
 
 class Graph {
 private:

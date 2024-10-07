@@ -4,6 +4,8 @@
 
 Results::Results() {
   file = "results.txt";
+  debugLevel = 0;
+  logLevel = 0;
 }
 
 Results::~Results() = default;
@@ -15,6 +17,10 @@ void Results::setFile(std::string _file) {
 bool Results::writeResults(std::vector<std::string> outputs,
                            const std::map<Node *, std::vector<ibex::Interval>>& results,
                            const std::map<std::string, std::chrono::duration<double>>& time_map) {
+  if(debugLevel > 0) {
+    std::cout << "Writing results to " << file << " ..." << std::endl;
+  }
+
   try {
     unsigned i = 0;
     for (auto const&[node, result] : results) {
@@ -29,6 +35,10 @@ bool Results::writeResults(std::vector<std::string> outputs,
   }
   std::ofstream out(file);
   out << std::setw(4) << json_object;
+
+  if(debugLevel > 0) {
+    std::cout << "Results written to " << file << "!" << std::endl;
+  }
 
   return true;
 }

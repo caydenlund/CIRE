@@ -77,7 +77,7 @@ void Node::write(std::ostream &os) const {
 
 ibex::ExprNode *Node::getExprNode() const {
   std::cout << "ERROR: Base class getExprNode called" << std::endl;
-  return nullptr;
+  exit(1);
 }
 
 bool Node::operator==(const Node &other) const {

@@ -5,6 +5,14 @@ bool ErrorAnalyzer::parentsVisited(Node *node) {
 }
 
 void ErrorAnalyzer::derivativeComputingDriver() {
+  if (debugLevel > 1) {
+    std::cout << "Computing Derivatives..." << std::endl;
+  }
+  if (logLevel > 0) {
+    assert(log.logFile.is_open());
+    log.log("Computing Derivatives...\n");
+  }
+
   int next_depth = -1;
 
   // Iterate all nodes in the worklist
@@ -36,8 +44,24 @@ void ErrorAnalyzer::derivativeComputingDriver() {
               Node *node) { return node->depth == next_depth;});
     }
   }
-//  printBwdDerivativesIbexExprs();
-//  std::cout << std::endl;
+
+  if (debugLevel > 3) {
+    printBwdDerivativesIbexExprs();
+    std::cout << std::endl;
+  }
+  if (logLevel > 3) {
+    assert(log.logFile.is_open());
+    logBwdDerivativesIbexExprs();
+    log.logFile << std::endl;
+  }
+
+  if (debugLevel > 1) {
+    std::cout << "Derivatives computed!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open());
+    log.log("Derivatives computed!\n");
+  }
 }
 
 void ErrorAnalyzer::derivativeComputing(Node *node) {
@@ -66,12 +90,22 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
           BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*derivThroughNode);
         }
 
-//        std::cout << *node->getExprNode() << " wrt "
-//                  << *Operand->getExprNode() << " : "
-//                  << *derivThroughNode << std::endl;
-//        std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-//                  << *Operand->getExprNode() << " : "
-//                  << *BwdDerivatives[Operand][outVar] << std::endl;
+        if (debugLevel > 4) {
+          std::cout << *node->getExprNode() << " wrt "
+                    << *Operand->getExprNode() << " : "
+                    << *derivThroughNode << std::endl;
+          std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                    << *Operand->getExprNode() << " : "
+                    << *BwdDerivatives[Operand][outVar] << std::endl;
+        }
+        if (logLevel > 4) {
+          log.logFile << *node->getExprNode() << " wrt "
+                      << *Operand->getExprNode() << " : "
+                      << *derivThroughNode << std::endl;
+          log.logFile << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                      << *Operand->getExprNode() << " : "
+                      << *BwdDerivatives[Operand][outVar] << std::endl;
+        }
 
         // Add child to nextWorkList
         nextWorkList.insert(Operand);
@@ -91,12 +125,22 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
           BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*derivLeftThroughNode);
         }
 
-//        std::cout << *node->getExprNode() << " wrt "
-//                  << *leftOperand->getExprNode() << " : "
-//                  << *derivLeftThroughNode << std::endl;
-//        std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-//                  << *leftOperand->getExprNode() << " : "
-//                  << *BwdDerivatives[leftOperand][outVar] << std::endl;
+        if (debugLevel > 4) {
+          std::cout << *node->getExprNode() << " wrt "
+                    << *leftOperand->getExprNode() << " : "
+                    << *derivLeftThroughNode << std::endl;
+          std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                    << *leftOperand->getExprNode() << " : "
+                    << *BwdDerivatives[leftOperand][outVar] << std::endl;
+        }
+        if (logLevel > 4) {
+          log.logFile << *node->getExprNode() << " wrt "
+                      << *leftOperand->getExprNode() << " : "
+                      << *derivLeftThroughNode << std::endl;
+          log.logFile << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                      << *leftOperand->getExprNode() << " : "
+                      << *BwdDerivatives[leftOperand][outVar] << std::endl;
+        }
 
         rightOperand = ((BinaryOp *) node)->rightOperand;
         derivRightThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
@@ -109,12 +153,22 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
           BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*derivRightThroughNode);
         }
 
-//        std::cout << *node->getExprNode() << " wrt "
-//                  << *rightOperand->getExprNode() << " : "
-//                  << *derivRightThroughNode << std::endl;
-//        std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-//                  << *rightOperand->getExprNode() << " : "
-//                  << *BwdDerivatives[rightOperand][outVar] << std::endl;
+        if (debugLevel > 4) {
+          std::cout << *node->getExprNode() << " wrt "
+                    << *rightOperand->getExprNode() << " : "
+                    << *derivRightThroughNode << std::endl;
+          std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                    << *rightOperand->getExprNode() << " : "
+                    << *BwdDerivatives[rightOperand][outVar] << std::endl;
+        }
+        if (logLevel > 4) {
+          log.logFile << *node->getExprNode() << " wrt "
+                      << *rightOperand->getExprNode() << " : "
+                      << *derivRightThroughNode << std::endl;
+          log.logFile << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                      << *rightOperand->getExprNode() << " : "
+                      << *BwdDerivatives[rightOperand][outVar] << std::endl;
+        }
 
         // Add children to nextWorkList
         nextWorkList.insert(leftOperand);
@@ -148,6 +202,20 @@ void ErrorAnalyzer::printBwdDerivativesIbexExprs() {
   }
 }
 
+void ErrorAnalyzer::logBwdDerivative(Node *outNode, Node *WRTNode) {
+  log.logFile << *outNode->getExprNode() << " wrt "
+              << *WRTNode->getExprNode() << " : "
+              << *this->BwdDerivatives[WRTNode][outNode] << std::endl;
+}
+
+void ErrorAnalyzer::logBwdDerivativesIbexExprs() {
+  log.logFile << "Backward Derivatives: " << std::endl;
+  for (auto &wrtNode : this->BwdDerivatives) {
+    for (auto &outputNode : wrtNode.second) {
+      logBwdDerivative(outputNode.first, wrtNode.first);
+    }
+  }
+}
 
 
 void ErrorAnalyzer::errorComputing(Node *node) {
@@ -212,9 +280,17 @@ void ErrorAnalyzer::propagateError(Node *node) {
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
 
   for (Node *outVar : outputList) {
-//    printBwdDerivative(outVar, node);
-//    std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
-//    std::cout << "rounding:" << node->getRounding() << std::endl;
+    if (debugLevel > 4) {
+      printBwdDerivative(outVar, node);
+      std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
+      std::cout << "rounding:" << node->getRounding() << std::endl;
+    }
+    if (logLevel > 4) {
+      logBwdDerivative(outVar, node);
+      log.logFile << "absolute error:" << node->getAbsoluteError() << std::endl;
+      log.logFile << "rounding:" << node->getRounding() << std::endl;
+    }
+
     // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
     // the rounding and noise
     auto local_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), node->getRounding()).simplify(0);
@@ -227,8 +303,14 @@ void ErrorAnalyzer::propagateError(Node *node) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*expr);
     }
 
-//    std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
-//    std::cout << std::endl;
+    if (debugLevel > 4) {
+      std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
+      std::cout << std::endl;
+    }
+    if (logLevel > 4) {
+      log.logFile << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar] << std::endl;
+      log.logFile << std::endl;
+    }
   }
 
 

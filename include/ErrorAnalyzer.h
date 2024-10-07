@@ -2,9 +2,14 @@
 #define CIRE_ERRORANALYZER_H
 
 #include "Node.h"
+#include "Logging.h"
 
 class ErrorAnalyzer {
 public:
+  unsigned int debugLevel = 0;
+  unsigned int logLevel = 0;
+  Logging log;
+
   // Data structures for derivative computation
   // Map from node to number of parents of node
   std::map<Node *, unsigned long> numParentsOfNode;
@@ -36,6 +41,9 @@ public:
 
   void printBwdDerivative(Node *outNode, Node *WRTNode);
   void printBwdDerivativesIbexExprs();
+
+  void logBwdDerivative(Node *outNode, Node *WRTNode);
+  void logBwdDerivativesIbexExprs();
 };
 
 ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index);

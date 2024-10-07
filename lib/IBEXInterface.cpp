@@ -78,7 +78,6 @@ ibex::Interval IBEXInterface::FindMin(ibex::ExprNode *Expression) {
     std::cerr << "Report to IBEX developers: " << e.what() << std::endl;
     std::cerr << "Rerun till it works" << std::endl;
   }
-//  std::cout << "temp: ";
 //  opt.report();
   return {opt.get_uplo(), opt.get_loup()};
 }
@@ -97,7 +96,6 @@ ibex::Interval IBEXInterface::FindMax(ibex::ExprNode *Expression) {
     std::cerr << "Report to IBEX developers: " << e.what() << std::endl;
     std::cerr << "Rerun till it works" << std::endl;
   }
-//  std::cout << "temp: ";
 //  opt.report();
   return {opt.get_uplo(), opt.get_loup()};
 }

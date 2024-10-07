@@ -12,14 +12,19 @@ def run_cire_llvm_on_dir(directory):
         # Check if the file is a .ll file
         if file.endswith(".ll"):
             # Run CIRE_LLVM on the file
-            print("Running CIRE_LLVM on " + directory + '/' + file)
-            run_cire_llvm(directory + '/' + file)
+            print("Running CIRE_LLVM on " + directory + file)
+            run_cire_llvm(directory + file)
 
 
 # This function runs CIRE_LLVM on one LLVM file
 def run_cire_llvm(llvm_file):
     # Run CIRE_LLVM on the LLVM file
-    os.system("../build-debug/bin/CIRE_LLVM " + llvm_file)
+    exit_code = os.system("../build-debug/bin/CIRE_LLVM " + llvm_file)
+    # Check if CIRE_LLVM ran successfully
+    if exit_code != 0:
+        print("CIRE_LLVM failed to run on " + llvm_file)
+    else:
+        print("CIRE_LLVM ran successfully on " + llvm_file)
 
 
 # main function

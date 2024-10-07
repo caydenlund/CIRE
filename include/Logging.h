@@ -3,8 +3,8 @@
 
 class Logging {
     std::string file="default.log";
-    std::ofstream logFile;
 public:
+    std::ofstream logFile;
     void setFile(std::string file);
     bool openFile();
     bool closeFile();

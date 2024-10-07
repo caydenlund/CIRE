@@ -44,6 +44,15 @@ void Graph::write(std::ostream &os) const {
   for (auto &node : nodes) {
     os << "\t" << *node << std::endl;
   }
+
+  os << "Depth Table:" << std::endl;
+  for (auto &depth : depthTable) {
+    os << "\t" << depth.first << " : ";
+    for (auto &node : depth.second) {
+      os << *node << " ";
+    }
+    os << std::endl;
+  }
 }
 
 void Graph::createNewSymbolTable() {
@@ -112,8 +121,6 @@ Node *Graph::findVarNode(string Var) const {
 
 void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
   // Set up output
-  // Assuming there is only one output
-  // TODO: Change this for multiple outputs
   // Get the max depth of the candidate_nodes
   unsigned int max_depth = 0;
   for (auto &node : candidate_nodes) {
@@ -154,6 +161,14 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
 }
 
 void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
+  if (debugLevel > 1) {
+    std::cout << "Computing Error..." << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Computing Error..." << std::endl;
+  }
+
   for(auto &output : candidate_nodes) {
     if(errorAnalyzer->errorComputedNodes[output->depth].find(output) ==
        errorAnalyzer->errorComputedNodes[output->depth].end()) {
@@ -168,17 +183,37 @@ void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
 //                                * pow(2, -53)
                                 );
   }
+
+  if (debugLevel > 1) {
+    std::cout << "Error Expressions generated!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Error Expressions generated!" << std::endl;
+  }
 }
 
 // Generates Expressions corresponding to all candidate_nodes bottom up
 void Graph::generateExprDriver(std::set<Node *> candidate_nodes) {
-//  for (auto &output : outputs) {
-//    generateExpr(findVarNode(output));
-//  }
+  if (debugLevel > 1) {
+    std::cout << "Generating Expressions..." << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Generating Expressions..." << std::endl;
+  }
 
-    for (auto &node : candidate_nodes) {
-      generateExpr(node);
-    }
+  for (auto &node : candidate_nodes) {
+    generateExpr(node);
+  }
+
+  if (debugLevel > 1) {
+    std::cout << "Expressions Generated!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Expressions Generated!" << std::endl;
+  }
 }
 
 void Graph::generateExpr(Node *node) {
@@ -202,7 +237,13 @@ void Graph::generateExpr(Node *node) {
       generateExpr(((UnaryOp *)node)->Operand);
       ((UnaryOp *)node)->expr = (ibex::ExprUnaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((UnaryOp *)node)->Operand].insert(node);
-//      std::cout << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
+      if (debugLevel > 3) {
+        std::cout << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
+      }
+      if (logLevel > 3) {
+        assert(log.logFile.is_open() && "Log file not open");
+        log.logFile << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
+      }
       break;
     case NodeType::BINARY_OP:
       generateExpr(((BinaryOp *)node)->leftOperand);
@@ -210,7 +251,13 @@ void Graph::generateExpr(Node *node) {
       ((BinaryOp *)node)->expr = (ibex::ExprBinaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->rightOperand].insert(node);
-//      std::cout << "BinaryOp: " << *((BinaryOp *)node)->expr << std::endl;
+      if (debugLevel > 3) {
+        std::cout << "BinaryOp: " << ((BinaryOp *)node)->expr << std::endl;
+      }
+      if (logLevel > 3) {
+        assert(log.logFile.is_open() && "Log file not open");
+        log.logFile << "BinaryOp: " << ((BinaryOp *)node)->expr << std::endl;
+      }
       break;
     case NodeType::TERNARY_OP:
       generateExpr(((TernaryOp *)node)->leftOperand);
@@ -221,11 +268,17 @@ void Graph::generateExpr(Node *node) {
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->middleOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->rightOperand].insert(node);
-//      std::cout << "TernaryOp: " << *((TernaryOp *)node)->expr << std::endl;
+      if (debugLevel > 3) {
+        std::cout << "TernaryOp: " << ((TernaryOp *)node)->expr << std::endl;
+      }
+      if (logLevel > 3) {
+        assert(log.logFile.is_open() && "Log file not open");
+        log.logFile << "TernaryOp: " << ((TernaryOp *)node)->expr << std::endl;
+      }
       break;
     default:
       std::cout << "Unknown node type" << std::endl;
-      break;
+      exit(1);
   }
 }
 
@@ -274,7 +327,7 @@ bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
         return compareDAGs(((ibex::ExprExp*)&expr1)->expr, ((ibex::ExprExp*)&expr2)->expr);
       default:
         std::cout << "Unknown node type" << std::endl;
-        break;
+        exit(1);
     }
   }
 
@@ -369,10 +422,10 @@ std::set<Node *> Graph::FlattenSubDAGS(Node *node, unsigned int min_depth, unsig
       break;
     default:
       std::cout << "Unknown node type" << std::endl;
-      break;
+      exit(1);
   }
 
-  return std::set<Node *>();
+  return {};
 }
 
 /*
@@ -414,7 +467,7 @@ std::set<Node *> Graph::FindCommonNodes(Node * node, unsigned int min_depth, uns
       break;
     default:
       std::cout << "Unknown node type" << std::endl;
-      break;
+      exit(1);
   }
 
   flattened_subDAGs.push_back(std::set<Node *>({node}));
@@ -528,22 +581,44 @@ Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower
   std::set<Node *> nodes_with_op = FilterNodesWithOperationWithinDepth(Node::Op::DIV, max_depth);
 
   // Print nodes with op
-//  std::cout << "Nodes with op:" << std::endl;
-//  for (auto &node : nodes_with_op) {
-//    std::cout << "\t" << *node << std::endl;
-//  }
+  if (debugLevel > 4) {
+    std::cout << "Nodes with op:" << std::endl;
+    for (auto &node: nodes_with_op) {
+      std::cout << "\t" << *node << std::endl;
+    }
+  }
+  if (logLevel > 4) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Nodes with op:" << std::endl;
+    for (auto &node: nodes_with_op) {
+      log.logFile << "\t" << *node << std::endl;
+    }
+  }
 
   std::map<Node *, std::set<Node *>> common_dependencies = FindCommonDependencies(nodes_with_op, lower_bound, upper_bound);
 
   // Print common dependencies
-//  std::cout << "Common dependencies:" << std::endl;
-//  for (auto &common_dependency : common_dependencies) {
-//    std::cout << "\t" << *common_dependency.first << " : ";
-//    for (auto &node : common_dependency.second) {
-//      std::cout << *node << " ";
-//    }
-//    std::cout << std::endl;
-//  }
+  if (debugLevel > 4) {
+    std::cout << "Common dependencies:" << std::endl;
+    for (auto &common_dependency : common_dependencies) {
+      std::cout << "\t" << *common_dependency.first << " : ";
+      for (auto &node : common_dependency.second) {
+        std::cout << *node << " ";
+      }
+      std::cout << std::endl;
+    }
+  }
+  if (logLevel > 4) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Common dependencies:" << std::endl;
+    for (auto &common_dependency : common_dependencies) {
+      log.logFile << "\t" << *common_dependency.first << " : ";
+      for (auto &node : common_dependency.second) {
+        log.logFile << *node << " ";
+      }
+      log.logFile << std::endl;
+    }
+  }
 
   // Unionize the node set from common_dependencies
   std::set<Node *> common_dependencies_set;
@@ -554,7 +629,13 @@ Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower
   }
 
   if (common_dependencies_set.empty()) {
-    std::cout << "Empty dependence set! Generating candidates!" << std::endl;
+    if (debugLevel > 4) {
+      std::cout << "Empty dependence set! Generating candidates!" << std::endl;
+    }
+    if (logLevel > 4) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Empty dependence set! Generating candidates!" << std::endl;
+    }
 
     // Get all nodes from depthTable within the depth window with node type UnaryOp, BinaryOp, or TernaryOp
     for (auto &depth_table : depthTable) {
@@ -583,10 +664,19 @@ Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower
   }
 
   // Print common dependencies set
-//  std::cout << "Common dependencies set:" << std::endl;
-//  for (auto &node : common_dependencies_set) {
-//    std::cout << "\t" << *node << std::endl;
-//  }
+  if (debugLevel > 4) {
+    std::cout << "Common dependencies set:" << std::endl;
+    for (auto &node : common_dependencies_set) {
+      std::cout << "\t" << *node << std::endl;
+    }
+  }
+  if (logLevel > 4) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Common dependencies set:" << std::endl;
+    for (auto &node : common_dependencies_set) {
+      log.logFile << "\t" << *node << std::endl;
+    }
+  }
 
   return common_dependencies_set;
 }
@@ -596,6 +686,14 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
                                                     unsigned int bound_max_depth) {
   assert(bound_min_depth <= bound_max_depth && bound_max_depth <= max_depth && "Invalid bounds for abstraction");
   std::set<Node*> nodes_to_abstract;
+
+  if (debugLevel > 2) {
+    std::cout << "Selecting nodes for abstraction..." << std::endl;
+  }
+  if (logLevel > 2) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Selecting nodes for abstraction..." << std::endl;
+  }
 
   // Abstraction window is just 1 level wide
   if (bound_min_depth == bound_max_depth && bound_max_depth <= max_depth) {
@@ -614,7 +712,13 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
   }
 
   if (initialCandidateList.empty()) {
-    std::cout << "No candidates found!" << std::endl;
+    if (debugLevel > 2) {
+      std::cout << "No candidates found!" << std::endl;
+    }
+    if (logLevel > 2) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "No candidates found!" << std::endl;
+    }
     return std::make_pair(-1, std::set<Node*>());
   } else {
     local_max_depth = 0;
@@ -648,10 +752,19 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
     }
 
     // Print cost_sum_dict
-//    std::cout << "Cost Sum Dict:" << std::endl;
-//    for (auto &cost_sum : cost_sum_dict) {
-//      std::cout << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
-//    }
+    if (debugLevel > 3) {
+      std::cout << "Cost Sum Dict:" << std::endl;
+      for (auto &cost_sum : cost_sum_dict) {
+        std::cout << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
+      }
+    }
+    if (logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Cost Sum Dict:" << std::endl;
+      for (auto &cost_sum : cost_sum_dict) {
+        log.logFile << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
+      }
+    }
 
     // Get the depth with the greatest cost
     int abstraction_depth = -1;
@@ -667,8 +780,15 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
     auto candidate_nodes = depthTable[abstraction_depth];
 
     // Print max depth and abstraction depth
-    std::cout << "Max Depth: " << max_depth << std::endl;
-    std::cout << "Abstraction Depth: " << abstraction_depth << std::endl;
+    if (debugLevel > 2) {
+      std::cout << "Max Depth: " << max_depth << std::endl;
+      std::cout << "Abstraction Depth: " << abstraction_depth << std::endl;
+    }
+    if (logLevel > 2) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Max Depth: " << max_depth << std::endl;
+      log.logFile << "Abstraction Depth: " << abstraction_depth << std::endl;
+    }
 
     return std::make_pair(abstraction_depth, candidate_nodes);
   }
@@ -681,19 +801,41 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
   unsigned int max_depth = depthTable.rbegin()->first;
 
   unsigned int abstraction_level = 1;
-  std::cout << "Performing abstraction" << std::endl;
+  if (debugLevel > 0) {
+    std::cout << "Performing abstraction with window [" << bound_min_depth << ", " << bound_max_depth << "]" << std::endl;
+  }
+  if (logLevel > 0) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Performing abstraction with window [" << bound_min_depth << ", " << bound_max_depth << "]" << std::endl;
+  }
 
   while (max_depth >= bound_max_depth && max_depth >= bound_min_depth) {
     auto [abstraction_depth, candidate_nodes] = selectNodesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
 
-    if (!candidate_nodes.empty()) {
+    if (debugLevel > 1) {
       std::cout << "Abstraction level: " << abstraction_level << std::endl;
-      // Print candidate nodes
-//      std::cout << "Candidate Nodes:" << std::endl;
-//      for (auto &node : candidate_nodes) {
-//        std::cout << "\t" << *node << std::endl;
-//      }
 
+      if (debugLevel > 3 && !candidate_nodes.empty()) {
+        // Print candidate nodes
+        std::cout << "Candidate Nodes:" << std::endl;
+        for (auto &node : candidate_nodes) {
+          std::cout << "\t" << *node << std::endl;
+        }
+      }
+    }
+    if (logLevel > 1) {
+      log.logFile << "Abstraction level: " << abstraction_level << std::endl;
+
+      if (logLevel > 3 && !candidate_nodes.empty()) {
+        // Print candidate nodes
+        log.logFile << "Candidate Nodes:" << std::endl;
+        for (auto &node : candidate_nodes) {
+          log.logFile << "\t" << *node << std::endl;
+        }
+      }
+    }
+
+    if (!candidate_nodes.empty()) {
       abstraction_level++;
 
       // Modify the AST
@@ -716,12 +858,34 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
         assert(bound_max_depth >= bound_min_depth);
       }
     } else {
-      std::cout << "No candidates found!" << std::endl;
+      if (debugLevel > 2) {
+        std::cout << "No candidates found!" << std::endl;
+      }
+      if (logLevel > 2) {
+        assert(log.logFile.is_open() && "Log file not open");
+        log.logFile << "No candidates found!" << std::endl;
+      }
     }
+  }
+
+  if (debugLevel > 0) {
+    std::cout << "Abstraction complete!" << std::endl;
+  }
+  if (logLevel > 0) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Abstraction complete!" << std::endl;
   }
 }
 
 std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
+  if(debugLevel > 1) {
+    std::cout << "Finding output extremas..." << std::endl;
+  }
+  if(logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Finding output extremas..." << std::endl;
+  }
+
   generateIbexSymbols();
 
   generateExprDriver(candidate_nodes);
@@ -730,10 +894,24 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
   std::map<Node *, ibex::Interval> min;
   for (auto &node : candidate_nodes) {
+    if(debugLevel > 3) {
+      std::cout << "Finding min for: " << *node->getExprNode() << std::endl;
+    }
+    if(logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Finding min for: " << *node->getExprNode() << std::endl;
+    }
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(node->getExprNode());
+
     // print the output expression
-//    std::cout << "Output expression: " << *node->getExprNode() << std::endl;
+    if(debugLevel > 3) {
+      std::cout << "Min Interval: " << min[node] << std::endl;
+    }
+    if(logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Min Interval: " << min[node] << std::endl;
+    }
   }
 
   generateIbexSymbols();
@@ -742,31 +920,77 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
   std::map<Node *, ibex::Interval> max;
   for (auto &node : candidate_nodes) {
+    if(debugLevel > 3) {
+      std::cout << "Finding max for: " << *node->getExprNode() << std::endl;
+    }
+    if(logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Finding max for: " << *node->getExprNode() << std::endl;
+    }
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(node->getExprNode());
+
     // print the output expression
-//    std::cout << "Output expression: " << *node->getExprNode() << std::endl;
+    if(debugLevel > 3) {
+      std::cout << "Max Interval: " << max[node] << std::endl;
+    }
+    if(logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Max Interval: " << max[node] << std::endl;
+    }
   }
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
+    if (debugLevel > 4) {
+      std::cout << "Output Extrema for: " << *node->getExprNode() << std::endl;
+    }
+    if (logLevel > 4) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Output Extrema for: " << *node->getExprNode() << std::endl;
+    }
     if (min[node].lb() <= -max[node].lb() ) {
       extrema[node] = ibex::Interval(min[node].lb(), -max[node].lb());
     } else {
-      std::cout << "Output extrema is empty! Setting to 0" << std::endl;
+      if (debugLevel > 4) {
+        std::cout << "Output extrema is empty! Setting to 0" << std::endl;
+      }
+      if (logLevel > 4) {
+        assert(log.logFile.is_open() && "Log file not open");
+        log.logFile << "Output extrema is empty! Setting to 0" << std::endl;
+      }
       extrema[node] = ibex::Interval(0, 0);
     }
+
+    if(debugLevel > 4) {
+      std::cout << "Output Extrema: " << extrema[node] << std::endl;
+    }
+    if(logLevel > 4) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Output Extrema: " << extrema[node] << std::endl;
+    }
+  }
+
+  if (debugLevel > 1) {
+    std::cout << "Output extremas found!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Output extremas found!" << std::endl;
   }
 
   return extrema;
 }
 
 std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
+  if (debugLevel > 1) {
+    std::cout << "Finding error extrema..." << std::endl;
+  }
+
   generateIbexSymbols();
 
   setupDerivativeComputation(candidate_nodes);
   generateExprDriver(candidate_nodes);
-
 
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(candidate_nodes);
@@ -775,22 +999,37 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
 
   std::map<Node *, ibex::Interval> min;
   for (auto &node : candidate_nodes) {
+    if (debugLevel > 3) {
+      std::cout << "Finding min for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+    }
+    if (logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Finding min for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+    }
+
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]);
-    // print the error expression
-//    std::cout << "Error expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
-  }
 
-  if(!validationFile.empty()) {
-    std::cout << "Comparing Error expression with validation file: " << validationFile << std::endl;
-    try {
-      ibex::Function f = ibexInterface->parseIbexFunctionFromFile(validationFile.c_str());
-      std::cout << "Function: " << f << std::endl;
-//      compareDAGs(f.expr(), ibexInterface->getSystem()->goal->expr());
-    } catch(ibex::SyntaxError& e) {
-      std::cout << e << std::endl;
+    // print the error expression
+    if (debugLevel > 3) {
+      std::cout << "Min Interval: " << min[node] << std::endl;
+    }
+    if (logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Min Interval: " << min[node] << std::endl;
     }
   }
+
+//  if(!validationFile.empty()) {
+//    std::cout << "Comparing Error expression with validation file: " << validationFile << std::endl;
+//    try {
+//      ibex::Function f = ibexInterface->parseIbexFunctionFromFile(validationFile.c_str());
+//      std::cout << "Function: " << f << std::endl;
+////      compareDAGs(f.expr(), ibexInterface->getSystem()->goal->expr());
+//    } catch(ibex::SyntaxError& e) {
+//      std::cout << e << std::endl;
+//    }
+//  }
 
   generateIbexSymbols();
 
@@ -803,25 +1042,71 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
 
   std::map<Node *, ibex::Interval> max;
   for (auto &node : candidate_nodes) {
+    if (debugLevel > 3) {
+      std::cout << "Finding max for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+    }
+    if (logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Finding max for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+    }
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(errorAnalyzer->ErrAccumulator[node]);
-//    std::cout << "Error expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+
+    // print the error expression
+    if (debugLevel > 3) {
+      std::cout << "Max Interval: " << max[node] << std::endl;
+    }
+    if (logLevel > 3) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Max Interval: " << max[node] << std::endl;
+    }
   }
 
   std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
+    if (debugLevel > 4) {
+      std::cout << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+    }
+    if (logLevel > 4) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+    }
     if (min[node].lb() <= -max[node].lb() ) {
       extrema[node] = ibex::Interval(min[node].lb()* pow(2, -53), -max[node].lb()* pow(2, -53));
     } else {
       std::cout << "Error extrema is empty! Setting to 0" << std::endl;
       extrema[node] = ibex::Interval(0, 0);
     }
+
+    if (debugLevel > 4) {
+      std::cout << "Error Extrema: " << extrema[node] << std::endl;
+    }
+    if (logLevel > 4) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Error Extrema: " << extrema[node] << std::endl;
+    }
+  }
+
+  if (debugLevel > 1) {
+    std::cout << "Error extremas found!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Error extremas found!" << std::endl;
   }
 
   return extrema;
 }
 
 std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(const std::set<Node *>& candidate_nodes, unsigned int max_depth, bool isFinal) {
+  if (debugLevel > 0 && isFinal) {
+    std::cout << "Final computation..." << std::endl;
+  }
+  if (logLevel > 0 && isFinal) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Final computation..." << std::endl;
+  }
+
   std::map<Node *, std::vector<ibex::Interval>> results;
 
   std::map<Node *, ibex::Interval> error_extrema = FindErrorExtrema(candidate_nodes);
@@ -833,18 +1118,35 @@ std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(con
   }
 
   if(isFinal) {
+    if (debugLevel > 0) {
+      std::cout << "Final Computation complete!" << std::endl;
+    }
+    if (logLevel > 0) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Final Computation complete!" << std::endl;
+    }
     return results;
   }
 
   AbstractNodes(results);
   RebuildAST();
 
-
-  for (auto &node : results) {
-    std::cout
-//              << *node.first << " : "
+  if (debugLevel > 2) {
+    for (auto &node: results) {
+      std::cout
+              << *node.first << " : "
               << "\n\tOutput: " << node.second[0] << ","
               << "\n\tError: " << node.second[1] << std::endl;
+    }
+  }
+  if (logLevel > 2) {
+    assert(log.logFile.is_open() && "Log file not open");
+    for (auto &node: results) {
+      log.logFile
+              << *node.first << " : "
+              << "\n\tOutput: " << node.second[0] << ","
+              << "\n\tError: " << node.second[1] << std::endl;
+    }
   }
 
   return results;
@@ -874,7 +1176,13 @@ std::vector<Node *> Graph::ModProbeList() {
  * @param results A map of nodes to their corresponding intervals
  */
 void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results) {
-  std::cout << "Abstracting nodes" << std::endl;
+  if (debugLevel > 1) {
+    std::cout << "Abstracting nodes..." << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Abstracting nodes..." << std::endl;
+  }
 
   // Turn node in results into VariableNodes and create corresponding FreeVariable nodes
   for (auto &result : results) {
@@ -899,13 +1207,27 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
     free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[1].ub()));
     free_node->setRounding(converted_node->getRounding());
   }
+
+  if (debugLevel > 1) {
+    std::cout << "Nodes abstracted!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Nodes abstracted!" << std::endl;
+  }
 }
 
 /*
  * Rebuilds the AST post abstraction
  */
 void Graph::RebuildAST() {
-  std::cout << "Rebuilding AST" << std::endl;
+  if (debugLevel > 1) {
+    std::cout << "Rebuilding AST..." << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Rebuilding AST..." << std::endl;
+  }
 
   std::vector<Node*> probe_list = ModProbeList();
 
@@ -933,7 +1255,13 @@ void Graph::RebuildAST() {
   }
 
   // Print num_nodes before
-  std::cout << "Num nodes before: " << num_nodes << std::endl;
+  if (debugLevel > 2) {
+    std::cout << "Num nodes before: " << num_nodes << std::endl;
+  }
+  if (logLevel > 2) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Num nodes before: " << num_nodes << std::endl;
+  }
 
   // Modify depthTable using the completed map
   depthTable.clear();
@@ -948,7 +1276,21 @@ void Graph::RebuildAST() {
   }
 
   // Print num_nodes after
-  std::cout << "Num nodes after: " << num_nodes << std::endl;
+  if (debugLevel > 2) {
+    std::cout << "Num nodes after: " << num_nodes << std::endl;
+  }
+  if (logLevel > 2) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Num nodes after: " << num_nodes << std::endl;
+  }
+
+  if (debugLevel > 1) {
+    std::cout << "AST rebuilt!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "AST rebuilt!" << std::endl;
+  }
 }
 
 void Graph::RebuildASTNode(Node *node, std::map<Node *, unsigned int> &completed) {
@@ -1017,14 +1359,26 @@ int Graph::parse(const char &f) {
   }
 
   do {
-    std::cout << "Parsing..." << std::endl;
+    if(debugLevel > 0) {
+      std::cout << "Parsing..." << std::endl;
+    }
+    if(logLevel > 0) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Parsing..." << std::endl;
+    }
     createNewSymbolTable();
     if(yyparse(this)) {
       std::cout << "Parsing failed" << std::endl;
-      return 0;
+      return 1;
     }
     else {
-      std::cout << "Parsing successful" << std::endl;
+      if (debugLevel > 0) {
+        std::cout << "Parsing successful!" << std::endl;
+      }
+      if (logLevel > 0) {
+        assert(log.logFile.is_open() && "Log file not open");
+        log.logFile << "Parsing successful!" << std::endl;
+      }
     }
   } while (!feof(yyin));
 

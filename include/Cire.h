@@ -1,7 +1,3 @@
-//
-// Created by tanmay on 10/2/23.
-//
-
 #ifndef CIRE_CIRE_H
 #define CIRE_CIRE_H
 
@@ -20,6 +16,7 @@ public:
   bool abstraction = false;
   unsigned debugLevel = 0;
   unsigned logLevel = 0;
+  Logging log;
   std::pair<unsigned int, unsigned int> abstractionWindow =
           std::make_pair(10, 40);
   // Map of the time taken by each phase of the program.

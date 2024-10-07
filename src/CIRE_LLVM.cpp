@@ -40,6 +40,14 @@ namespace {
                                 cl::desc("Maximum depth for abstraction"),
                                 cl::init(10));
 
+    cl::opt<unsigned> DebugLevel("debug-level",
+                             cl::desc("Set the debug level"),
+                             cl::init(0));
+
+    cl::opt<unsigned> LogLevel("log-level",
+                            cl::desc("Set the log level"),
+                            cl::init(0));
+
 
 
 }
@@ -74,6 +82,35 @@ int main(int argc, char **argv) {
   //  Programs with vectors as inputs or outputs can be left for later - Cant analyze
 
   Cire cire;
+
+  if (Abstraction) {
+    cire.setAbstaction(true);
+    cire.setAbstractionWindow(std::make_pair(MinDepth.getValue(), MaxDepth.getValue()));
+  }
+  if (DebugLevel) {
+    cire.setDebugLevel(DebugLevel);
+    cire.graph->debugLevel = DebugLevel;
+    cire.graph->errorAnalyzer->debugLevel = DebugLevel;
+    cire.results->debugLevel = DebugLevel;
+  }
+  if (LogLevel) {
+    cire.setLogLevel(LogLevel);
+    cire.graph->logLevel = LogLevel;
+    cire.graph->errorAnalyzer->logLevel = LogLevel;
+    cire.results->logLevel = LogLevel;
+  }
+
+  if(cire.logLevel > 0) {
+    cire.graph->log.openFile();
+  }
+
+  if(cire.debugLevel > 0) {
+    std::cout << "Parsing LLVM IR..." << std::endl;
+  }
+  if (cire.logLevel > 0) {
+    std::cout << "Parsing LLVM IR..." << std::endl;
+  }
+
   if(!Func.empty()) {
     auto F = findFunction(*M, Func);
     if (!F) {
@@ -126,20 +163,42 @@ int main(int argc, char **argv) {
   }
   const auto parse_end = std::chrono::high_resolution_clock::now();
 
-  std::cout << "Parsing complete" << std::endl;
+  if (cire.debugLevel > 0) {
+    std::cout << "Parsing complete" << std::endl;
+  }
+  if (cire.logLevel > 0) {
+    std::cout << "Parsing complete" << std::endl;
+  }
 
   std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
 
   const auto error_analysis_end = std::chrono::high_resolution_clock::now();
 
   unsigned i = 0;
-  // print the answer map
-  for (auto const &[node, result]: answer) {
-    // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
-    // always the case
-    assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
-    std::cout << *node << " : " << "\n\tOutput: " << result[0] << ","
-              << "\n\tError: " << result[1] << std::endl;
+
+  if(cire.debugLevel > 0) {
+    // print the answer map
+    for (auto const &[node, result]: answer) {
+      // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
+      // always the case
+      assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
+      std::cout
+//        << *node << " : "
+        << "\n\tOutput: " << result[0] << ","
+        << "\n\tError: " << result[1] << std::endl;
+    }
+  }
+  if (cire.logLevel > 0) {
+    // print the answer map
+    for (auto const &[node, result]: answer) {
+      // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
+      // always the case
+      assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
+      cire.log.logFile
+//        << *node << " : "
+        << "\n\tOutput: " << result[0] << ","
+        << "\n\tError: " << result[1] << std::endl;
+    }
   }
 
   const auto end = std::chrono::high_resolution_clock::now();
@@ -147,10 +206,24 @@ int main(int argc, char **argv) {
   cire.time_map["Error_Analysis"] = error_analysis_end - parse_end;
   cire.time_map["Total"] = end - start;
 
-  std::cout << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
-  std::cout << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
-  std::cout << "Total Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+  if(cire.debugLevel > 0) {
+    std::cout << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
+    std::cout << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
+    std::cout << "Total Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+  }
+  if(cire.logLevel > 0) {
+    cire.log.logFile << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
+    cire.log.logFile << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
+    cire.log.logFile << "Total Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+    cire.log.log("Writing results to " + cire.results->file + " ...");
+  }
 
-//  cire.results->writeResults(cire.graph->outputs, answer, cire.time_map);
+  cire.results->writeResults(cire.graph->outputs, answer, cire.time_map);
+
+  if(cire.logLevel > 0) {
+    cire.log.log("Results written to " + cire.results->file + "!");
+    cire.graph->log.closeFile();
+  }
+
   return 0;
 }

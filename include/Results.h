@@ -1,7 +1,3 @@
-//
-// Created by tanmay on 2/21/24.
-//
-
 #ifndef CIRE_RESULTS_H
 #define CIRE_RESULTS_H
 
@@ -14,7 +10,8 @@ public:
     // The name of the output file
     std::string file;
     nlohmann::json json_object;
-
+    unsigned int debugLevel = 0;
+    unsigned int logLevel = 0;
     Results();
     ~Results();
 
