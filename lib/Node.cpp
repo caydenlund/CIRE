@@ -128,10 +128,12 @@ Node *Node::getChildNode(int index) const {
 
 Integer::Integer(const int val): val(val) {
   type = INTEGER;
+  rounding = RoundingAmount[INT];
 }
 
 Integer::Integer(const ibex::ExprConstant &value): value(&value) {
   type = INTEGER;
+  rounding = RoundingAmount[INT];
 }
 
 void Integer::write(std::ostream &os) const {
@@ -212,10 +214,12 @@ Node *Integer::getChildNode(int index) const {
 
 Float::Float(const float val): val(val) {
   type = FLOAT;
+  rounding = RoundingAmount[FL32];
 }
 
 Float::Float(const ibex::ExprConstant &value):value(&value) {
   type = FLOAT;
+  rounding = RoundingAmount[FL32];
 }
 
 void Float::write(std::ostream &os) const {
@@ -300,10 +304,12 @@ Node *Float::getChildNode(int index) const {
 
 Double::Double(const double val): val(val) {
   type = DOUBLE;
+  rounding = RoundingAmount[FL64];
 }
 
 Double::Double(const ibex::ExprConstant &value): value(&value) {
   type = DOUBLE;
+  rounding = RoundingAmount[FL64];
 }
 
 void Double::write(std::ostream &os) const {
@@ -391,8 +397,15 @@ FreeVariable::FreeVariable() {
   type = FREE_VARIABLE;
 }
 
-FreeVariable::FreeVariable(const ibex::Interval &var): var(&var) {
+FreeVariable::FreeVariable(RoundingType rnd_typ) {
+  var = new ibex::Interval(0.1, 100);
   type = FREE_VARIABLE;
+  rounding = RoundingAmount[rnd_typ];
+}
+
+FreeVariable::FreeVariable(const ibex::Interval &var, RoundingType rnd_typ): var(&var) {
+  type = FREE_VARIABLE;
+  rounding = RoundingAmount[rnd_typ];
 }
 
 void FreeVariable::write(std::ostream &os) const {
@@ -409,7 +422,18 @@ Node &FreeVariable::operator+(Node &other) const {
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a+*b);
 
-  return *new FreeVariable(*c);
+  FreeVariable *res;
+
+  if(other.isInteger())
+    res = new FreeVariable(*c, INT);
+  else if(other.isFloat())
+    res = new FreeVariable(*c, FL32);
+  else if(other.isDouble())
+    res = new FreeVariable(*c, FL64);
+  else
+    res = new FreeVariable(*c, FL64);
+
+  return *res;
 }
 
 Node &FreeVariable::operator-(Node &other) const {
@@ -418,7 +442,18 @@ Node &FreeVariable::operator-(Node &other) const {
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a-*b);
 
-  return *new FreeVariable(*c);
+  FreeVariable *res;
+
+  if(other.isInteger())
+    res = new FreeVariable(*c, INT);
+  else if(other.isFloat())
+    res = new FreeVariable(*c, FL32);
+  else if(other.isDouble())
+    res = new FreeVariable(*c, FL64);
+  else
+    res = new FreeVariable(*c, FL64);
+
+  return *res;
 }
 
 Node &FreeVariable::operator*(Node &other) const {
@@ -427,7 +462,18 @@ Node &FreeVariable::operator*(Node &other) const {
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a**b);
 
-  return *new FreeVariable(*c);
+  FreeVariable *res;
+
+  if(other.isInteger())
+    res = new FreeVariable(*c, INT);
+  else if(other.isFloat())
+    res = new FreeVariable(*c, FL32);
+  else if(other.isDouble())
+    res = new FreeVariable(*c, FL64);
+  else
+    res = new FreeVariable(*c, FL64);
+
+  return *res;
 }
 
 Node &FreeVariable::operator/(Node &other) const {
@@ -436,7 +482,18 @@ Node &FreeVariable::operator/(Node &other) const {
   const ibex::Interval *b = ((FreeVariable*)&other)->var;
   const ibex::Interval *c = new ibex::Interval(*a/(*b));
 
-  return *new FreeVariable(*c);
+  FreeVariable *res;
+
+  if(other.isInteger())
+    res = new FreeVariable(*c, INT);
+  else if(other.isFloat())
+    res = new FreeVariable(*c, FL32);
+  else if(other.isDouble())
+    res = new FreeVariable(*c, FL64);
+  else
+    res = new FreeVariable(*c, FL64);
+
+  return *res;
 }
 
 ibex::ExprNode &FreeVariable::getAbsoluteError() {
@@ -456,6 +513,11 @@ Node *FreeVariable::getChildNode(int index) const {
 
 VariableNode::VariableNode() {
   type = VARIABLE;
+}
+
+VariableNode::VariableNode(RoundingType rnd_typ) {
+  type = VARIABLE;
+  rounding = RoundingAmount[rnd_typ];
 }
 
 VariableNode::VariableNode(const ibex::ExprSymbol& variable): variable(&variable) {
@@ -566,6 +628,23 @@ UnaryOp::UnaryOp(Node* Operand, Op op): Operand(Operand),
   depth = Operand->depth + 1;
   type = UNARY_OP;
   Operand->parents.insert(this);
+  switch (op) {
+    case NEG:
+    case SIN:
+    case COS:
+    case TAN:
+    case SINH:
+    case COSH:
+    case TANH:
+    case ASIN:
+    case ACOS:
+    case ATAN:
+    case LOG:
+    case SQRT:
+    case EXP:
+      rounding = Operand->rounding;
+      break;
+  }
 }
 
 void UnaryOp::write(std::ostream &os) const {
@@ -642,6 +721,12 @@ BinaryOp::BinaryOp(Node* Left, Node* Right, Op op): leftOperand(Left),
                                                     expr(nullptr) {
   depth = std::max(Left->depth, Right->depth) + 1;
   type = BINARY_OP;
+  if (Left->rounding != 0.0 && Right->rounding != 0.0)
+    rounding = std::min(Left->rounding, Right->rounding);
+  else if(Left->rounding == 0.0)
+    rounding = Right->rounding;
+  else
+    rounding = Left->rounding;
   leftOperand->parents.insert(this);
   rightOperand->parents.insert(this);
 }
@@ -726,6 +811,18 @@ TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right, Op op): leftOperand(
                                                               op(op) {
   depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
   type = TERNARY_OP;
+  if (Left->rounding != 0.0 && Middle->rounding != 0.0 && Right->rounding != 0.0)
+    rounding = std::min(Left->rounding, std::min(Middle->rounding, Right->rounding));
+  else if(Left->rounding == 0.0) {
+    if (Middle->rounding == 0.0)
+      rounding = Right->rounding;
+    else
+      rounding = Middle->rounding;
+  }
+  else if(Middle->rounding == 0.0)
+    rounding = Right->rounding;
+  else
+    rounding = Left->rounding;
   leftOperand->parents.insert(this);
   middleOperand->parents.insert(this);
   rightOperand->parents.insert(this);

@@ -56,7 +56,6 @@ void parseInputsInLLVM(Graph &g, Function &F) {
 
   // Iterate the function arguments
   for (auto &arg : F.args()) {
-    VariableNode *new_variable = new VariableNode();
     Type *arg_type = arg.getType();
     Node::RoundingType rounding_type;
 
@@ -84,10 +83,10 @@ void parseInputsInLLVM(Graph &g, Function &F) {
       }
     }
 
-    new_variable->setRoundingFromType(rounding_type);
+    auto *new_variable = new VariableNode(rounding_type);
     g.nodes.insert(new_variable);
     g.symbolTables[g.currentScope]->insert(arg.getNameOrAsOperand(), new_variable);
-    g.inputs[arg.getNameOrAsOperand()] = new FreeVariable();
+    g.inputs[arg.getNameOrAsOperand()] = new FreeVariable(rounding_type);
     g.nodes.insert(g.inputs[arg.getNameOrAsOperand()]);
   }
 }

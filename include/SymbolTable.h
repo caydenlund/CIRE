@@ -13,7 +13,7 @@ public:
   ~SymbolTable() = default;
 
   void insert(const string& symbol, Node *node);
-  Node *lookup(const string& symbol, Node *node = new VariableNode());
+  Node *lookup(const string& symbol, Node *node = new VariableNode(Node::RoundingType::INT));
   string ReverseLookup(const Node *node);
 };
 

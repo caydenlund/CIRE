@@ -1199,7 +1199,7 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
     symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
 
     // Create corresponding FreeVariable node using the result IntervalVector
-    auto *free_node = new FreeVariable(result.second[0]);
+    auto *free_node = new FreeVariable(result.second[0], Node::RoundingType::FL64);
     inputs[converted_node->variable->name] = free_node;
 
     // Add free node to nodes and inputs

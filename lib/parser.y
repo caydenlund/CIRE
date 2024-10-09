@@ -109,14 +109,12 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                 if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
 
                 } else {
-                    new_variable = new VariableNode();
-                    new_variable->setRoundingFromType($2);
+                    new_variable = new VariableNode($2);
                     graph->nodes.insert(new_variable);
                     // graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
-                $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
-                $$->setRoundingFromType($2);
+                $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval), $2);
                 graph->nodes.insert($$);
 
                 // std::cout << *graph << std::endl;
@@ -126,14 +124,12 @@ interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
                 if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
 
                 } else {
-                    new_variable = new VariableNode();
-                    new_variable->setRoundingFromType($2);
+                    new_variable = new VariableNode($2);
                     graph->nodes.insert(new_variable);
                     // graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
-                $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval));
-                $$->setRoundingFromType($2);
+                $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval), $2);
                 graph->nodes.insert($$);
 
                 // std::cout << *graph << std::endl;

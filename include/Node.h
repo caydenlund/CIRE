@@ -203,7 +203,8 @@ private:
 public:
   const ibex::Interval *var = nullptr;
   FreeVariable();
-  explicit FreeVariable(const ibex::Interval &var);
+  explicit FreeVariable(RoundingType rnd_typ);
+  explicit FreeVariable(const ibex::Interval &var, RoundingType rnd_typ);
   ~FreeVariable() = default;
 
   // Prints string representation of this node
@@ -224,6 +225,7 @@ private:
 public:
   const ibex::ExprSymbol *variable ;
   VariableNode();
+  explicit VariableNode(RoundingType rnd_typ);
   explicit VariableNode(const ibex::ExprSymbol& variable);
   explicit VariableNode(const Node &node);
   ~VariableNode() = default;

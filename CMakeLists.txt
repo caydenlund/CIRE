@@ -107,6 +107,14 @@ target_link_libraries(CIRE
                         PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
                         PRIVATE nlohmann_json::nlohmann_json)
 
+add_custom_target("benchmark"
+                   COMMAND "cd scripts"
+                   COMMAND "python3"
+                           "${PROJECT_SOURCE_DIR}/scripts/benchmark.py"
+                           "${PROJECT_SOURCE_DIR}/benchmarks/fpbench_ll"
+                    DEPENDS CIRE_LLVM
+                    USES_TERMINAL)
+
 add_custom_target("check"
                    COMMAND "python3"
                            "${PROJECT_SOURCE_DIR}/scripts/lit/lit.py"
