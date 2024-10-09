@@ -195,13 +195,11 @@ exprs:  EXPRS LBRACE stmts RBRACE
 number: INT {
             $$ = new Integer($1.ival);
             graph->nodes.insert($$);
-            // graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         | FP {
             $$ = new Double($1.fval);
             graph->nodes.insert($$);
-            // graph->depthTable[$$->depth].insert($$);
             // std::cout << *$$ << std::endl;
         }
         ;
