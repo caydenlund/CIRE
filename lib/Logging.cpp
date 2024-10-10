@@ -8,7 +8,7 @@ void Logging::setFile(std::string _file) {
 }
 
 bool Logging::openFile() {
-  logFile.open(file);
+  logFile.open(file, ios::app);
   if (logFile.is_open()) {
     return true;
   } else {

@@ -8,7 +8,7 @@ class ErrorAnalyzer {
 public:
   unsigned int debugLevel = 0;
   unsigned int logLevel = 0;
-  Logging log;
+  Logging &log;
 
   // Data structures for derivative computation
   // Map from node to number of parents of node
@@ -29,6 +29,8 @@ public:
   std::map<Node *, std::set<Node *>> parentsOfNode;
 
   std::map<Node *, ibex::ExprNode *> ErrAccumulator;
+
+  ErrorAnalyzer(Logging *log);
 
   bool parentsVisited(Node *node);
 

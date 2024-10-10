@@ -22,7 +22,7 @@ public:
   // Depth table contains a map from depth to a set of nodes at that depth
   std::map<int, std::set<Node *>> depthTable;
 
-  ErrorAnalyzer *errorAnalyzer = new ErrorAnalyzer();
+  ErrorAnalyzer *errorAnalyzer = new ErrorAnalyzer(&log);
   IBEXInterface *ibexInterface = new IBEXInterface();
 
   std::string validationFile;

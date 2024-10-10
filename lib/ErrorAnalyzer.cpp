@@ -1,5 +1,9 @@
 #include "../include/ErrorAnalyzer.h"
 
+ErrorAnalyzer::ErrorAnalyzer(Logging *log): log(*log) {
+
+}
+
 bool ErrorAnalyzer::parentsVisited(Node *node) {
   return numParentsOfNode[node] >= parentsOfNode[node].size();
 }

@@ -78,7 +78,6 @@ int main(int argc, char *argv[]) {
           cire.setLogLevel(std::stoi(argv[++i]));
           cire.graph->logLevel = cire.logLevel;
           cire.graph->errorAnalyzer->logLevel = cire.logLevel;
-          cire.results->logLevel = cire.logLevel;
         } else {
           std::cerr << "--log-level option requires one argument." << std::endl;
           return 1;
@@ -87,10 +86,6 @@ int main(int argc, char *argv[]) {
         cire.setFile(argv[i]);
       }
     }
-  }
-
-  if(cire.logLevel > 0) {
-    cire.graph->log.openFile();
   }
 
   cire.graph->parse(*cire.file.c_str());
@@ -147,11 +142,10 @@ int main(int argc, char *argv[]) {
   }
 
 
-  cire.results->writeResults(cire.graph->outputs, answer, cire.time_map);
+  cire.results->writeResults(cire.graph->outputs, cire.file, answer, cire.time_map);
 
   if(cire.logLevel > 0) {
     cire.log.logFile << "Results written to " << cire.results->file << "!" << std::endl;
-    cire.graph->log.closeFile();
   }
 
   return 0;

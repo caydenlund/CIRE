@@ -82,6 +82,7 @@ int main(int argc, char **argv) {
   //  Programs with vectors as inputs or outputs can be left for later - Cant analyze
 
   Cire cire;
+  cire.setFile(File);
 
   if (Abstraction) {
     cire.setAbstaction(true);
@@ -97,11 +98,6 @@ int main(int argc, char **argv) {
     cire.setLogLevel(LogLevel);
     cire.graph->logLevel = LogLevel;
     cire.graph->errorAnalyzer->logLevel = LogLevel;
-    cire.results->logLevel = LogLevel;
-  }
-
-  if(cire.logLevel > 0) {
-    cire.graph->log.openFile();
   }
 
   if(cire.debugLevel > 0) {
@@ -218,11 +214,10 @@ int main(int argc, char **argv) {
     cire.log.log("Writing results to " + cire.results->file + " ...");
   }
 
-  cire.results->writeResults(cire.graph->outputs, answer, cire.time_map);
+  cire.results->writeResults(cire.graph->outputs, cire.file, answer, cire.time_map);
 
   if(cire.logLevel > 0) {
     cire.log.log("Results written to " + cire.results->file + "!");
-    cire.graph->log.closeFile();
   }
 
   return 0;
