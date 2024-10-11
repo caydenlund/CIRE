@@ -795,12 +795,11 @@ std::pair<unsigned int, std::set<Node*>> Graph::selectNodesForAbstraction(unsign
 }
 
 
-
 void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth) {
   // Get max depth using keys in depthTable
   unsigned int max_depth = depthTable.rbegin()->first;
 
-  unsigned int abstraction_level = 1;
+  unsigned int abstraction_count = 1;
   if (debugLevel > 0) {
     std::cout << "Performing abstraction with window [" << bound_min_depth << ", " << bound_max_depth << "]" << std::endl;
   }
@@ -813,7 +812,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
     auto [abstraction_depth, candidate_nodes] = selectNodesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
 
     if (debugLevel > 1) {
-      std::cout << "Abstraction level: " << abstraction_level << std::endl;
+      std::cout << "Abstraction count: " << abstraction_count << std::endl;
 
       if (debugLevel > 3 && !candidate_nodes.empty()) {
         // Print candidate nodes
@@ -824,7 +823,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
       }
     }
     if (logLevel > 1) {
-      log.logFile << "Abstraction level: " << abstraction_level << std::endl;
+      log.logFile << "Abstraction count: " << abstraction_count << std::endl;
 
       if (logLevel > 3 && !candidate_nodes.empty()) {
         // Print candidate nodes
@@ -836,21 +835,38 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
     }
 
     if (!candidate_nodes.empty()) {
-      abstraction_level++;
+      abstraction_count++;
+      abstractionMetrics[abstraction_count]["bound_min"] = bound_min_depth;
+      abstractionMetrics[abstraction_count]["bound_max"] = bound_max_depth;
+      abstractionMetrics[abstraction_count]["abstraction_depth"] = abstraction_depth;
+      abstractionMetrics[abstraction_count]["num_candidate_nodes"] = candidate_nodes.size();
 
       // Modify the AST
       SimplifyWithAbstraction(candidate_nodes, max_depth);
 
-      // TODO: Figure out how to get the operation count
-      unsigned int maxopCount = 0;
-
       max_depth = depthTable.rbegin()->first;
 
-      if (max_depth > 8 && bound_min_depth > 5) {
+      // The expressions have been built to this point, so we can query the IBEX expression for op counts
+      unsigned int max_operators_count = 1000;
+      for(auto &node : candidate_nodes) {
+        unsigned int op_count = node->getExprNode()->size;
+        if (op_count < max_operators_count) {
+          max_operators_count = op_count;
+        }
+      }
+
+      // These metrics are computed after the abstraction is performed
+      abstractionMetrics[abstraction_count]["max_operators_count"] = max_operators_count;
+      abstractionMetrics[abstraction_count]["max_depth"] = max_depth;
+
+      if (max_operators_count < 1000 && max_depth > 8 && bound_min_depth > 5) {
         if(bound_max_depth > max_depth) {
           bound_max_depth = max_depth;
         } else if(bound_max_depth - bound_min_depth > 4) {
           bound_max_depth = bound_max_depth - 2;
+        }
+
+        if(bound_max_depth - bound_min_depth > 4) {
           bound_min_depth = bound_min_depth - 2;
         }
       } else if (max_depth <= bound_max_depth && max_depth > bound_min_depth) {

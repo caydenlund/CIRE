@@ -19,7 +19,8 @@ public:
     bool writeResults(std::vector<std::string> outputs,
                       unsigned int numOperatorsOutput,
                       unsigned int heightDAG,
-                      std::string input_file,
+                      std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
+                      const std::string& input_file,
                       const std::map<Node *, std::vector<ibex::Interval>>& results,
                       const std::map<std::string, std::chrono::duration<double>>& time_map);
 };

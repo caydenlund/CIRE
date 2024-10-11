@@ -144,7 +144,8 @@ int main(int argc, char *argv[]) {
 
   cire.results->writeResults(cire.graph->outputs,
                              cire.graph->numOperatorsOutput,
-                             cire.graph->depthTable.size(),
+                             cire.graph->depthTable.rbegin()->first,
+                              cire.graph->abstractionMetrics,
                              cire.file, answer, cire.time_map);
 
   if(cire.logLevel > 0) {

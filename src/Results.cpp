@@ -17,7 +17,8 @@ void Results::setFile(std::string _file) {
 bool Results::writeResults(std::vector<std::string> outputs,
                            unsigned int numOperatorsOutput,
                            unsigned int heightDAG,
-                           std::string input_file,
+                           std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
+                           const std::string& input_file,
                            const std::map<Node *, std::vector<ibex::Interval>>& results,
                            const std::map<std::string, std::chrono::duration<double>>& time_map) {
   if(debugLevel > 0) {
@@ -32,6 +33,14 @@ bool Results::writeResults(std::vector<std::string> outputs,
     std::filesystem::path file_path = input_file;
     std::string file_stem = file_path.stem().string();
     unsigned i = 0;
+    for (auto const&[abs_count, metrics] : abstractionMetrics) {
+      json_object[file_stem]["Abstraction Metrics"][abs_count]["Window"] =
+              {metrics.at("bound_min"), metrics.at("bound_max")};
+      json_object[file_stem]["Abstraction Metrics"][abs_count]["Abstraction Depth"] = metrics.at("abstraction_depth");
+      json_object[file_stem]["Abstraction Metrics"][abs_count]["#Candidates"] = metrics.at("num_candidate_nodes");
+      json_object[file_stem]["Abstraction Metrics"][abs_count]["#Op_Threshold"] = metrics.at("max_operators_count");
+      json_object[file_stem]["Abstraction Metrics"][abs_count]["Highest Depth"] = metrics.at("max_depth");
+    }
     for (auto const&[node, result] : results) {
       json_object[file_stem]["Results"][outputs[i]]["Output"] = {result[0].lb(), result[0].ub()};
       json_object[file_stem]["Results"][outputs[i]]["Error"] = {result[1].lb(), result[1].ub()};

@@ -28,6 +28,8 @@ public:
 
   std::string validationFile;
 
+  std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics;
+
   Graph() = default;
   ~Graph();
 
