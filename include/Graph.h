@@ -21,6 +21,7 @@ public:
   std::set<Node *> nodes;
   // Depth table contains a map from depth to a set of nodes at that depth
   std::map<int, std::set<Node *>> depthTable;
+  unsigned int numOperatorsOutput = 0;
 
   ErrorAnalyzer *errorAnalyzer = new ErrorAnalyzer(&log);
   IBEXInterface *ibexInterface = new IBEXInterface();

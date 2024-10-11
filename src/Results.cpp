@@ -15,6 +15,8 @@ void Results::setFile(std::string _file) {
 }
 
 bool Results::writeResults(std::vector<std::string> outputs,
+                           unsigned int numOperatorsOutput,
+                           unsigned int heightDAG,
                            std::string input_file,
                            const std::map<Node *, std::vector<ibex::Interval>>& results,
                            const std::map<std::string, std::chrono::duration<double>>& time_map) {
@@ -33,6 +35,8 @@ bool Results::writeResults(std::vector<std::string> outputs,
     for (auto const&[node, result] : results) {
       json_object[file_stem]["Results"][outputs[i]]["Output"] = {result[0].lb(), result[0].ub()};
       json_object[file_stem]["Results"][outputs[i]]["Error"] = {result[1].lb(), result[1].ub()};
+      json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
+      json_object[file_stem]["Results"]["Height"] = heightDAG;
     }
     json_object[file_stem]["Parsing Time"] = time_map.at("Parsing").count();
     json_object[file_stem]["Error Analysis Time"] = time_map.at("Error_Analysis").count();

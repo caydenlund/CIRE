@@ -214,7 +214,10 @@ int main(int argc, char **argv) {
     cire.log.log("Writing results to " + cire.results->file + " ...");
   }
 
-  cire.results->writeResults(cire.graph->outputs, cire.file, answer, cire.time_map);
+  cire.results->writeResults(cire.graph->outputs,
+                             cire.graph->numOperatorsOutput,
+                             cire.graph->depthTable.size(),
+                             cire.file, answer, cire.time_map);
 
   if(cire.logLevel > 0) {
     cire.log.log("Results written to " + cire.results->file + "!");

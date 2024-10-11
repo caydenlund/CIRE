@@ -19,6 +19,7 @@ void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
   }
   g.nodes.insert(res);
   g.depthTable[res->depth].insert(res);
+  g.numOperatorsOutput++;
 
   llvmToCireNodeMap[&I] = res;
   cireToLLVMNodeMap[res] = &I;

@@ -17,6 +17,8 @@ public:
     void setFile(std::string file);
 
     bool writeResults(std::vector<std::string> outputs,
+                      unsigned int numOperatorsOutput,
+                      unsigned int heightDAG,
                       std::string input_file,
                       const std::map<Node *, std::vector<ibex::Interval>>& results,
                       const std::map<std::string, std::chrono::duration<double>>& time_map);
