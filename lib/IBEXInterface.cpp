@@ -119,3 +119,8 @@ void IBEXInterface::dumpIbexExpressionToFile(std::string filename, ibex::ExprNod
 ibex::Function IBEXInterface::parseIbexFunctionFromFile(const char *filename) {
   return ibex::Function(filename);
 }
+
+string IBEXInterface::dumpFunction(ibex::ExprNode *Expression) {
+  setFunction(Expression);
+  return _function->minibex();
+}

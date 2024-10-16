@@ -43,6 +43,7 @@ class IBEXInterface {
   void dumpIbexFunctionToFile(std::string filename, ibex::ExprNode *Expression);
   void dumpIbexExpressionToFile(std::string filename, ibex::ExprNode *Expression);
   ibex::Function parseIbexFunctionFromFile(const char *filename);
+  string dumpFunction(ibex::ExprNode *Expression);
 };
 
 #endif //CIRE_IBEXINTERFACE_H

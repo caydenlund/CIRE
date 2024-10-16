@@ -238,11 +238,11 @@ void Graph::generateExpr(Node *node) {
       ((UnaryOp *)node)->expr = (ibex::ExprUnaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((UnaryOp *)node)->Operand].insert(node);
       if (debugLevel > 3) {
-        std::cout << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
+        std::cout << "UnaryOp: " << *((UnaryOp *)node)->expr << std::endl;
       }
       if (logLevel > 3) {
         assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "UnaryOp: " << ((UnaryOp *)node)->expr << std::endl;
+        log.logFile << "UnaryOp: " << *((UnaryOp *)node)->expr << std::endl;
       }
       break;
     case NodeType::BINARY_OP:
@@ -252,11 +252,11 @@ void Graph::generateExpr(Node *node) {
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->rightOperand].insert(node);
       if (debugLevel > 3) {
-        std::cout << "BinaryOp: " << ((BinaryOp *)node)->expr << std::endl;
+        std::cout << "BinaryOp: " << *((BinaryOp *)node)->expr << std::endl;
       }
       if (logLevel > 3) {
         assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "BinaryOp: " << ((BinaryOp *)node)->expr << std::endl;
+        log.logFile << "BinaryOp: " << *((BinaryOp *)node)->expr << std::endl;
       }
       break;
     case NodeType::TERNARY_OP:
@@ -269,11 +269,11 @@ void Graph::generateExpr(Node *node) {
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->middleOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->rightOperand].insert(node);
       if (debugLevel > 3) {
-        std::cout << "TernaryOp: " << ((TernaryOp *)node)->expr << std::endl;
+        std::cout << "TernaryOp: " << *((TernaryOp *)node)->expr << std::endl;
       }
       if (logLevel > 3) {
         assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "TernaryOp: " << ((TernaryOp *)node)->expr << std::endl;
+        log.logFile << "TernaryOp: " << *((TernaryOp *)node)->expr << std::endl;
       }
       break;
     default:
@@ -908,6 +908,20 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
   ibexInterface->setInputIntervals(inputs);
 
+  if(debugLevel > 4) {
+    for (auto &node: candidate_nodes) {
+      ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+      std::cout << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
+    }
+  }
+  if(logLevel > 4) {
+    for (auto &node: candidate_nodes) {
+      ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
+    }
+  }
+
   std::map<Node *, ibex::Interval> min;
   for (auto &node : candidate_nodes) {
     if(debugLevel > 3) {
@@ -1001,6 +1015,10 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   if (debugLevel > 1) {
     std::cout << "Finding error extrema..." << std::endl;
+  }
+  if(logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Finding error extremas..." << std::endl;
   }
 
   generateIbexSymbols();
