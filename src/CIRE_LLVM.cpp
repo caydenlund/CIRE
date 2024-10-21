@@ -48,7 +48,9 @@ namespace {
                             cl::desc("Set the log level"),
                             cl::init(0));
 
-
+    cl::opt<bool> CSVFriendly("csv-friendly",
+                        cl::desc("Enable output to JSON file in a CSV friendly manner"),
+                        cl::init(false));
 
 }
 
@@ -214,11 +216,22 @@ int main(int argc, char **argv) {
     cire.log.log("Writing results to " + cire.results->file + " ...");
   }
 
-  cire.results->writeResults(cire.graph->outputs,
-                             cire.graph->numOperatorsOutput,
-                             cire.graph->depthTable.rbegin()->first,
-                              cire.graph->abstractionMetrics,
-                             cire.file, answer, cire.time_map);
+
+  if(CSVFriendly) {
+    cire.results->writeResultsForCSV(cire.graph->outputs,
+                                     cire.graph->numOperatorsOutput,
+                                     cire.graph->depthTable.rbegin()->first,
+                                     cire.graph->abstractionMetrics,
+                                     cire.file, answer, cire.time_map);
+  } else {
+    cire.results->writeResults(cire.graph->outputs,
+                               cire.graph->numOperatorsOutput,
+                               cire.graph->depthTable.rbegin()->first,
+                               cire.graph->abstractionMetrics,
+                               cire.file, answer, cire.time_map);
+  }
+
+
 
   if(cire.logLevel > 0) {
     cire.log.log("Results written to " + cire.results->file + "!");

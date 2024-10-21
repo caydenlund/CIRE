@@ -934,7 +934,7 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(node->getExprNode());
 
-    // print the output expression
+    // print the output interval
     if(debugLevel > 3) {
       std::cout << "Min Interval: " << min[node] << std::endl;
     }
@@ -960,13 +960,13 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(node->getExprNode());
 
-    // print the output expression
+    // print the output interval - Max have to be flipped since we find the min of the negative of the function
     if(debugLevel > 3) {
-      std::cout << "Max Interval: " << max[node] << std::endl;
+      std::cout << "Max Interval: " << -max[node] << std::endl;
     }
     if(logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Max Interval: " << max[node] << std::endl;
+      log.logFile << "Max Interval: " << -max[node] << std::endl;
     }
   }
 
@@ -1044,7 +1044,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(errorAnalyzer->ErrAccumulator[node]);
 
-    // print the error expression
+    // print the error interval
     if (debugLevel > 3) {
       std::cout << "Min Interval: " << min[node] << std::endl;
     }
@@ -1086,13 +1086,13 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(errorAnalyzer->ErrAccumulator[node]);
 
-    // print the error expression
+    // print the error interval - Max have to be flipped since we find the min of the negative of the function
     if (debugLevel > 3) {
-      std::cout << "Max Interval: " << max[node] << std::endl;
+      std::cout << "Max Interval: " << -max[node] << std::endl;
     }
     if (logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Max Interval: " << max[node] << std::endl;
+      log.logFile << "Max Interval: " << -max[node] << std::endl;
     }
   }
 
@@ -1106,7 +1106,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
       log.logFile << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
     if (min[node].lb() <= -max[node].lb() ) {
-      extrema[node] = ibex::Interval(min[node].lb()* pow(2, -53), -max[node].lb()* pow(2, -53));
+      extrema[node] = ibex::Interval(min[node].lb() * pow(2, -53), -max[node].lb() * pow(2, -53));
     } else {
       std::cout << "Error extrema is empty! Setting to 0" << std::endl;
       extrema[node] = ibex::Interval(0, 0);

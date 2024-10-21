@@ -23,7 +23,7 @@ def summarize(file_path):
 def run_cire_llvm(llvm_file):
     # print(os.getcwd())
     # Run CIRE_LLVM on the LLVM file
-    exit_code = os.system("../build-debug/bin/CIRE_LLVM " + llvm_file)
+    exit_code = os.system("../build-debug/bin/CIRE_LLVM -csv-friendly " + llvm_file)
     # Check if CIRE_LLVM ran successfully
     if exit_code != 0:
         print("CIRE_LLVM failed to run on " + llvm_file)
@@ -36,7 +36,7 @@ def run_cire_llvm_on_dir(directory):
     # Get all the files in the directory
     files = os.listdir(directory)
 
-    os.system("rm results.txt default.log")
+    os.system("rm results.json default.log")
 
     # Iterate over all the files
     for file in files:
@@ -46,7 +46,7 @@ def run_cire_llvm_on_dir(directory):
             # print("Running CIRE_LLVM on " + directory + '/' + file)
             run_cire_llvm(directory + '/' + file)
 
-    summarize("results.txt")
+    summarize("results.json")
 
 
 # main function

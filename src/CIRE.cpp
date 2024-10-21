@@ -11,6 +11,7 @@ void show_usage(std::string name) {
             << "\t-o,--output\t\tSet the output file\n"
             << "\t-d,--debug-level\t\tSet the debug level\n"
             << "\t-l,--log-level\t\tSet the log level\n"
+            << "\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner\n"
             << std::endl;
 }
 
@@ -18,6 +19,7 @@ int main(int argc, char *argv[]) {
   Cire cire;
 
   const auto start = std::chrono::high_resolution_clock::now();
+  bool CSV_friendly = false;
 
   if (argc < 2) {
     show_usage(argv[0]);
@@ -82,6 +84,13 @@ int main(int argc, char *argv[]) {
           std::cerr << "--log-level option requires one argument." << std::endl;
           return 1;
         }
+      } else if ((arg == "-cf" || (arg == "--csv-friendly"))) {
+        if (i + 1 < argc) {
+          CSV_friendly = true;
+        } else {
+          std::cerr << "--csv-friendly option requires one argument." << std::endl;
+          return 1;
+        }
       } else {
         cire.setFile(argv[i]);
       }
@@ -141,12 +150,19 @@ int main(int argc, char *argv[]) {
     cire.log.log("Writing results to " + cire.results->file + " ...\n");
   }
 
-
-  cire.results->writeResults(cire.graph->outputs,
-                             cire.graph->numOperatorsOutput,
-                             cire.graph->depthTable.rbegin()->first,
-                              cire.graph->abstractionMetrics,
-                             cire.file, answer, cire.time_map);
+  if (CSV_friendly) {
+    cire.results->writeResultsForCSV(cire.graph->outputs,
+                                     cire.graph->numOperatorsOutput,
+                                     cire.graph->depthTable.rbegin()->first,
+                                     cire.graph->abstractionMetrics,
+                                     cire.file, answer, cire.time_map);
+  } else {
+    cire.results->writeResults(cire.graph->outputs,
+                               cire.graph->numOperatorsOutput,
+                               cire.graph->depthTable.rbegin()->first,
+                               cire.graph->abstractionMetrics,
+                               cire.file, answer, cire.time_map);
+  }
 
   if(cire.logLevel > 0) {
     cire.log.logFile << "Results written to " << cire.results->file << "!" << std::endl;
