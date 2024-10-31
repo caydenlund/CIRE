@@ -1,13 +1,8 @@
-#include <llvm/IR/Instructions.h>
 #include <llvm/IR/Constants.h>
 #include "llvm_frontend.h"
 
 using namespace llvm;
 using namespace std;
-
-// Map from LLVM Values to CIRE Nodes
-std::map<llvm::Value *, Node *> llvmToCireNodeMap;
-std::map<Node *, llvm::Value *> cireToLLVMNodeMap;
 
 void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
   if (I.getType()->isHalfTy()) {

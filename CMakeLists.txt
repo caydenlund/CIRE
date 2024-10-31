@@ -57,6 +57,7 @@ if(ENABLE_LLVM_FRONTEND)
 
     set(UTIL_SRCS
             "util/llvm_frontend.cpp"
+            "util/validator_util.cpp"
     )
 
     add_library(llvm_util STATIC ${LLVM_UTIL_SRCS})
@@ -82,10 +83,15 @@ if(ENABLE_LLVM_FRONTEND)
                             PRIVATE nlohmann_json::nlohmann_json llvm_util util)
 
     add_llvm_executable(CIRE_LLVM src/CIRE_LLVM.cpp src/Cire.cpp src/Results.cpp)
-    llvm_map_components_to_libnames(llvm_libs support core irreader)
+    llvm_map_components_to_libnames(llvm_libs support core irreader transformutils)
     target_link_libraries(CIRE_LLVM
             PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
             PRIVATE nlohmann_json::nlohmann_json llvm_util util ${llvm_libs})
+
+    # Building VALIDATOR
+    add_executable(VALIDATOR src/VALIDATOR.cpp)
+    target_link_libraries(VALIDATOR
+                            PRIVATE llvm_util util ${llvm_libs})
 
     # Allow undefined symbols in shared objects on Darwin (this is the default
     # behaviour on Linux)

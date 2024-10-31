@@ -65,8 +65,8 @@ int main(int argc, char **argv) {
   }
 
   sys::PrintStackTraceOnErrorSignal(argv[0]);
-  llvm::EnableDebugBuffering = true;
-  llvm::LLVMContext Context;
+  EnableDebugBuffering = true;
+  LLVMContext Context;
 
   string Usage = "CIRE stand-alone worst-case floating-point round-off error estimator\n";
   cl::ParseCommandLineOptions(argc, argv, Usage);
@@ -118,8 +118,7 @@ int main(int argc, char **argv) {
 
     if(!Input.empty()) {
       cire.graph->parse(*Input.c_str());
-    }
-    else {
+    } else {
       parseInputsInLLVM(*cire.graph, *F);
     }
 
