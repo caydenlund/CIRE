@@ -357,6 +357,7 @@ assign_exp: ID ASSIGN arith_exp SEMICOLON {
             | ID FPTYPE ASSIGN arith_exp SEMICOLON {
                 $$ = $4;
                 graph->symbolTables[graph->currentScope]->insert($1, $4);
+                $$->setRoundingType($2);
                 $$->setRoundingFromType($2);
                 // std::cout << *$$ << std::endl;
             }

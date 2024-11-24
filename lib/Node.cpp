@@ -37,16 +37,25 @@ bool Node::isTernaryOp() const {
   return type == TERNARY_OP;
 }
 
-void Node::setRoundingFromType(RoundingType type) {
-  rounding = RoundingAmount[type];
+void Node::setRoundingType(Node::RoundingType OpRndType) {
+  OpRndType = OpRndType;
 }
 
-void Node::setRounding(double rounding) {
-  this->rounding = rounding;
+void Node::setRoundingFromType(RoundingType OpRndType) {
+  OpRndType = OpRndType;
+  OpRounding = RoundingAmount[OpRndType];
+}
+
+void Node::setRounding(double OpRounding) {
+  this->OpRounding = OpRounding;
 }
 
 void Node::setAbsoluteError(const ibex::ExprNode *absErr) {
   absoluteError = absErr;
+}
+
+Node::RoundingType Node::getRoundingType() {
+  return OpRndType;
 }
 
 void Node::write(std::ostream &os) const {
@@ -67,7 +76,7 @@ void Node::write(std::ostream &os) const {
     default: type_string = "DEFAULT"; break;
   }
   os << "\tType:" << type_string << std::endl;
-  os << "\tRounding:" << rounding << std::endl;
+  os << "\tRounding:" << OpRounding << std::endl;
   os << "\tParents: [" << std::endl;
   for (auto parent : parents) {
     os << "\t" << parent->id << ", ";
@@ -83,7 +92,7 @@ ibex::ExprNode *Node::getExprNode() const {
 bool Node::operator==(const Node &other) const {
   return depth == other.depth &&
          type == other.type &&
-         rounding == other.rounding;
+         OpRounding == other.OpRounding;
 }
 
 Node &Node::operator+(Node &other) const {
@@ -107,7 +116,7 @@ Node &Node::operator/(Node &other) const {
 }
 
 double Node::getRounding() {
-  return rounding;
+  return OpRounding;
 }
 
 ibex::ExprNode &Node::getAbsoluteError() {
@@ -128,12 +137,14 @@ Node *Node::getChildNode(int index) const {
 
 Integer::Integer(const int val): val(val) {
   type = INTEGER;
-  rounding = RoundingAmount[INT];
+  OpRndType = INT;
+  OpRounding = RoundingAmount[INT];
 }
 
 Integer::Integer(const ibex::ExprConstant &value): value(&value) {
   type = INTEGER;
-  rounding = RoundingAmount[INT];
+  OpRndType = INT;
+  OpRounding = RoundingAmount[INT];
 }
 
 void Integer::write(std::ostream &os) const {
@@ -214,12 +225,14 @@ Node *Integer::getChildNode(int index) const {
 
 Float::Float(const float val): val(val) {
   type = FLOAT;
-  rounding = RoundingAmount[FL32];
+  OpRndType = FL32;
+  OpRounding = RoundingAmount[FL32];
 }
 
 Float::Float(const ibex::ExprConstant &value):value(&value) {
   type = FLOAT;
-  rounding = RoundingAmount[FL32];
+  OpRndType = FL32;
+  OpRounding = RoundingAmount[FL32];
 }
 
 void Float::write(std::ostream &os) const {
@@ -304,12 +317,14 @@ Node *Float::getChildNode(int index) const {
 
 Double::Double(const double val): val(val) {
   type = DOUBLE;
-  rounding = RoundingAmount[FL64];
+  OpRndType = FL64;
+  OpRounding = RoundingAmount[FL64];
 }
 
 Double::Double(const ibex::ExprConstant &value): value(&value) {
   type = DOUBLE;
-  rounding = RoundingAmount[FL64];
+  OpRndType = FL64;
+  OpRounding = RoundingAmount[FL64];
 }
 
 void Double::write(std::ostream &os) const {
@@ -400,12 +415,14 @@ FreeVariable::FreeVariable() {
 FreeVariable::FreeVariable(RoundingType rnd_typ) {
   var = new ibex::Interval(0.1, 100);
   type = FREE_VARIABLE;
-  rounding = RoundingAmount[rnd_typ];
+  OpRndType = rnd_typ;
+  OpRounding = RoundingAmount[rnd_typ];
 }
 
 FreeVariable::FreeVariable(const ibex::Interval &var, RoundingType rnd_typ): var(&var) {
   type = FREE_VARIABLE;
-  rounding = RoundingAmount[rnd_typ];
+  OpRndType = rnd_typ;
+  OpRounding = RoundingAmount[rnd_typ];
 }
 
 void FreeVariable::write(std::ostream &os) const {
@@ -517,7 +534,8 @@ VariableNode::VariableNode() {
 
 VariableNode::VariableNode(RoundingType rnd_typ) {
   type = VARIABLE;
-  rounding = RoundingAmount[rnd_typ];
+  OpRndType = rnd_typ;
+  OpRounding = RoundingAmount[rnd_typ];
 }
 
 VariableNode::VariableNode(const ibex::ExprSymbol& variable): variable(&variable) {
@@ -527,7 +545,8 @@ VariableNode::VariableNode(const ibex::ExprSymbol& variable): variable(&variable
 VariableNode::VariableNode(const Node &node) {
   type = VARIABLE;
   parents = node.parents;
-  rounding = node.rounding;
+  OpRndType = node.OpRndType;
+  OpRounding = node.OpRounding;
   
   // Modify the parents of the node to point to this node
   for (auto parent : parents) {
@@ -642,7 +661,8 @@ UnaryOp::UnaryOp(Node* Operand, Op op): Operand(Operand),
     case LOG:
     case SQRT:
     case EXP:
-      rounding = Operand->rounding;
+      OpRndType = Operand->OpRndType;
+      OpRounding = Operand->OpRounding;
       break;
   }
 }
@@ -682,7 +702,7 @@ Node &UnaryOp::operator/(Node &other) const {
 }
 
 double UnaryOp::getRounding() {
-  return rounding * OpErrorULPs[op];
+  return OpRounding * OpErrorULPs[op];
 }
 
 ibex::ExprNode &UnaryOp::generateSymExpr() {
@@ -721,12 +741,12 @@ BinaryOp::BinaryOp(Node* Left, Node* Right, Op op): leftOperand(Left),
                                                     expr(nullptr) {
   depth = std::max(Left->depth, Right->depth) + 1;
   type = BINARY_OP;
-  if (Left->rounding != 0.0 && Right->rounding != 0.0)
-    rounding = std::min(Left->rounding, Right->rounding);
-  else if(Left->rounding == 0.0)
-    rounding = Right->rounding;
+  if (Left->OpRounding != 0.0 && Right->OpRounding != 0.0)
+    OpRounding = std::min(Left->OpRounding, Right->OpRounding);
+  else if(Left->OpRounding == 0.0)
+    OpRounding = Right->OpRounding;
   else
-    rounding = Left->rounding;
+    OpRounding = Left->OpRounding;
   leftOperand->parents.insert(this);
   rightOperand->parents.insert(this);
 }
@@ -779,7 +799,7 @@ Node &BinaryOp::operator/(Node &other) const {
 }
 
 double BinaryOp::getRounding() {
-  return rounding * OpErrorULPs[op];
+  return OpRounding * OpErrorULPs[op];
 }
 
 ibex::ExprNode &BinaryOp::generateSymExpr() {
@@ -811,18 +831,18 @@ TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right, Op op): leftOperand(
                                                               op(op) {
   depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
   type = TERNARY_OP;
-  if (Left->rounding != 0.0 && Middle->rounding != 0.0 && Right->rounding != 0.0)
-    rounding = std::min(Left->rounding, std::min(Middle->rounding, Right->rounding));
-  else if(Left->rounding == 0.0) {
-    if (Middle->rounding == 0.0)
-      rounding = Right->rounding;
+  if (Left->OpRounding != 0.0 && Middle->OpRounding != 0.0 && Right->OpRounding != 0.0)
+    OpRounding = std::min(Left->OpRounding, std::min(Middle->OpRounding, Right->OpRounding));
+  else if(Left->OpRounding == 0.0) {
+    if (Middle->OpRounding == 0.0)
+      OpRounding = Right->OpRounding;
     else
-      rounding = Middle->rounding;
+      OpRounding = Middle->OpRounding;
   }
-  else if(Middle->rounding == 0.0)
-    rounding = Right->rounding;
+  else if(Middle->OpRounding == 0.0)
+    OpRounding = Right->OpRounding;
   else
-    rounding = Left->rounding;
+    OpRounding = Left->OpRounding;
   leftOperand->parents.insert(this);
   middleOperand->parents.insert(this);
   rightOperand->parents.insert(this);
@@ -866,8 +886,8 @@ Node &TernaryOp::operator/(Node &other) const {
 }
 
 double TernaryOp::getRounding() {
-  // TODO: Add rounding for Ternary operations
-  return rounding;
+  // TODO: Add OpRounding for Ternary operations
+  return OpRounding;
 }
 
 ibex::ExprNode &TernaryOp::generateSymExpr() {

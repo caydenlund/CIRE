@@ -77,7 +77,7 @@ void Graph::generateIbexSymbols() {
       }
       case NodeType::FLOAT: {
         ((Float*)node)->value = &(ibex::ExprConstant::new_scalar(((Float*)node)->val));
-        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((Float*)node)->val * pow(2, -53)));
+        node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((Float*)node)->val * pow(2, -24)));
         break;
       }
       case NodeType::DOUBLE: {
@@ -1106,7 +1106,11 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
       log.logFile << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
     if (min[node].lb() <= -max[node].lb() ) {
-      extrema[node] = ibex::Interval(min[node].lb() * pow(2, -53), -max[node].lb() * pow(2, -53));
+      extrema[node] = ibex::Interval(min[node].lb()
+//              * pow(2, -53)
+              , -max[node].lb()
+//              * pow(2, -53)
+              );
     } else {
       std::cout << "Error extrema is empty! Setting to 0" << std::endl;
       extrema[node] = ibex::Interval(0, 0);

@@ -75,6 +75,7 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
 
     Node *Operand, *leftOperand, *rightOperand;
     ibex::ExprNode *derivThroughNode, *derivLeftThroughNode, *derivRightThroughNode;
+    ibex::ExprNode *derivTypeCastProd;
     switch (node->type) {
       case DEFAULT:
       case INTEGER:
@@ -87,11 +88,13 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         Operand = ((UnaryOp *) node)->Operand;
         derivThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
                                                       *getDerivativeWRTChildNode(node, 0)).simplify(0);
+        derivTypeCastProd = (ibex::ExprNode *) &product(*derivThroughNode,
+                                                        ibex::ExprConstant::new_scalar(node->RoundingAmount[Operand->OpRndType])).simplify(0);
 
         if (contains(BwdDerivatives[Operand], outVar)) {
-          BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[Operand][outVar] + *derivThroughNode);
+          BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[Operand][outVar] + *derivTypeCastProd);
         } else {
-          BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*derivThroughNode);
+          BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*derivTypeCastProd);
         }
 
         if (debugLevel > 4) {
@@ -121,12 +124,14 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         leftOperand = ((BinaryOp *) node)->leftOperand;
         derivLeftThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
                                                           *getDerivativeWRTChildNode(node, 0)).simplify(0);
+        derivTypeCastProd = (ibex::ExprNode *) &product(*derivLeftThroughNode,
+                                                        ibex::ExprConstant::new_scalar(node->RoundingAmount[leftOperand->OpRndType])).simplify(0);
 
         if (contains(BwdDerivatives[leftOperand], outVar)) {
           BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[leftOperand][outVar] +
-                                                                     *derivLeftThroughNode);
+                                                                     *derivTypeCastProd);
         } else {
-          BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*derivLeftThroughNode);
+          BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*derivTypeCastProd);
         }
 
         if (debugLevel > 4) {
@@ -149,12 +154,14 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         rightOperand = ((BinaryOp *) node)->rightOperand;
         derivRightThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
                                                            *getDerivativeWRTChildNode(node, 1)).simplify(0);
+        derivTypeCastProd = (ibex::ExprNode *) &product(*derivRightThroughNode,
+                                                        ibex::ExprConstant::new_scalar(node->RoundingAmount[rightOperand->OpRndType])).simplify(0);
 
         if (contains(BwdDerivatives[rightOperand], outVar)) {
           BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[rightOperand][outVar] +
-                                                                      *derivRightThroughNode);
+                                                                      *derivTypeCastProd);
         } else {
-          BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*derivRightThroughNode);
+          BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*derivTypeCastProd);
         }
 
         if (debugLevel > 4) {
@@ -287,16 +294,16 @@ void ErrorAnalyzer::propagateError(Node *node) {
     if (debugLevel > 4) {
       printBwdDerivative(outVar, node);
       std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
-      std::cout << "rounding:" << node->getRounding() << std::endl;
+      std::cout << "OpRounding:" << node->getRounding() << std::endl;
     }
     if (logLevel > 4) {
       logBwdDerivative(outVar, node);
       log.logFile << "absolute error:" << node->getAbsoluteError() << std::endl;
-      log.logFile << "rounding:" << node->getRounding() << std::endl;
+      log.logFile << "OpRounding:" << node->getRounding() << std::endl;
     }
 
     // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
-    // the rounding and noise
+    // the local_error (product of the expression corresponding the node and the operator rounding)
     auto local_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), node->getRounding()).simplify(0);
     auto expr = (ibex::ExprNode *) &abs(product(*BwdDerivatives[node][outVar],
                                                 *local_error)).simplify(0);

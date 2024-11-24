@@ -74,17 +74,19 @@ public:
   int id = NODE_COUNTER++;
   int depth = 0;
   NodeType type = DEFAULT;
-  double rounding = 1.0;  // RoundingAmount[INT] by default
+  RoundingType OpRndType = INT;
+  // Epsilon value for rounding on applying the operator
+  double OpRounding = 1.0;  // RoundingAmount[INT] by default (no rounding)
   const ibex::ExprNode *absoluteError = nullptr;
   std::set<Node *> parents;
 
-// The amount of rounding to be applied
+// Epsilon values for rounding to be applied for different types
   std::map<RoundingType, double> RoundingAmount = {
     {CONST, 0.0},
     {INT, 1.0},
     {FL16, pow(2, -11)},
     {FL32, pow(2, -24)},
-    {FL64, 1.0},};
+    {FL64, pow(2, -53)},};
 
 
   Node() = default;
@@ -99,9 +101,12 @@ public:
   bool isBinaryOp() const;
   bool isTernaryOp() const;
 
+  void setRoundingType(RoundingType type);
   void setRoundingFromType(RoundingType type);
-  void setRounding(double rounding);
+  void setRounding(double OpRounding);
   void setAbsoluteError(const ibex::ExprNode *absErr);
+
+  RoundingType getRoundingType();
 
   virtual void write(std::ostream &os) const;
 

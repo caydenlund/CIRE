@@ -6,10 +6,13 @@ using namespace std;
 
 void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
   if (I.getType()->isHalfTy()) {
+    res->setRoundingType(Node::RoundingType::FL16);
     res->setRoundingFromType(Node::RoundingType::FL16);
   } else if (I.getType()->isFloatTy()) {
+    res->setRoundingType(Node::RoundingType::FL32);
     res->setRoundingFromType(Node::RoundingType::FL32);
   } else if (I.getType()->isDoubleTy()) {
+    res->setRoundingType(Node::RoundingType::FL64);
     res->setRoundingFromType(Node::RoundingType::FL64);
   }
   g.nodes.insert(res);
