@@ -69,6 +69,7 @@ void ErrorAnalyzer::derivativeComputingDriver() {
 }
 
 void ErrorAnalyzer::derivativeComputing(Node *node) {
+  // TODO: Type rounding handled only for FL64 --> FL32. Handle for other cases.
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
   for (Node *outVar : outputList) {
     assert(BwdDerivatives[node][outVar] != nullptr && "Derivative of output wrt node should have been computed\n");
@@ -88,8 +89,15 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         Operand = ((UnaryOp *) node)->Operand;
         derivThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
                                                       *getDerivativeWRTChildNode(node, 0)).simplify(0);
-        derivTypeCastProd = (ibex::ExprNode *) &product(*derivThroughNode,
-                                                        ibex::ExprConstant::new_scalar(node->RoundingAmount[Operand->OpRndType])).simplify(0);
+        if(node->OpRndType == Node::FL32 && Operand->OpRndType == Node::FL64) {
+          derivTypeCastProd = (ibex::ExprNode *) &product(*derivThroughNode,
+                                                          ibex::ExprConstant::new_scalar(
+                                                                  node->RoundingAmount[Operand->OpRndType])).simplify(
+                  0);
+        } else {
+          derivTypeCastProd = derivThroughNode;
+        }
+
 
         if (contains(BwdDerivatives[Operand], outVar)) {
           BwdDerivatives[Operand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[Operand][outVar] + *derivTypeCastProd);
@@ -124,8 +132,14 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         leftOperand = ((BinaryOp *) node)->leftOperand;
         derivLeftThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
                                                           *getDerivativeWRTChildNode(node, 0)).simplify(0);
-        derivTypeCastProd = (ibex::ExprNode *) &product(*derivLeftThroughNode,
-                                                        ibex::ExprConstant::new_scalar(node->RoundingAmount[leftOperand->OpRndType])).simplify(0);
+        if(node->OpRndType == Node::FL32 && leftOperand->OpRndType == Node::FL64) {
+          derivTypeCastProd = (ibex::ExprNode *) &product(*derivLeftThroughNode,
+                                                          ibex::ExprConstant::new_scalar(
+                                                                  node->RoundingAmount[leftOperand->OpRndType])).simplify(
+                  0);
+        } else {
+          derivTypeCastProd = derivLeftThroughNode;
+        }
 
         if (contains(BwdDerivatives[leftOperand], outVar)) {
           BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[leftOperand][outVar] +
@@ -154,8 +168,14 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         rightOperand = ((BinaryOp *) node)->rightOperand;
         derivRightThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
                                                            *getDerivativeWRTChildNode(node, 1)).simplify(0);
-        derivTypeCastProd = (ibex::ExprNode *) &product(*derivRightThroughNode,
-                                                        ibex::ExprConstant::new_scalar(node->RoundingAmount[rightOperand->OpRndType])).simplify(0);
+        if(node->OpRndType == Node::FL32 && rightOperand->OpRndType == Node::FL64) {
+          derivTypeCastProd = (ibex::ExprNode *) &product(*derivRightThroughNode,
+                                                          ibex::ExprConstant::new_scalar(
+                                                                  node->RoundingAmount[rightOperand->OpRndType])).simplify(
+                  0);
+        } else {
+          derivTypeCastProd = derivRightThroughNode;
+        }
 
         if (contains(BwdDerivatives[rightOperand], outVar)) {
           BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode *) &(*BwdDerivatives[rightOperand][outVar] +
@@ -365,6 +385,10 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
           return (ibex::ExprNode *) &(1.0/(2.0*sqrt(*child->getExprNode())));
         case Node::EXP:
           return child->getExprNode();
+        case Node::FPTRUNC:
+          return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+        case Node::FPEXT:
+          return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
       }
       break;
     case NodeType::BINARY_OP:

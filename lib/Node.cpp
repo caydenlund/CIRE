@@ -641,7 +641,9 @@ Node *VariableNode::getChildNode(int index) const {
   exit(1);
 }
 
-UnaryOp::UnaryOp(Node* Operand, Op op): Operand(Operand),
+// We assume the OpRndType of operator is the same as OpRndType of the operands except in the case of
+// FPTRUNC and FPEXT where we explicitly pass the rounding type in rnd_typ
+UnaryOp::UnaryOp(Node* Operand, Op op, RoundingType rnd_typ = CONST): Operand(Operand),
                                         op(op),
                                         expr(nullptr) {
   depth = Operand->depth + 1;
@@ -663,6 +665,12 @@ UnaryOp::UnaryOp(Node* Operand, Op op): Operand(Operand),
     case EXP:
       OpRndType = Operand->OpRndType;
       OpRounding = Operand->OpRounding;
+      break;
+      // We only use rnd_typ for cast instructions as the operator type is not the same as operand type.
+    case FPTRUNC:
+    case FPEXT:
+      OpRndType = rnd_typ;
+      OpRounding = RoundingAmount[rnd_typ];
       break;
   }
 }
@@ -720,6 +728,8 @@ ibex::ExprNode &UnaryOp::generateSymExpr() {
     case LOG: return (ibex::ExprNode &) log(*Operand->getExprNode());
     case SQRT: return (ibex::ExprNode &) sqrt(*Operand->getExprNode());
     case EXP: return (ibex::ExprNode &) exp(*Operand->getExprNode());
+    case FPTRUNC: return (ibex::ExprNode &) *Operand->getExprNode();
+    case FPEXT: return (ibex::ExprNode &) *Operand->getExprNode();
     default:
       std::cout << "ERROR: Unknown operator" << std::endl;
       exit(1);
@@ -983,6 +993,14 @@ Node &sqrt(Node &x) {
 
 Node &exp(Node &x) {
   return *new UnaryOp(&x, Node::EXP);
+}
+
+Node &fptrunc(Node &x, Node::RoundingType rnd_typ) {
+  return *new UnaryOp(&x, Node::FPTRUNC, rnd_typ);
+}
+
+Node &fpext(Node &x, Node::RoundingType rnd_typ) {
+  return *new UnaryOp(&x, Node::FPEXT, rnd_typ);
 }
 
 Node &fma(Node &x, Node &y, Node &z) {

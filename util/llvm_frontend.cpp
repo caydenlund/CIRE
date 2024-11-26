@@ -210,7 +210,37 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       case Instruction::UIToFP:
       case Instruction::SIToFP:
       case Instruction::FPTrunc:
+        if (I.getType()->isFloatingPointTy()) {
+          auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
+          Node::RoundingType rounding_type;
+          if (dyn_cast<FPTruncInst>(&I)->getDestTy()->isFloatTy()) {
+              rounding_type = Node::FL32;
+          } else if(dyn_cast<FPTruncInst>(&I)->getDestTy()->isDoubleTy()) {
+              rounding_type = Node::FL64;
+          } else {
+            outs() << "Incorrect Destination type:" << I.getType() << "\n";
+            exit(1);
+          }
+
+          addDataForCreatedNode(I, g, &fptrunc(*op1, rounding_type));
+        }
+        break;
       case Instruction::FPExt:
+        if (I.getType()->isFloatingPointTy()) {
+          auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
+          Node::RoundingType rounding_type;
+          if (dyn_cast<FPExtInst>(&I)->getDestTy()->isFloatTy()) {
+              rounding_type = Node::FL32;
+          } else if(dyn_cast<FPExtInst>(&I)->getDestTy()->isDoubleTy()) {
+              rounding_type = Node::FL64;
+          } else {
+            outs() << "Incorrect Destination type:" << I.getType() << "\n";
+            exit(1);
+          }
+
+          addDataForCreatedNode(I, g, &fpext(*op1, rounding_type));
+        }
+        break;
       case Instruction::PtrToInt:
       case Instruction::IntToPtr:
       case Instruction::BitCast:

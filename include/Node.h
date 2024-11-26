@@ -38,6 +38,8 @@ public:
     SQRT,
     EXP,
     FMA,
+    FPTRUNC,
+    FPEXT,
   };
   // The amount of error on these operations
   std::map<Op, double> OpErrorULPs = {
@@ -57,7 +59,9 @@ public:
           {LOG, 2.0},
           {SQRT, 1.0},
           {EXP, 2.0},
-          {FMA, 2.0},};
+          {FMA, 2.0},
+          {FPTRUNC, 0.0},
+          {FPEXT, 0.0},};
   enum RoundingType {
     CONST,
     INT,
@@ -255,7 +259,7 @@ public:
   Op op;
   const ibex::ExprUnaryOp* expr;
   UnaryOp() = default;
-  UnaryOp(Node* Operand, Op op);
+  UnaryOp(Node* Operand, Op op, RoundingType rnd_typ);
   ~UnaryOp() = default;
 
   // Prints string representation of this node
@@ -342,6 +346,8 @@ Node &atan(Node &x);
 Node &log(Node &x);
 Node &sqrt(Node &x);
 Node &exp(Node &x);
+Node &fptrunc(Node &x, Node::RoundingType rnd_typ);
+Node &fpext(Node &x, Node::RoundingType rnd_typ);
 
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right);
 const ibex::ExprNode& product(const ibex::ExprNode& left, double right);
