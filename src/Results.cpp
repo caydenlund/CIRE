@@ -8,6 +8,11 @@ Results::Results() {
   debugLevel = 0;
 }
 
+Results::Results(std::string _file) {
+  file = std::move(_file);
+  debugLevel = 0;
+}
+
 Results::~Results() = default;
 
 void Results::setFile(std::string _file) {

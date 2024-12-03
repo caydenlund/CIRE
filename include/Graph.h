@@ -31,6 +31,7 @@ public:
   std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics;
 
   Graph() = default;
+  explicit Graph(string logFile);
   ~Graph();
 
   void setValidationFile(std::string _validationFile);

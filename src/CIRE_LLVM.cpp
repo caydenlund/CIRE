@@ -52,6 +52,11 @@ namespace {
                         cl::desc("Enable output to JSON file in a CSV friendly manner"),
                         cl::init(false));
 
+    cl::opt<string> Output("output",
+                           cl::desc("Set the output file"),
+                           cl::value_desc("Sets the output file for the results"),
+                           cl::init("results.json"));
+
 }
 
 
@@ -100,6 +105,9 @@ int main(int argc, char **argv) {
     cire.setLogLevel(LogLevel);
     cire.graph->logLevel = LogLevel;
     cire.graph->errorAnalyzer->logLevel = LogLevel;
+  }
+  if (!Output.empty()) {
+    cire.results->setFile(Output);
   }
 
   if(cire.debugLevel > 0) {

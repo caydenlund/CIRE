@@ -12,6 +12,7 @@ public:
     nlohmann::json json_object;
     unsigned int debugLevel = 0;
     Results();
+    explicit Results(std::string file);
     ~Results();
 
     void setFile(std::string file);

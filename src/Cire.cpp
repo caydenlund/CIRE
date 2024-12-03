@@ -1,9 +1,10 @@
 #include"Cire.h"
 
-Cire::Cire() {
+Cire::Cire(std::string logFile, std::string resultFile) {
   graph = new Graph();
+  graph->log.setFile(std::move(logFile));
   graph->log.openFile();
-  results = new Results();
+  results = new Results(std::move(resultFile));
 }
 
 Cire::~Cire() {

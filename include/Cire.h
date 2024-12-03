@@ -22,7 +22,7 @@ public:
   // Map of the time taken by each phase of the program.
   std::map<std::string, std::chrono::duration<double>> time_map;
 
-  Cire();
+  explicit Cire(std::string logFile = "default.log", std::string resultFile = "results.json");
   ~Cire();
 
   void setFile(std::string file);

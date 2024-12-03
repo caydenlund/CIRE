@@ -5,6 +5,10 @@
 
 int SymbolTable::SCOPE_COUNTER = 0;
 
+Graph::Graph(string logFile) {
+  log.setFile(std::move(logFile));
+}
+
 Graph::~Graph() {
   for (auto &symbolTable : symbolTables) {
     delete symbolTable.second;

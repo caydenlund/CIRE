@@ -4,6 +4,7 @@ import glob
 import json
 import shutil
 import functools
+import matplotlib.pyplot as plt
 
 # Do not assign any value to this variable. Script will find the path to clang.
 CLANG_PATH = ""
@@ -37,18 +38,21 @@ def run_clang_on_dir(directory, flag_list):
 
     flags = functools.reduce(lambda x, y: x + " -" + y, flag_list, "")
 
+    # Create the destination directory
+    os.makedirs(destination_dir, exist_ok=True)
+
     # Iterate over all the files
     for file in files:
         # Check if the file is a .c or .cpp file
         if file.endswith(".c"):
             # Run clang on the file
             print("Running clang on " + directory + '/' + file)
-            os.system(CLANG_PATH + "clang" + flags + " -S -emit-llvm " + directory + '/' + file + " -o " +
+            os.system(CLANG_PATH + "/clang" + flags + " -S -emit-llvm " + directory + '/' + file + " -o " +
                       destination_dir + '/' + file[:-2] + ".ll")
         elif file.endswith(".cpp"):
             # Run clang++ on the file
             print("Running clang++ on " + directory + '/' + file)
-            os.system(CLANG_PATH + "clang++" + flags + " -S -emit-llvm " + directory + '/' + file + " -o " +
+            os.system(CLANG_PATH + "/clang++" + flags + " -S -emit-llvm " + directory + '/' + file + " -o " +
                       destination_dir + '/' + file[:-4] + ".ll")
 
 
@@ -65,14 +69,43 @@ def summarize(file_path):
         print(f"An error occurred: {e}")
 
     # print(data)
+    # Error plot
+    x_axis = []
+    y_axis = []
+    for key in data:
+        x_axis.append(key)
+        y_axis.append(max(data[key]["Error"], key=lambda x: x if x is not None else float('-inf')))
+
+    # plot the error
+    plt.plot(x_axis, y_axis)
+    plt.xlabel('File')
+    plt.ylabel('Error')
+    plt.title('Error plot')
+    plt.show()
+
+    # Time plot
+    y_axis = []
+    for key in data:
+        y_axis.append(data[key]["Total Time"])
+
+    # plot the time
+    plt.plot(x_axis, y_axis)
+    plt.xlabel('File')
+    plt.ylabel('Time')
+    plt.title('Time plot')
+    plt.show()
+
     return data
 
 
 # This function runs CIRE_LLVM on one LLVM file
 def run_cire_llvm(llvm_file):
+    # Get process id
+    pid = os.getpid()
     # print(os.getcwd())
     # Run CIRE_LLVM on the LLVM file
-    exit_code = os.system("../build-debug/bin/CIRE_LLVM -csv-friendly " + llvm_file)
+    exit_code = os.system(
+        "../build-debug/bin/CIRE_LLVM -csv-friendly -output results_" + str(pid) + ".json " + llvm_file)
     # Check if CIRE_LLVM ran successfully
     if exit_code != 0:
         print("CIRE_LLVM failed to run on " + llvm_file)
@@ -93,7 +126,23 @@ def run_cire_llvm_on_dir(directory):
         # print("Running CIRE_LLVM on " + directory + '/' + file)
         run_cire_llvm(file)
 
-    summarize("results.json")
+    # Get process id
+    pid = os.getpid()
+
+    summarize("results_" + str(pid) + ".json")
+
+
+def analyze_all_in_dir(directory, flag_list):
+    run_clang_on_dir(directory, flag_list)
+
+    directory_extension = functools.reduce(lambda x, y: x + "_" + y, flag_list, "")
+    destination_dir = directory + directory_extension
+
+    # Run CIRE_LLVM on specified directory
+    run_cire_llvm_on_dir(destination_dir)
+
+    # Remove the destination directory
+    shutil.rmtree(destination_dir)
 
 
 # main function
@@ -112,13 +161,8 @@ def main():
     CLANG_PATH = os.path.dirname(find_clang(clang_search_path))
     print("Clang found at: " + CLANG_PATH)
 
-    # run_clang_on_dir(directory, flag_list)
-
-    # directory_extension = functools.reduce(lambda x, y: x + "_" + y, flag_list, "")
-    # destination_dir = directory + directory_extension
-
     # Run CIRE_LLVM on specified directory
-    run_cire_llvm_on_dir(directory)
+    analyze_all_in_dir(directory, flag_list)
 
 
 # Call the main function
