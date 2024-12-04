@@ -37,7 +37,7 @@ bool Results::writeResults(std::vector<std::string> outputs,
     }
     std::filesystem::path file_path = input_file;
     std::string file_stem = file_path.stem().string();
-    unsigned i = 0;
+    unsigned k = 0;
     for (auto const&[abs_count, metrics] : abstractionMetrics) {
       json_object[file_stem]["Abstraction Metrics"][abs_count]["Window"] =
               {metrics.at("bound_min"), metrics.at("bound_max")};
@@ -47,11 +47,22 @@ bool Results::writeResults(std::vector<std::string> outputs,
       json_object[file_stem]["Abstraction Metrics"][abs_count]["Highest Depth"] = metrics.at("max_depth");
     }
     for (auto const&[node, result] : results) {
-      json_object[file_stem]["Results"][outputs[i]]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
-      json_object[file_stem]["Results"][outputs[i]]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
+      json_object[file_stem]["Results"][outputs[k]]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
+      json_object[file_stem]["Results"][outputs[k]]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
+      std::vector<std::pair<double, double>> lbPoint;
+      std::vector<std::pair<double, double>> ubPoint;
+      for (int i = 0; i < result.lbPoint.size(); i++) {
+        lbPoint.emplace_back(result.lbPoint[i].lb(), result.lbPoint[i].ub());
+        ubPoint.emplace_back(result.ubPoint[i].lb(), result.ubPoint[i].ub());
+      }
+      json_object[file_stem]["Results"][outputs[k]]["Lower Bound Optima"] = lbPoint;
+      json_object[file_stem]["Results"][outputs[k]]["Upper Bound Optima"] = ubPoint;
       json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Results"]["Height"] = heightDAG;
+      json_object[file_stem]["Results"]["Optimization Time"] = result.totalOptimizationTime;
+      k++;
     }
+    // Parsing Time + Error Analysis Time = Total Time
     json_object[file_stem]["Parsing Time"] = time_map.at("Parsing").count();
     json_object[file_stem]["Error Analysis Time"] = time_map.at("Error_Analysis").count();
     json_object[file_stem]["Total Time"] = time_map.at("Total").count();
@@ -87,7 +98,6 @@ Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOp
     }
     std::filesystem::path file_path = input_file;
     std::string file_stem = file_path.stem().string();
-    unsigned i = 0;
     for (auto const&[abs_count, metrics] : abstractionMetrics) {
       json_object[file_stem]["Window"] =
               {metrics.at("bound_min"), metrics.at("bound_max")};
@@ -100,10 +110,20 @@ Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOp
     for (auto const&[node, result] : results) {
       json_object[file_stem]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
       json_object[file_stem]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
+      std::vector<std::pair<double, double>> lbPoint;
+      std::vector<std::pair<double, double>> ubPoint;
+      for (int i = 0; i < result.lbPoint.size(); i++) {
+        lbPoint.emplace_back(result.lbPoint[i].lb(), result.lbPoint[i].ub());
+        ubPoint.emplace_back(result.ubPoint[i].lb(), result.ubPoint[i].ub());
+      }
+      json_object[file_stem]["Lower Bound Optima"] = lbPoint;
+      json_object[file_stem]["Upper Bound Optima"] = ubPoint;
       json_object[file_stem]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Height"] = heightDAG;
+      json_object[file_stem]["Optimization Time"] = result.totalOptimizationTime;
       break;
     }
+    // Parsing Time + Error Analysis Time = Total Time
     json_object[file_stem]["Parsing Time"] = time_map.at("Parsing").count();
     json_object[file_stem]["Error Analysis Time"] = time_map.at("Error_Analysis").count();
     json_object[file_stem]["Total Time"] = time_map.at("Total").count();
