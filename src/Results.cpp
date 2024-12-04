@@ -49,6 +49,9 @@ bool Results::writeResults(std::vector<std::string> outputs,
     for (auto const&[node, result] : results) {
       json_object[file_stem]["Results"][outputs[k]]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
       json_object[file_stem]["Results"][outputs[k]]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
+      json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
+      json_object[file_stem]["Results"]["Height"] = heightDAG;
+      json_object[file_stem]["Results"]["Optimization Time"] = result.totalOptimizationTime;
       std::vector<std::pair<double, double>> lbPoint;
       std::vector<std::pair<double, double>> ubPoint;
       for (int i = 0; i < result.lbPoint.size(); i++) {
@@ -57,9 +60,6 @@ bool Results::writeResults(std::vector<std::string> outputs,
       }
       json_object[file_stem]["Results"][outputs[k]]["Lower Bound Optima"] = lbPoint;
       json_object[file_stem]["Results"][outputs[k]]["Upper Bound Optima"] = ubPoint;
-      json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
-      json_object[file_stem]["Results"]["Height"] = heightDAG;
-      json_object[file_stem]["Results"]["Optimization Time"] = result.totalOptimizationTime;
       k++;
     }
     // Parsing Time + Error Analysis Time = Total Time
@@ -110,17 +110,20 @@ Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOp
     for (auto const&[node, result] : results) {
       json_object[file_stem]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
       json_object[file_stem]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
+      json_object[file_stem]["NumOperators"] = numOperatorsOutput;
+      json_object[file_stem]["Height"] = heightDAG;
+      json_object[file_stem]["Optimization Time"] = result.totalOptimizationTime;
       std::vector<std::pair<double, double>> lbPoint;
       std::vector<std::pair<double, double>> ubPoint;
       for (int i = 0; i < result.lbPoint.size(); i++) {
         lbPoint.emplace_back(result.lbPoint[i].lb(), result.lbPoint[i].ub());
         ubPoint.emplace_back(result.ubPoint[i].lb(), result.ubPoint[i].ub());
       }
-      json_object[file_stem]["Lower Bound Optima"] = lbPoint;
-      json_object[file_stem]["Upper Bound Optima"] = ubPoint;
-      json_object[file_stem]["NumOperators"] = numOperatorsOutput;
-      json_object[file_stem]["Height"] = heightDAG;
-      json_object[file_stem]["Optimization Time"] = result.totalOptimizationTime;
+      // Fields written to JSON file in lexigraphical order so name the fields accordingly to maintain
+      // order of importance.
+      // eg: Fields with varied number of values should be placed last in a record.
+      json_object[file_stem]["zLower Bound Optima"] = lbPoint;
+      json_object[file_stem]["zUpper Bound Optima"] = ubPoint;
       break;
     }
     // Parsing Time + Error Analysis Time = Total Time
