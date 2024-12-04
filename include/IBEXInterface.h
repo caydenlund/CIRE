@@ -5,6 +5,13 @@
 #include "../include/Node.h"
 #include <map>
 
+class OptResult {
+public:
+    ibex::Interval result;
+    ibex::IntervalVector optimumPoint;
+    double optimizationTime;
+};
+
 class IBEXInterface {
   ibex::IntervalVector _inputIntervals;
   ibex::Array<const ibex::ExprSymbol> *_variables;
@@ -12,6 +19,8 @@ class IBEXInterface {
   ibex::System *_system;
 
   public:
+  OptResult optResult;
+
   IBEXInterface() = default;
   IBEXInterface(ibex::IntervalVector InputIntervals,
                 ibex::Array<const ibex::ExprSymbol> Variables,
@@ -36,8 +45,8 @@ class IBEXInterface {
 
   // IBEX Operations
   ibex::IntervalVector eval();
-  ibex::Interval FindMin(ibex::ExprNode *Expression);
-  ibex::Interval FindMax(ibex::ExprNode *Expression);
+  OptResult FindMin(ibex::ExprNode *Expression);
+  OptResult FindMax(ibex::ExprNode *Expression);
 
   // File IO
   void dumpIbexFunctionToFile(std::string filename, ibex::ExprNode *Expression);

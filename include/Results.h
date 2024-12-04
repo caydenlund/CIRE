@@ -4,6 +4,7 @@
 #include <string>
 #include <Node.h>
 #include <nlohmann/json.hpp>
+#include "Graph.h"
 
 class Results {
 public:
@@ -22,7 +23,7 @@ public:
                       unsigned int heightDAG,
                       std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                       const std::string& input_file,
-                      const std::map<Node *, std::vector<ibex::Interval>>& results,
+                      const std::map<Node *, ErrorAnalysisResult>& results,
                       const std::map<std::string, std::chrono::duration<double>>& time_map);
 
     bool writeResultsForCSV(std::vector<std::string> outputs,
@@ -30,7 +31,7 @@ public:
                             unsigned int heightDAG,
                             std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                             const std::string& input_file,
-                            const std::map<Node *, std::vector<ibex::Interval>>& results,
+                            const std::map<Node *, ErrorAnalysisResult>& results,
                             const std::map<std::string, std::chrono::duration<double>>& time_map);
 };
 

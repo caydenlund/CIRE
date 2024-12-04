@@ -40,7 +40,7 @@ void Cire::setMaxDepth(unsigned int depth) {
   abstractionWindow.second = depth;
 }
 
-std::map<Node *, std::vector<ibex::Interval>> Cire::performErrorAnalysis() {
+std::map<Node *, ErrorAnalysisResult> Cire::performErrorAnalysis() {
   if (abstraction) {
     graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
   }
@@ -49,8 +49,5 @@ std::map<Node *, std::vector<ibex::Interval>> Cire::performErrorAnalysis() {
     output_set.insert(graph->findVarNode(output));
   }
 
-  std::map<Node *, std::vector<ibex::Interval>> optima_map = graph->SimplifyWithAbstraction(output_set, 0, true);
-
-  return optima_map;
-
+  return graph->SimplifyWithAbstraction(output_set, 0, true);;
 }

@@ -64,7 +64,7 @@ ibex::IntervalVector IBEXInterface::eval() {
   return _function->eval(_inputIntervals);
 }
 
-ibex::Interval IBEXInterface::FindMin(ibex::ExprNode *Expression) {
+OptResult IBEXInterface::FindMin(ibex::ExprNode *Expression) {
   ibex::SystemFactory factory;
   for (auto &var : *_variables) {
     factory.add_var(var);
@@ -79,10 +79,14 @@ ibex::Interval IBEXInterface::FindMin(ibex::ExprNode *Expression) {
     std::cerr << "Rerun till it works" << std::endl;
   }
 //  opt.report();
-  return {opt.get_uplo(), opt.get_loup()};
+  optResult.result = ibex::Interval(opt.get_uplo(), opt.get_loup());
+  optResult.optimumPoint = opt.get_loup_point();
+  optResult.optimizationTime = opt.get_time();
+
+  return optResult;
 }
 
-ibex::Interval IBEXInterface::FindMax(ibex::ExprNode *Expression) {
+OptResult IBEXInterface::FindMax(ibex::ExprNode *Expression) {
   ibex::SystemFactory factory;
   for (auto &var : *_variables) {
     factory.add_var(var);
@@ -97,7 +101,11 @@ ibex::Interval IBEXInterface::FindMax(ibex::ExprNode *Expression) {
     std::cerr << "Rerun till it works" << std::endl;
   }
 //  opt.report();
-  return {opt.get_uplo(), opt.get_loup()};
+  optResult.result = ibex::Interval(opt.get_uplo(), opt.get_loup());
+  optResult.optimumPoint = opt.get_loup_point();
+  optResult.optimizationTime = opt.get_time();
+
+  return optResult;
 }
 
 void IBEXInterface::dumpIbexFunctionToFile(std::string filename, ibex::ExprNode *Expression) {

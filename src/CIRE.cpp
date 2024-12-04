@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 
   const auto parse_end = std::chrono::high_resolution_clock::now();
 
-  std::map<Node *, std::vector<ibex::Interval>> answer = cire.performErrorAnalysis();
+  std::map<Node *, ErrorAnalysisResult> answer = cire.performErrorAnalysis();
 
   const auto error_analysis_end = std::chrono::high_resolution_clock::now();
 
@@ -115,8 +115,8 @@ int main(int argc, char *argv[]) {
       assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
       std::cout
 //        << *node << " : "
-        << "\n\tOutput: " << result[0] << ","
-        << "\n\tError: " << result[1] << std::endl;
+        << "\n\tOutput: " << result.outputExtrema << ","
+        << "\n\tError: " << result.errorExtrema << std::endl;
     }
   }
 
@@ -128,8 +128,8 @@ int main(int argc, char *argv[]) {
       assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
       cire.log.logFile
 //        << *node << " : "
-              << "\n\tOutput: " << result[0] << ","
-              << "\n\tError: " << result[1] << std::endl;
+              << "\n\tOutput: " << result.outputExtrema << ","
+              << "\n\tError: " << result.errorExtrema << std::endl;
     }
   }
 

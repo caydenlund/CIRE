@@ -24,7 +24,7 @@ bool Results::writeResults(std::vector<std::string> outputs,
                            unsigned int heightDAG,
                            std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                            const std::string& input_file,
-                           const std::map<Node *, std::vector<ibex::Interval>>& results,
+                           const std::map<Node *, ErrorAnalysisResult>& results,
                            const std::map<std::string, std::chrono::duration<double>>& time_map) {
   if(debugLevel > 0) {
     std::cout << "Writing results to " << file << " ..." << std::endl;
@@ -47,8 +47,8 @@ bool Results::writeResults(std::vector<std::string> outputs,
       json_object[file_stem]["Abstraction Metrics"][abs_count]["Highest Depth"] = metrics.at("max_depth");
     }
     for (auto const&[node, result] : results) {
-      json_object[file_stem]["Results"][outputs[i]]["Output"] = {result[0].lb(), result[0].ub()};
-      json_object[file_stem]["Results"][outputs[i]]["Error"] = {result[1].lb(), result[1].ub()};
+      json_object[file_stem]["Results"][outputs[i]]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
+      json_object[file_stem]["Results"][outputs[i]]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
       json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Results"]["Height"] = heightDAG;
     }
@@ -70,11 +70,11 @@ bool Results::writeResults(std::vector<std::string> outputs,
   return true;
 }
 
-// The following method is only for printing to a CSV file so we keep the data to at most 2 dimensions
+// The following method is only for printing to a CSV file, so we keep the data to at most 2 dimensions
 bool
 Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                             std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
-                            const string &input_file, const std::map<Node *, std::vector<ibex::Interval>> &results,
+                            const string &input_file, const std::map<Node *, ErrorAnalysisResult> &results,
                             const std::map<std::string, std::chrono::duration<double>> &time_map) {
   if(debugLevel > 0) {
     std::cout << "Writing results to " << file << " ..." << std::endl;
@@ -98,8 +98,8 @@ Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOp
       break;
     }
     for (auto const&[node, result] : results) {
-      json_object[file_stem]["Output"] = {result[0].lb(), result[0].ub()};
-      json_object[file_stem]["Error"] = {result[1].lb(), result[1].ub()};
+      json_object[file_stem]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
+      json_object[file_stem]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
       json_object[file_stem]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Height"] = heightDAG;
       break;

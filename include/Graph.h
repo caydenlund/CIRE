@@ -5,6 +5,15 @@
 #include "ErrorAnalyzer.h"
 #include "IBEXInterface.h"
 
+class ErrorAnalysisResult {
+public:
+  ibex::Interval outputExtrema;
+  ibex::Interval errorExtrema;
+  ibex::IntervalVector lbPoint;
+  ibex::IntervalVector ubPoint;
+  double totalOptimizationTime;
+};
+
 class Graph {
 private:
 public:
@@ -24,6 +33,7 @@ public:
   unsigned int numOperatorsOutput = 0;
 
   ErrorAnalyzer *errorAnalyzer = new ErrorAnalyzer(&log);
+  std::map<Node*, ErrorAnalysisResult> errorAnalysisResults;
   IBEXInterface *ibexInterface = new IBEXInterface();
 
   std::string validationFile;
@@ -68,10 +78,10 @@ public:
                                              unsigned int bound_max_depth);
   void performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
 
-  std::map<Node *, ibex::Interval> FindOutputExtrema(const std::set<Node *>& candidate_nodes);
-  std::map<Node *, ibex::Interval> FindErrorExtrema(const std::set<Node *>& candidate_nodes);
+  void FindOutputExtrema(const std::set<Node *>& candidate_nodes);
+  void FindErrorExtrema(const std::set<Node *>& candidate_nodes);
 
-  std::map<Node *, std::vector<ibex::Interval>> SimplifyWithAbstraction(const std::set<Node*>& candidate_nodes, unsigned max_depth, bool isFinal=false);
+  std::map<Node *, ErrorAnalysisResult> SimplifyWithAbstraction(const std::set<Node*>& candidate_nodes, unsigned max_depth, bool isFinal=false);
 
   std::vector<Node *> ModProbeList();
   void AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results);

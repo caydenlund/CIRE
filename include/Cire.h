@@ -32,7 +32,7 @@ public:
   void setAbstractionWindow(std::pair<unsigned int, unsigned int> window);
   void setMinDepth(unsigned int depth);
   void setMaxDepth(unsigned int depth);
-  std::map<Node *, std::vector<ibex::Interval>> performErrorAnalysis();
+  std::map<Node *, ErrorAnalysisResult> performErrorAnalysis();
 };
 
 #endif //CIRE_CIRE_H

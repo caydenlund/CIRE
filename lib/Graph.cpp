@@ -897,7 +897,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
   }
 }
 
-std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
+void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   if(debugLevel > 1) {
     std::cout << "Finding output extremas..." << std::endl;
   }
@@ -926,7 +926,7 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
     }
   }
 
-  std::map<Node *, ibex::Interval> min;
+  std::map<Node *, OptResult> min;
   for (auto &node : candidate_nodes) {
     if(debugLevel > 3) {
       std::cout << "Finding min for: " << *node->getExprNode() << std::endl;
@@ -940,11 +940,11 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
     // print the output interval
     if(debugLevel > 3) {
-      std::cout << "Min Interval: " << min[node] << std::endl;
+      std::cout << "Min Interval: " << min[node].result << std::endl;
     }
     if(logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Min Interval: " << min[node] << std::endl;
+      log.logFile << "Min Interval: " << min[node].result << std::endl;
     }
   }
 
@@ -952,7 +952,7 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
   generateExprDriver(candidate_nodes);
 
-  std::map<Node *, ibex::Interval> max;
+  std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
     if(debugLevel > 3) {
       std::cout << "Finding max for: " << *node->getExprNode() << std::endl;
@@ -966,15 +966,14 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
 
     // print the output interval - Max have to be flipped since we find the min of the negative of the function
     if(debugLevel > 3) {
-      std::cout << "Max Interval: " << -max[node] << std::endl;
+      std::cout << "Max Interval: " << -max[node].result << std::endl;
     }
     if(logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Max Interval: " << -max[node] << std::endl;
+      log.logFile << "Max Interval: " << -max[node].result << std::endl;
     }
   }
 
-  std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
     if (debugLevel > 4) {
       std::cout << "Output Extrema for: " << *node->getExprNode() << std::endl;
@@ -983,8 +982,8 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Output Extrema for: " << *node->getExprNode() << std::endl;
     }
-    if (min[node].lb() <= -max[node].lb() ) {
-      extrema[node] = ibex::Interval(min[node].lb(), -max[node].lb());
+    if (min[node].result.lb() <= -max[node].result.lb() ) {
+      errorAnalysisResults[node].outputExtrema = ibex::Interval(min[node].result.lb(), -max[node].result.lb());
     } else {
       if (debugLevel > 4) {
         std::cout << "Output extrema is empty! Setting to 0" << std::endl;
@@ -993,15 +992,15 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
         assert(log.logFile.is_open() && "Log file not open");
         log.logFile << "Output extrema is empty! Setting to 0" << std::endl;
       }
-      extrema[node] = ibex::Interval(0, 0);
+      errorAnalysisResults[node].outputExtrema = ibex::Interval(0, 0);
     }
 
     if(debugLevel > 4) {
-      std::cout << "Output Extrema: " << extrema[node] << std::endl;
+      std::cout << "Output Extrema: " << errorAnalysisResults[node].outputExtrema << std::endl;
     }
     if(logLevel > 4) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Output Extrema: " << extrema[node] << std::endl;
+      log.logFile << "Output Extrema: " << errorAnalysisResults[node].outputExtrema << std::endl;
     }
   }
 
@@ -1012,11 +1011,9 @@ std::map<Node *, ibex::Interval> Graph::FindOutputExtrema(const std::set<Node *>
     assert(log.logFile.is_open() && "Log file not open");
     log.logFile << "Output extremas found!" << std::endl;
   }
-
-  return extrema;
 }
 
-std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
+void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   if (debugLevel > 1) {
     std::cout << "Finding error extrema..." << std::endl;
   }
@@ -1035,7 +1032,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
 
   ibexInterface->setInputIntervals(inputs);
 
-  std::map<Node *, ibex::Interval> min;
+  std::map<Node *, OptResult> min;
   for (auto &node : candidate_nodes) {
     if (debugLevel > 3) {
       std::cout << "Finding min for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
@@ -1050,11 +1047,11 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
 
     // print the error interval
     if (debugLevel > 3) {
-      std::cout << "Min Interval: " << min[node] << std::endl;
+      std::cout << "Min Interval: " << min[node].result << std::endl;
     }
     if (logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Min Interval: " << min[node] << std::endl;
+      log.logFile << "Min Interval: " << min[node].result << std::endl;
     }
   }
 
@@ -1078,7 +1075,7 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(candidate_nodes);
 
-  std::map<Node *, ibex::Interval> max;
+  std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
     if (debugLevel > 3) {
       std::cout << "Finding max for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
@@ -1092,15 +1089,14 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
 
     // print the error interval - Max have to be flipped since we find the min of the negative of the function
     if (debugLevel > 3) {
-      std::cout << "Max Interval: " << -max[node] << std::endl;
+      std::cout << "Max Interval: " << -max[node].result << std::endl;
     }
     if (logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Max Interval: " << -max[node] << std::endl;
+      log.logFile << "Max Interval: " << -max[node].result << std::endl;
     }
   }
 
-  std::map<Node *, ibex::Interval> extrema;
   for (auto &node : candidate_nodes) {
     if (debugLevel > 4) {
       std::cout << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
@@ -1109,23 +1105,33 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
-    if (min[node].lb() <= -max[node].lb() ) {
-      extrema[node] = ibex::Interval(min[node].lb()
+    if (min[node].result.lb() <= -max[node].result.lb() ) {
+      errorAnalysisResults[node].errorExtrema = ibex::Interval(min[node].result.lb()
 //              * pow(2, -53)
-              , -max[node].lb()
+              , -max[node].result.lb()
 //              * pow(2, -53)
               );
+      errorAnalysisResults[node].lbPoint = min[node].optimumPoint;
+      errorAnalysisResults[node].ubPoint = max[node].optimumPoint;
+      errorAnalysisResults[node].totalOptimizationTime = min[node].optimizationTime + max[node].optimizationTime;
     } else {
       std::cout << "Error extrema is empty! Setting to 0" << std::endl;
-      extrema[node] = ibex::Interval(0, 0);
+      errorAnalysisResults[node].errorExtrema = ibex::Interval(0, 0);
+      errorAnalysisResults[node].lbPoint = min[node].optimumPoint;
+      errorAnalysisResults[node].ubPoint = max[node].optimumPoint;
+      errorAnalysisResults[node].totalOptimizationTime = min[node].optimizationTime + max[node].optimizationTime;
     }
 
     if (debugLevel > 4) {
-      std::cout << "Error Extrema: " << extrema[node] << std::endl;
+      std::cout << "Error Extrema: " << errorAnalysisResults[node].errorExtrema
+                << " at " << errorAnalysisResults[node].lbPoint
+                << " and " << errorAnalysisResults[node].ubPoint << std::endl;
     }
     if (logLevel > 4) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Error Extrema: " << extrema[node] << std::endl;
+      log.logFile << "Error Extrema: " << errorAnalysisResults[node].errorExtrema
+                  << " at " << errorAnalysisResults[node].lbPoint
+                  << " and " << errorAnalysisResults[node].ubPoint << std::endl;
     }
   }
 
@@ -1136,11 +1142,9 @@ std::map<Node *, ibex::Interval> Graph::FindErrorExtrema(const std::set<Node *>&
     assert(log.logFile.is_open() && "Log file not open");
     log.logFile << "Error extremas found!" << std::endl;
   }
-
-  return extrema;
 }
 
-std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(const std::set<Node *>& candidate_nodes, unsigned int max_depth, bool isFinal) {
+std::map<Node *, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::set<Node *>& candidate_nodes, unsigned int max_depth, bool isFinal) {
   if (debugLevel > 0 && isFinal) {
     std::cout << "Final computation..." << std::endl;
   }
@@ -1149,15 +1153,8 @@ std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(con
     log.logFile << "Final computation..." << std::endl;
   }
 
-  std::map<Node *, std::vector<ibex::Interval>> results;
-
-  std::map<Node *, ibex::Interval> error_extrema = FindErrorExtrema(candidate_nodes);
-  std::map<Node *, ibex::Interval> output_extrema = FindOutputExtrema(candidate_nodes);
-
-  for (auto &node : candidate_nodes) {
-    results[node].push_back(output_extrema[node]);
-    results[node].push_back(error_extrema[node]);
-  }
+  FindErrorExtrema(candidate_nodes);
+  FindOutputExtrema(candidate_nodes);
 
   if(isFinal) {
     if (debugLevel > 0) {
@@ -1167,31 +1164,38 @@ std::map<Node *, std::vector<ibex::Interval>> Graph::SimplifyWithAbstraction(con
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Final Computation complete!" << std::endl;
     }
-    return results;
+    return errorAnalysisResults;
+  }
+
+  std::map<Node *, std::vector<ibex::Interval>> results;
+
+  for (auto &node : candidate_nodes) {
+    results[node].push_back(errorAnalysisResults[node].outputExtrema);
+    results[node].push_back(errorAnalysisResults[node].errorExtrema);
   }
 
   AbstractNodes(results);
   RebuildAST();
 
   if (debugLevel > 2) {
-    for (auto &node: results) {
+    for (auto &singleResult: results) {
       std::cout
-              << *node.first << " : "
-              << "\n\tOutput: " << node.second[0] << ","
-              << "\n\tError: " << node.second[1] << std::endl;
+              << *singleResult.first << " : "
+              << "\n\tOutput: " << singleResult.second[0] << ","
+              << "\n\tError: " << singleResult.second[1] << std::endl;
     }
   }
   if (logLevel > 2) {
     assert(log.logFile.is_open() && "Log file not open");
-    for (auto &node: results) {
+    for (auto &singleResult: results) {
       log.logFile
-              << *node.first << " : "
-              << "\n\tOutput: " << node.second[0] << ","
-              << "\n\tError: " << node.second[1] << std::endl;
+              << *singleResult.first << " : "
+              << "\n\tOutput: " << singleResult.second[0] << ","
+              << "\n\tError: " << singleResult.second[1] << std::endl;
     }
   }
 
-  return results;
+  return errorAnalysisResults;
 }
 
 /*
@@ -1227,26 +1231,26 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
   }
 
   // Turn node in results into VariableNodes and create corresponding FreeVariable nodes
-  for (auto &result : results) {
-    auto node = result.first;
+  for (auto &singleResult : results) {
+    auto node = singleResult.first;
 
     VariableNode *converted_node;
 
     // Convert node to VariableNode
     converted_node = new VariableNode(*node);
-    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[1].ub()));
+    converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(singleResult.second[1].ub()));
 
     // Add converted node to nodes and symbol table
     nodes.insert(converted_node);
     symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
 
-    // Create corresponding FreeVariable node using the result IntervalVector
-    auto *free_node = new FreeVariable(result.second[0], Node::RoundingType::FL64);
+    // Create corresponding FreeVariable node using the singleResult IntervalVector
+    auto *free_node = new FreeVariable(singleResult.second[0], Node::RoundingType::FL64);
     inputs[converted_node->variable->name] = free_node;
 
     // Add free node to nodes and inputs
     nodes.insert(free_node);
-    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(result.second[1].ub()));
+    free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(singleResult.second[1].ub()));
     free_node->setRounding(converted_node->getRounding());
   }
 
