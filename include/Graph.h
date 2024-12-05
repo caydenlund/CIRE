@@ -59,8 +59,8 @@ public:
   Node *findVarNode(string Var) const;
 
   void setupDerivativeComputation(std::set<Node*> candidate_nodes);
-  void errorComputingDriver(std::set<Node*> candidate_nodes);
-  void generateExprDriver(std::set<Node *> candidate_nodes);
+  void errorComputingDriver(const std::set<Node*> &candidate_nodes);
+  void generateExprDriver(const std::set<Node *> &candidate_nodes);
   void generateExpr(Node *node);
 
   bool compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2);

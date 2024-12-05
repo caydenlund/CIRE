@@ -164,7 +164,7 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
 //          symbolTables[currentScope]->table[outputs[0]]->parents.size();
 }
 
-void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
+void Graph::errorComputingDriver(const std::set<Node*> &candidate_nodes) {
   if (debugLevel > 1) {
     std::cout << "Computing Error..." << std::endl;
   }
@@ -198,7 +198,7 @@ void Graph::errorComputingDriver(std::set<Node*> candidate_nodes) {
 }
 
 // Generates Expressions corresponding to all candidate_nodes bottom up
-void Graph::generateExprDriver(std::set<Node *> candidate_nodes) {
+void Graph::generateExprDriver(const std::set<Node *> &candidate_nodes) {
   if (debugLevel > 1) {
     std::cout << "Generating Expressions..." << std::endl;
   }
