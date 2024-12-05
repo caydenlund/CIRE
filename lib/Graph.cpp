@@ -208,17 +208,17 @@ void Graph::generateExprDriver(std::set<Node *> candidate_nodes) {
   }
 
   for (auto &node : candidate_nodes) {
-    if (debugLevel > 2) {
+    if (debugLevel > 1) {
       std::cout << "Processing Node " << node->id << std::endl;
     }
-    if (logLevel > 2) {
+    if (logLevel > 1) {
       log.logFile << "Processing Node " << node->id << std::endl;
     }
     generateExpr(node);
-    if (debugLevel > 2) {
+    if (debugLevel > 1) {
       std::cout << "Node " << node->id << " processed." << std::endl;
     }
-    if (logLevel > 2) {
+    if (logLevel > 1) {
       log.logFile << "Node " << node->id << " processed." << std::endl;
     }
   }
