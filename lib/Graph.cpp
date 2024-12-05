@@ -216,10 +216,10 @@ void Graph::generateExprDriver(std::set<Node *> candidate_nodes) {
     }
     generateExpr(node);
     if (debugLevel > 2) {
-      std::cout << "Node " << node->id << "processed." << std::endl;
+      std::cout << "Node " << node->id << " processed." << std::endl;
     }
     if (logLevel > 2) {
-      log.logFile << "Node " << node->id << "processed." << std::endl;
+      log.logFile << "Node " << node->id << " processed." << std::endl;
     }
   }
 
@@ -254,13 +254,13 @@ void Graph::generateExpr(Node *node) {
       ((UnaryOp *)node)->expr = (ibex::ExprUnaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((UnaryOp *)node)->Operand].insert(node);
       if (debugLevel > 2) {
-        std::cout << "Node " << node->id << "processed." << std::endl;
+        std::cout << "Node " << node->id << " processed." << std::endl;
         if (debugLevel > 3) {
           std::cout << "UnaryOp: " << *((UnaryOp *) node)->expr << std::endl;
         }
       }
       if (logLevel > 2) {
-        log.logFile << "Node " << node->id << "processed." << std::endl;
+        log.logFile << "Node " << node->id << " processed." << std::endl;
         if (logLevel > 3) {
           assert(log.logFile.is_open() && "Log file not open");
           log.logFile << "UnaryOp: " << *((UnaryOp *) node)->expr << std::endl;
@@ -274,13 +274,13 @@ void Graph::generateExpr(Node *node) {
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->rightOperand].insert(node);
       if (debugLevel > 2) {
-        std::cout << "Node " << node->id << "processed." << std::endl;
+        std::cout << "Node " << node->id << " processed." << std::endl;
         if (debugLevel > 3) {
           std::cout << "BinaryOp: " << *((BinaryOp *) node)->expr << std::endl;
         }
       }
       if (logLevel > 2) {
-        log.logFile << "Node " << node->id << "processed." << std::endl;
+        log.logFile << "Node " << node->id << " processed." << std::endl;
         if (logLevel > 3) {
           assert(log.logFile.is_open() && "Log file not open");
           log.logFile << "BinaryOp: " << *((BinaryOp *) node)->expr << std::endl;
@@ -297,13 +297,13 @@ void Graph::generateExpr(Node *node) {
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->middleOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->rightOperand].insert(node);
       if (debugLevel > 2) {
-        std::cout << "Node " << node->id << "processed." << std::endl;
+        std::cout << "Node " << node->id << " processed." << std::endl;
         if (debugLevel > 3) {
           std::cout << "TernaryOp: " << *((TernaryOp *) node)->expr << std::endl;
         }
       }
       if (logLevel > 2) {
-        log.logFile << "Node " << node->id << "processed." << std::endl;
+        log.logFile << "Node " << node->id << " processed." << std::endl;
         if (logLevel > 3) {
           assert(log.logFile.is_open() && "Log file not open");
           log.logFile << "TernaryOp: " << *((TernaryOp *) node)->expr << std::endl;
