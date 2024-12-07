@@ -1,4 +1,3 @@
-* Handle fptrunc and fpext LLVM instructions
 * Think about metrics to collect and add them to results file
   * Errors on abstracted nodes
 * Add conditionals
@@ -8,6 +7,7 @@
 * Reformat entire codebase using clang-format
 
 # Completed
+* Handle fptrunc and fpext LLVM instructions
 * Think about metrics to collect and add them to results file
   * Input related metrics
     * Num Operators

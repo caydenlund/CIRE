@@ -12,6 +12,7 @@ void show_usage(std::string name) {
             << "\t-d,--debug-level\t\tSet the debug level\n"
             << "\t-l,--log-level\t\tSet the log level\n"
             << "\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner\n"
+            << "\t-to,--global-opt-timeout\t\tSet the global optimization timeout\n"
             << std::endl;
 }
 
@@ -70,6 +71,7 @@ int main(int argc, char *argv[]) {
           cire.setDebugLevel(std::stoi(argv[++i]));
           cire.graph->debugLevel = cire.debugLevel;
           cire.graph->errorAnalyzer->debugLevel = cire.debugLevel;
+          cire.graph->ibexInterface->debugLevel = cire.debugLevel;
           cire.results->debugLevel = cire.debugLevel;
         } else {
           std::cerr << "--debug-level option requires one argument." << std::endl;
@@ -89,6 +91,13 @@ int main(int argc, char *argv[]) {
           CSV_friendly = true;
         } else {
           std::cerr << "--csv-friendly option requires one argument." << std::endl;
+          return 1;
+        }
+      } else if ((arg == "-to" || (arg == "--global-opt-timeout"))) {
+        if (i + 1 < argc) {
+          cire.graph->ibexInterface->optimizerTimeOut = std::stoi(argv[++i]);
+        } else {
+          std::cerr << "--global-opt-timeout option requires one argument. Default: 20 seconds" << std::endl;
           return 1;
         }
       } else {

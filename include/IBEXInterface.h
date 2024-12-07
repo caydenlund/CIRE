@@ -19,10 +19,13 @@ class IBEXInterface {
   ibex::System *_system;
 
   public:
+  unsigned int debugLevel = 0;
+  unsigned int optimizerTimeOut = 0;
   OptResult optResult;
 
   IBEXInterface() = default;
-  IBEXInterface(ibex::IntervalVector InputIntervals,
+  IBEXInterface(unsigned int debugLevel,
+                ibex::IntervalVector InputIntervals,
                 ibex::Array<const ibex::ExprSymbol> Variables,
                 ibex::Function *Function,
                 ibex::System *System);
@@ -49,6 +52,7 @@ class IBEXInterface {
   OptResult FindMax(ibex::ExprNode *Expression);
 
   // File IO
+  void dumpIbexSystemToFile(std::string filename, ibex::System &System);
   void dumpIbexFunctionToFile(std::string filename, ibex::ExprNode *Expression);
   void dumpIbexExpressionToFile(std::string filename, ibex::ExprNode *Expression);
   ibex::Function parseIbexFunctionFromFile(const char *filename);

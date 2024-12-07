@@ -57,6 +57,10 @@ namespace {
                            cl::value_desc("Sets the output file for the results"),
                            cl::init("results.json"));
 
+    cl::opt<unsigned> OptimizerTimeOut("global-opt-timeout",
+                                       cl::desc("Timeout for the optimizer. Default: 20 seconds"),
+                                       cl::init(20));
+
 }
 
 
@@ -99,7 +103,11 @@ int main(int argc, char **argv) {
     cire.setDebugLevel(DebugLevel);
     cire.graph->debugLevel = DebugLevel;
     cire.graph->errorAnalyzer->debugLevel = DebugLevel;
+    cire.graph->ibexInterface->debugLevel = DebugLevel;
     cire.results->debugLevel = DebugLevel;
+  }
+  if (OptimizerTimeOut) {
+    cire.graph->ibexInterface->optimizerTimeOut = OptimizerTimeOut;
   }
   if (LogLevel) {
     cire.setLogLevel(LogLevel);
