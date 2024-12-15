@@ -59,7 +59,7 @@ namespace {
 
     cl::opt<unsigned> OptimizerTimeOut("global-opt-timeout",
                                        cl::desc("Timeout for the optimizer. Default: 20 seconds"),
-                                       cl::init(20));
+                                       cl::init(UINT_MAX));
 
 }
 
