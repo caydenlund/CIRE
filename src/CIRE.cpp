@@ -32,12 +32,7 @@ int main(int argc, char *argv[]) {
         show_usage(argv[0]);
         return 0;
       } else if ((arg == "-a") || (arg == "--abstraction")) {
-        if (i + 1 < argc) {
-          cire.setAbstaction(true);
-        } else {
-          std::cerr << "--abstraction option requires one argument." << std::endl;
-          return 1;
-        }
+        cire.setAbstaction(true);
       } else if ((arg == "-m") || (arg == "--min-depth")) {
         if (i + 1 < argc) {
           cire.setMinDepth(std::stoi(argv[++i]));
@@ -87,12 +82,7 @@ int main(int argc, char *argv[]) {
           return 1;
         }
       } else if ((arg == "-cf" || (arg == "--csv-friendly"))) {
-        if (i + 1 < argc) {
-          CSV_friendly = true;
-        } else {
-          std::cerr << "--csv-friendly option requires one argument." << std::endl;
-          return 1;
-        }
+        CSV_friendly = true;
       } else if ((arg == "-to" || (arg == "--global-opt-timeout"))) {
         if (i + 1 < argc) {
           cire.graph->ibexInterface->optimizerTimeOut = std::stoi(argv[++i]);
@@ -106,7 +96,9 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  cire.graph->parse(*cire.file.c_str());
+  if(cire.graph->parse(*cire.file.c_str()) != 0) {
+    return 1;
+  }
 
   const auto parse_end = std::chrono::high_resolution_clock::now();
 
