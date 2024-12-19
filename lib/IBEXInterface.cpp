@@ -82,8 +82,14 @@ OptResult IBEXInterface::FindMin(ibex::ExprNode &Expression) {
     if(debugLevel > 2) {
       // Remove the last "end" keyword from the file before using with IBEX to avoid syntax errors
       dumpIbexSystemToFile("ibexFunctionMin.txt", *_system);
+      std::cout << "Input Intervals: " << _inputIntervals << std::endl;
+      std::cout << "Variables: ";
+      for (auto &var : *_variables) {
+        std:: cout << var << ", ";
+      }
+      std::cout << std::endl;
     }
-    std::cout << "Input Intervals: " << _inputIntervals << std::endl;
+
     opt.optimize(_inputIntervals);
   } catch (soplex::SPxInternalCodeException &e) {
     std::cerr << "Report to IBEX developers: " << e.what() << std::endl;
@@ -132,8 +138,13 @@ OptResult IBEXInterface::FindMax(ibex::ExprNode &Expression) {
     if(debugLevel > 2) {
       // Remove the last "end" keyword from the file before using with IBEX to avoid syntax errors
       dumpIbexSystemToFile("ibexFunctionMax.txt", *_system);
+      std::cout << "Input Intervals: " << _inputIntervals << std::endl;
+      std::cout << "Variables: ";
+      for (auto &var : *_variables) {
+        std:: cout << var << ", ";
+      }
+      std::cout << std::endl;
     }
-    std::cout << "Input Intervals: " << _inputIntervals << std::endl;
     opt.optimize(_inputIntervals);
   } catch (soplex::SPxInternalCodeException &e) {
     std::cerr << "Report to IBEX developers: " << e.what() << std::endl;

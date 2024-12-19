@@ -104,7 +104,7 @@ ENDIF(ENABLE_LLVM_FRONTEND)
 # Building lib_tester
 add_executable(lib_tester src/lib_tester.cpp)
 target_link_libraries(lib_tester
-                        PUBLIC Graph ibex
+                        PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
                         PRIVATE nlohmann_json::nlohmann_json)
 
 # Building CIRE
