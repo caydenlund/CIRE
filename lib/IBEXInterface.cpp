@@ -66,12 +66,12 @@ ibex::IntervalVector IBEXInterface::eval() {
   return _function->eval(_inputIntervals);
 }
 
-OptResult IBEXInterface::FindMin(ibex::ExprNode *Expression) {
+OptResult IBEXInterface::FindMin(ibex::ExprNode &Expression) {
   ibex::SystemFactory factory;
   for (auto &var : *_variables) {
     factory.add_var(var);
   }
-  factory.add_goal(*Expression);
+  factory.add_goal(Expression);
   setSystem(&factory);
   ibex::DefaultOptimizerConfig optConfig(*_system);
   if (optimizerTimeOut > 0) {
@@ -83,6 +83,7 @@ OptResult IBEXInterface::FindMin(ibex::ExprNode *Expression) {
       // Remove the last "end" keyword from the file before using with IBEX to avoid syntax errors
       dumpIbexSystemToFile("ibexFunctionMin.txt", *_system);
     }
+    std::cout << "Input Intervals: " << _inputIntervals << std::endl;
     opt.optimize(_inputIntervals);
   } catch (soplex::SPxInternalCodeException &e) {
     std::cerr << "Report to IBEX developers: " << e.what() << std::endl;
@@ -114,12 +115,12 @@ OptResult IBEXInterface::FindMin(ibex::ExprNode *Expression) {
   return optResult;
 }
 
-OptResult IBEXInterface::FindMax(ibex::ExprNode *Expression) {
+OptResult IBEXInterface::FindMax(ibex::ExprNode &Expression) {
   ibex::SystemFactory factory;
   for (auto &var : *_variables) {
     factory.add_var(var);
   }
-  factory.add_goal(-*Expression);
+  factory.add_goal(-Expression);
   setSystem(&factory);
   ibex::DefaultOptimizerConfig optConfig(*_system);
   if(optimizerTimeOut > 0) {
@@ -132,6 +133,7 @@ OptResult IBEXInterface::FindMax(ibex::ExprNode *Expression) {
       // Remove the last "end" keyword from the file before using with IBEX to avoid syntax errors
       dumpIbexSystemToFile("ibexFunctionMax.txt", *_system);
     }
+    std::cout << "Input Intervals: " << _inputIntervals << std::endl;
     opt.optimize(_inputIntervals);
   } catch (soplex::SPxInternalCodeException &e) {
     std::cerr << "Report to IBEX developers: " << e.what() << std::endl;

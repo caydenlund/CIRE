@@ -48,8 +48,8 @@ class IBEXInterface {
 
   // IBEX Operations
   ibex::IntervalVector eval();
-  OptResult FindMin(ibex::ExprNode *Expression);
-  OptResult FindMax(ibex::ExprNode *Expression);
+  OptResult FindMin(ibex::ExprNode &Expression);
+  OptResult FindMax(ibex::ExprNode &Expression);
 
   // File IO
   void dumpIbexSystemToFile(std::string filename, ibex::System &System);
