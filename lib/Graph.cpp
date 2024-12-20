@@ -1198,7 +1198,7 @@ std::map<Node *, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::
 
   for (auto &node : candidate_nodes) {
     results[node].push_back(errorAnalysisResults[node].outputExtrema);
-    results[node].push_back(errorAnalysisResults[node].errorExtrema);
+    results[node].push_back(errorAnalysisResults[node].errorExtrema * pow(2, +53));
   }
 
   AbstractNodes(results);
