@@ -255,7 +255,7 @@ void Graph::generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedE
       // Already has an expression
       break;
     case NodeType::FREE_VARIABLE:
-      // Already has an expression
+      // Does not have an associated Ibex Expression. Instead has interval
       break;
     case NodeType::VARIABLE:
       // Already has an expression
@@ -346,6 +346,171 @@ void Graph::generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedE
 
   // Update the map tracking processed nodes
   generatedExprsAtDepth[node->depth].insert(node);
+
+  // Common sub expression elimination phase
+  // 1) Find all subexpressions similar to the current node
+  std::vector<Node *> nodes_to_merge;
+  for (auto &n: cseTable[node->getExprNode()]) {
+    if(n != node) {
+      // Check if all children of n and node are the same
+      switch (n->type) {
+        case NodeType::INTEGER:
+          if (node->isInteger())
+            nodes_to_merge.push_back(n);
+          break;
+        case NodeType::FLOAT:
+          if (node->isFloat())
+            nodes_to_merge.push_back(n);
+          break;
+        case NodeType::DOUBLE:
+          if (node->isDouble())
+            nodes_to_merge.push_back(n);
+          break;
+        case NodeType::FREE_VARIABLE:
+          if (node->isFreeVariable())
+            nodes_to_merge.push_back(n);
+          break;
+        case NodeType::VARIABLE:
+          if (node->isVariable())
+            nodes_to_merge.push_back(n);
+          break;
+        case NodeType::UNARY_OP:
+          if (node->isUnaryOp() && ((UnaryOp*)n)->Operand == ((UnaryOp*)node)->Operand) {
+            nodes_to_merge.push_back(n);
+          }
+          break;
+        case NodeType::BINARY_OP:
+          if (node->isBinaryOp() && ((BinaryOp*)n)->leftOperand == ((BinaryOp*)node)->leftOperand &&
+              ((BinaryOp*)n)->rightOperand == ((BinaryOp*)node)->rightOperand) {
+            nodes_to_merge.push_back(n);
+          }
+          break;
+        case NodeType::TERNARY_OP:
+          if (node->isTernaryOp() && ((TernaryOp*)n)->leftOperand == ((TernaryOp*)node)->leftOperand &&
+              ((TernaryOp*)n)->middleOperand == ((TernaryOp*)node)->middleOperand &&
+              ((TernaryOp*)n)->rightOperand == ((TernaryOp*)node)->rightOperand) {
+            nodes_to_merge.push_back(n);
+          }
+          break;
+        default:
+          std::cout << "Unknown node type" << std::endl;
+          exit(1);
+      }
+    }
+  }
+
+  // 2) Merge all similar subexpressions
+  if(nodes_to_merge.empty()) {
+    cseTable[node->getExprNode()].insert(node);
+  } else {
+    if(debugLevel > 2) {
+      std::cout << "Found " << nodes_to_merge.size() << " nodes to merge with node " << node->id << std::endl;
+    }
+    for(auto &n: nodes_to_merge) {
+      // TODO: if n in not in the output set, merge n into node
+      node = mergeNodes(n, node, errorAnalyzer->parentsOfNode);
+      cseTable[node->getExprNode()].erase(n);
+      delete n;
+    }
+  }
+
+}
+
+// Merges node1 into node2 by
+//    Updating the parents of node2 to include the parents of node1
+//    Updating the children of the parents of node2 to point to node2 if they point to node1
+//    Removing node1 from the depthTable
+//    Removing node1 from the symbol table
+//    Merging the parentsOfNode entries of node1 and node2
+//    Removing node1 from parentsOfNode
+Node *Graph::mergeNodes(Node *node1, Node *node2, std::map<Node *, std::set<Node *>> &parentsOfNode) {
+  // Set union of parents of node1 and node2
+  std::set<Node *> new_parents;
+  std::set_union(parentsOfNode[node1].begin(), parentsOfNode[node1].end(),
+                 parentsOfNode[node2].begin(), parentsOfNode[node2].end(),
+                 std::inserter(new_parents, new_parents.end()));
+
+  // Update the children of the new_parents set to point to node2 of they point to node1
+  for (auto &par: new_parents) {
+    switch(par->type) {
+      case NodeType::INTEGER:
+      case NodeType::FLOAT:
+      case NodeType::DOUBLE:
+      case NodeType::FREE_VARIABLE:
+      case NodeType::VARIABLE:
+        break;
+      case NodeType::UNARY_OP:
+        if (((UnaryOp*)par)->Operand == node1) {
+          ((UnaryOp*)par)->Operand = node2;
+        }
+        break;
+      case NodeType::BINARY_OP:
+        if (((BinaryOp*)par)->leftOperand == node1) {
+          ((BinaryOp*)par)->leftOperand = node2;
+        }
+        if (((BinaryOp*)par)->rightOperand == node1) {
+          ((BinaryOp*)par)->rightOperand = node2;
+        }
+        break;
+      case NodeType::TERNARY_OP:
+        if (((TernaryOp*)par)->leftOperand == node1) {
+          ((TernaryOp*)par)->leftOperand = node2;
+        }
+        if (((TernaryOp*)par)->middleOperand == node1) {
+          ((TernaryOp*)par)->middleOperand = node2;
+        }
+        if (((TernaryOp*)par)->rightOperand == node1) {
+          ((TernaryOp*)par)->rightOperand = node2;
+        }
+        break;
+      default:
+        std::cout << "Unknown node type" << std::endl;
+        exit(1);
+    }
+  }
+
+  node2->parents = new_parents;
+
+  // Cleanup of node1
+  depthTable[node1->depth].erase(node1);
+
+  // Clear symbol table entry for node1
+  for (auto it = symbolTables[currentScope]->table.begin(); it != symbolTables[currentScope]->table.end(); it++) {
+    if (it->second == node1) {
+      symbolTables[currentScope]->table.erase(it);
+      break;
+    }
+  }
+
+  // Merge parentsOfNode entries
+  parentsOfNode[node2].insert(parentsOfNode[node1].begin(), parentsOfNode[node1].end());
+
+  // Update parentsOfNode for children of `node2` by removing `node1`
+  switch (node2->type) {
+    case NodeType::INTEGER:
+    case NodeType::FLOAT:
+    case NodeType::DOUBLE:
+    case NodeType::FREE_VARIABLE:
+    case NodeType::VARIABLE:
+      break;
+    case NodeType::UNARY_OP:
+      parentsOfNode[((UnaryOp*)node2)->Operand].erase(node1);
+      break;
+    case NodeType::BINARY_OP:
+      parentsOfNode[((BinaryOp*)node2)->leftOperand].erase(node1);
+      parentsOfNode[((BinaryOp*)node2)->rightOperand].erase(node1);
+      break;
+    case NodeType::TERNARY_OP:
+      parentsOfNode[((TernaryOp*)node2)->leftOperand].erase(node1);
+      parentsOfNode[((TernaryOp*)node2)->middleOperand].erase(node1);
+      parentsOfNode[((TernaryOp*)node2)->rightOperand].erase(node1);
+      break;
+  }
+
+  // Remove `node1` from parentsOfNode
+  parentsOfNode.erase(node1);
+
+  return node2;
 }
 
 bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {

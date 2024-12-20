@@ -63,6 +63,9 @@ public:
   void generateExprDriver(const std::set<Node *> &candidate_nodes);
   void generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedExprsAtDepth, std::map<ibex::ExprNode *, std::set<Node *>> &cseTable);
 
+  // Merges node1 and node2 into node2
+  Node *mergeNodes(Node *node1, Node *node2, std::map<Node *, std::set<Node *>> &parentsOfNode);
+
   bool compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2);
 
   // Abstraction related functions
