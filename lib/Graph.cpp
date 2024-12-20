@@ -1136,11 +1136,8 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
       log.logFile << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
     if (min[node].result.lb() <= -max[node].result.lb() ) {
-      errorAnalysisResults[node].errorExtrema = ibex::Interval(min[node].result.lb()
-//              * pow(2, -53)
-              , -max[node].result.lb()
-//              * pow(2, -53)
-              );
+      errorAnalysisResults[node].errorExtrema = ibex::Interval(min[node].result.lb() * pow(2, -53),
+                                                               -max[node].result.lb() * pow(2, -53));
       errorAnalysisResults[node].lbPoint = min[node].optimumPoint;
       errorAnalysisResults[node].ubPoint = max[node].optimumPoint;
       errorAnalysisResults[node].totalOptimizationTime = min[node].optimizationTime + max[node].optimizationTime;

@@ -842,7 +842,7 @@ TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right, Op op): leftOperand(
   depth = std::max(Left->depth, std::max(Middle->depth, Right->depth)) + 1;
   type = TERNARY_OP;
   if (Left->OpRounding != 0.0 && Middle->OpRounding != 0.0 && Right->OpRounding != 0.0)
-    OpRounding = std::min(Left->OpRounding, std::min(Middle->OpRounding, Right->OpRounding));
+    OpRounding = std::max(std::min(Left->OpRounding, std::min(Middle->OpRounding, Right->OpRounding)), RoundingAmount[FL64]);
   else if(Left->OpRounding == 0.0) {
     if (Middle->OpRounding == 0.0)
       OpRounding = Right->OpRounding;

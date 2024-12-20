@@ -88,9 +88,9 @@ public:
   std::map<RoundingType, double> RoundingAmount = {
     {CONST, 0.0},
     {INT, 1.0},
-    {FL16, pow(2, -11)},
-    {FL32, pow(2, -24)},
-    {FL64, pow(2, -53)},};
+    {FL16, pow(2, -11+53)},
+    {FL32, pow(2, -24+53)},
+    {FL64, 1.0},};
 
 
   Node() = default;

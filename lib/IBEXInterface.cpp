@@ -73,7 +73,14 @@ OptResult IBEXInterface::FindMin(ibex::ExprNode &Expression) {
   }
   factory.add_goal(Expression);
   setSystem(&factory);
-  ibex::DefaultOptimizerConfig optConfig(*_system);
+  ibex::DefaultOptimizerConfig optConfig(*_system,
+                                         ibex::OptimizerConfig::default_rel_eps_f,
+                                         ibex::OptimizerConfig::default_abs_eps_f,
+                                         ibex::NormalizedSystem::default_eps_h, false,
+                                         ibex::DefaultOptimizerConfig::default_inHC4,
+                                         false,
+                                         ibex::DefaultOptimizerConfig::default_random_seed,
+                                         ibex::OptimizerConfig::default_eps_x);
   if (optimizerTimeOut > 0) {
     optConfig.set_timeout(optimizerTimeOut);
   }
@@ -128,7 +135,14 @@ OptResult IBEXInterface::FindMax(ibex::ExprNode &Expression) {
   }
   factory.add_goal(-Expression);
   setSystem(&factory);
-  ibex::DefaultOptimizerConfig optConfig(*_system);
+  ibex::DefaultOptimizerConfig optConfig(*_system,
+                                         ibex::OptimizerConfig::default_rel_eps_f,
+                                         ibex::OptimizerConfig::default_abs_eps_f,
+                                         ibex::NormalizedSystem::default_eps_h, false,
+                                         ibex::DefaultOptimizerConfig::default_inHC4,
+                                         false,
+                                         ibex::DefaultOptimizerConfig::default_random_seed,
+                                         ibex::OptimizerConfig::default_eps_x);
   if(optimizerTimeOut > 0) {
     optConfig.set_timeout(optimizerTimeOut);
   }
