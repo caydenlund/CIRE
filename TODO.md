@@ -1,3 +1,4 @@
+* In generateExpr, remove the common statements like generating the Symbolic expression out of the switch statements
 * Investigate memory leaks and think about reducing memory usage.
 * Think about metrics to collect and add them to results file
   * Errors on abstracted nodes

@@ -199,6 +199,14 @@ void Graph::errorComputingDriver(const std::set<Node*> &candidate_nodes) {
 
 // Generates Expressions corresponding to all candidate_nodes bottom up
 void Graph::generateExprDriver(const std::set<Node *> &candidate_nodes) {
+  // Map from depth to nodes at that depth whose expression has been generated. Similar to "reachable" in Satire
+  std::map<int, std::set<Node *>> generatedExprsAtDepth;
+
+  // Map from Ibex::ExprNode to the Nodes that have that expression
+  // Common Subexpression Elimination Table
+  // This keeps track of nodes that have the same expression and can be replaced by a single node
+  std::map<ibex::ExprNode *, std::set<Node *>> cseTable;
+
   if (debugLevel > 1) {
     std::cout << "Generating Expressions..." << std::endl;
   }
@@ -214,7 +222,9 @@ void Graph::generateExprDriver(const std::set<Node *> &candidate_nodes) {
     if (logLevel > 1) {
       log.logFile << "Processing Node " << node->id << std::endl;
     }
-    generateExpr(node);
+    if (generatedExprsAtDepth[node->depth].find(node) == generatedExprsAtDepth[node->depth].end()) {
+      generateExpr(node, generatedExprsAtDepth, cseTable);
+    }
     if (debugLevel > 1) {
       std::cout << "Node " << node->id << " processed." << std::endl;
     }
@@ -232,7 +242,8 @@ void Graph::generateExprDriver(const std::set<Node *> &candidate_nodes) {
   }
 }
 
-void Graph::generateExpr(Node *node) {
+void Graph::generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedExprsAtDepth,
+                         std::map<ibex::ExprNode *, std::set<Node *>> &cseTable) {
   switch (node->type) {
     case NodeType::INTEGER:
       // Already has an expression
@@ -250,7 +261,10 @@ void Graph::generateExpr(Node *node) {
       // Already has an expression
       break;
     case NodeType::UNARY_OP:
-      generateExpr(((UnaryOp *)node)->Operand);
+      if(generatedExprsAtDepth[((UnaryOp *)node)->Operand->depth].find(((UnaryOp *)node)->Operand) ==
+         generatedExprsAtDepth[((UnaryOp *)node)->Operand->depth].end()) {
+        generateExpr(((UnaryOp *)node)->Operand, generatedExprsAtDepth, cseTable);
+      }
       ((UnaryOp *)node)->expr = (ibex::ExprUnaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((UnaryOp *)node)->Operand].insert(node);
       if (debugLevel > 2) {
@@ -268,8 +282,14 @@ void Graph::generateExpr(Node *node) {
       }
       break;
     case NodeType::BINARY_OP:
-      generateExpr(((BinaryOp *)node)->leftOperand);
-      generateExpr(((BinaryOp *)node)->rightOperand);
+      if(generatedExprsAtDepth[((BinaryOp *)node)->leftOperand->depth].find(((BinaryOp *)node)->leftOperand) ==
+         generatedExprsAtDepth[((BinaryOp *)node)->leftOperand->depth].end()) {
+        generateExpr(((BinaryOp *)node)->leftOperand, generatedExprsAtDepth, cseTable);
+      }
+      if(generatedExprsAtDepth[((BinaryOp *)node)->rightOperand->depth].find(((BinaryOp *)node)->rightOperand) ==
+         generatedExprsAtDepth[((BinaryOp *)node)->rightOperand->depth].end()) {
+        generateExpr(((BinaryOp *)node)->rightOperand, generatedExprsAtDepth, cseTable);
+      }
       ((BinaryOp *)node)->expr = (ibex::ExprBinaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->rightOperand].insert(node);
@@ -288,10 +308,19 @@ void Graph::generateExpr(Node *node) {
       }
       break;
     case NodeType::TERNARY_OP:
-      generateExpr(((TernaryOp *)node)->leftOperand);
-      generateExpr(((TernaryOp *)node)->middleOperand);
-      generateExpr(((TernaryOp *)node)->rightOperand);
-      // Ibex does not have a TernaryOp so we split the Op into two BinaryOps
+      if(generatedExprsAtDepth[((TernaryOp *)node)->leftOperand->depth].find(((TernaryOp *)node)->leftOperand) ==
+         generatedExprsAtDepth[((TernaryOp *)node)->leftOperand->depth].end()) {
+        generateExpr(((TernaryOp *)node)->leftOperand, generatedExprsAtDepth, cseTable);
+      }
+      if(generatedExprsAtDepth[((TernaryOp *)node)->middleOperand->depth].find(((TernaryOp *)node)->middleOperand) ==
+         generatedExprsAtDepth[((TernaryOp *)node)->middleOperand->depth].end()) {
+        generateExpr(((TernaryOp *)node)->middleOperand, generatedExprsAtDepth, cseTable);
+      }
+      if(generatedExprsAtDepth[((TernaryOp *)node)->rightOperand->depth].find(((TernaryOp *)node)->rightOperand) ==
+         generatedExprsAtDepth[((TernaryOp *)node)->rightOperand->depth].end()) {
+        generateExpr(((TernaryOp *)node)->rightOperand, generatedExprsAtDepth, cseTable);
+      }
+      // Ibex does not have a TernaryOp, so we split the Op into two BinaryOps
       ((TernaryOp *)node)->expr = (ibex::ExprBinaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->middleOperand].insert(node);
@@ -314,6 +343,9 @@ void Graph::generateExpr(Node *node) {
       std::cout << "Unknown node type" << std::endl;
       exit(1);
   }
+
+  // Update the map tracking processed nodes
+  generatedExprsAtDepth[node->depth].insert(node);
 }
 
 bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {

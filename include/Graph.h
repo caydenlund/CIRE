@@ -61,7 +61,7 @@ public:
   void setupDerivativeComputation(std::set<Node*> candidate_nodes);
   void errorComputingDriver(const std::set<Node*> &candidate_nodes);
   void generateExprDriver(const std::set<Node *> &candidate_nodes);
-  void generateExpr(Node *node);
+  void generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedExprsAtDepth, std::map<ibex::ExprNode *, std::set<Node *>> &cseTable);
 
   bool compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2);
 
