@@ -18,9 +18,17 @@ include_directories(include
             /usr/local/include/ibex
             /usr/local/include/soplex
             /usr/local/include/ibex/3rd
-            /usr/local/include/ibex/3rd/gaol)
+            /usr/local/include/ibex/3rd/gaol
+            # CHPC specififc paths
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/include
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/include/ibex
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include/gaol
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include/soplex)
 link_directories(/usr/local/lib
                 /usr/local/lib64
+                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/src
+                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/lib
                 /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/gaol-4.2.0/lib
                 /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/mathlib-2.1.0/lib)
 
@@ -42,7 +50,7 @@ if(ENABLE_LLVM_FRONTEND)
     message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
     message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
     message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
-    if("${LLVM_VERSION_MAJOR}" VERSION_LESS 16)
+    if("${LLVM_VERSION_MAJOR}" VERSION_LESS 15)
         message(FATAL_ERROR "Found LLVM ${LLVM_VERSION_MAJOR}, but need LLVM 16 or above")
     endif()
 
