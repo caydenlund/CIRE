@@ -27,10 +27,11 @@ include_directories(include
             /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include/soplex)
 link_directories(/usr/local/lib
                 /usr/local/lib64
-                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/src
-                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/lib
                 /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/gaol-4.2.0/lib
-                /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/mathlib-2.1.0/lib)
+                /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/mathlib-2.1.0/lib
+                # CHPC specififc paths
+                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/src
+                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/lib)
 
 option(ENABLE_LLVM_FRONTEND "Enable the LLVM frontend" OFF)
 

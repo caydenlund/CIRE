@@ -7,9 +7,18 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/..
             /usr/local/include/ibex
             /usr/local/include/soplex
             /usr/local/include/ibex/3rd
-            /usr/local/include/ibex/3rd/gaol)
+            /usr/local/include/ibex/3rd/gaol
+            # CHPC specififc paths
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/include
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/include/ibex
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include/gaol
+            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include/soplex)
 link_directories(/usr/local/lib
-                /usr/local/lib64)
+                /usr/local/lib64
+                # CHPC specififc paths
+                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/src
+                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/lib)
 
 
 BISON_TARGET(MyParser
