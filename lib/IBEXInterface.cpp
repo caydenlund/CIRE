@@ -74,9 +74,13 @@ OptResult IBEXInterface::FindMin(ibex::ExprNode &Expression) {
   factory.add_goal(Expression);
   setSystem(&factory);
   ibex::DefaultOptimizerConfig optConfig(*_system,
-                                         ibex::OptimizerConfig::default_rel_eps_f,
-                                         ibex::OptimizerConfig::default_abs_eps_f,
-                                         ibex::NormalizedSystem::default_eps_h, false,
+                                          ibex::OptimizerConfig::default_rel_eps_f,
+                                          ibex::OptimizerConfig::default_abs_eps_f,
+                                          ibex::NormalizedSystem::default_eps_h,
+//                                         1e-01,
+//                                         1e-01,
+//                                         1e-01,
+                                         false,
                                          ibex::DefaultOptimizerConfig::default_inHC4,
                                          false,
                                          ibex::DefaultOptimizerConfig::default_random_seed,
@@ -136,9 +140,13 @@ OptResult IBEXInterface::FindMax(ibex::ExprNode &Expression) {
   factory.add_goal(-Expression);
   setSystem(&factory);
   ibex::DefaultOptimizerConfig optConfig(*_system,
-                                         ibex::OptimizerConfig::default_rel_eps_f,
-                                         ibex::OptimizerConfig::default_abs_eps_f,
-                                         ibex::NormalizedSystem::default_eps_h, false,
+                                           ibex::OptimizerConfig::default_rel_eps_f,
+                                           ibex::OptimizerConfig::default_abs_eps_f,
+                                           ibex::NormalizedSystem::default_eps_h,
+//                                         1e-01,
+//                                         1e-01,
+//                                         1e-01,
+                                         false,
                                          ibex::DefaultOptimizerConfig::default_inHC4,
                                          false,
                                          ibex::DefaultOptimizerConfig::default_random_seed,
