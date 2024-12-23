@@ -1133,13 +1133,6 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
     log.logFile << "Finding output extremas..." << std::endl;
   }
 
-  generateIbexSymbols();
-
-  generateExprDriver(candidate_nodes);
-
-  ibexInterface->setInputIntervals(inputs);
-
-
   for (auto &node: candidate_nodes) {
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     if(debugLevel > 4) {
@@ -1174,10 +1167,6 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       log.logFile << "Min Interval: " << min[node].result << std::endl;
     }
   }
-
-  generateIbexSymbols();
-
-  generateExprDriver(candidate_nodes);
 
   std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
@@ -1249,15 +1238,10 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
     log.logFile << "Finding error extremas..." << std::endl;
   }
 
-  generateIbexSymbols();
-
   setupDerivativeComputation(candidate_nodes);
-  generateExprDriver(candidate_nodes);
 
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(candidate_nodes);
-
-  ibexInterface->setInputIntervals(inputs);
 
   std::map<Node *, OptResult> min;
   for (auto &node : candidate_nodes) {
@@ -1292,15 +1276,6 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
 //      std::cout << e << std::endl;
 //    }
 //  }
-
-  generateIbexSymbols();
-
-  setupDerivativeComputation(candidate_nodes);
-  generateExprDriver(candidate_nodes);
-
-
-  errorAnalyzer->derivativeComputingDriver();
-  errorComputingDriver(candidate_nodes);
 
   std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
@@ -1376,6 +1351,10 @@ std::map<Node *, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::
     assert(log.logFile.is_open() && "Log file not open");
     log.logFile << "Final computation..." << std::endl;
   }
+
+  ibexInterface->setInputIntervals(inputs);
+  generateIbexSymbols();
+  generateExprDriver(candidate_nodes);
 
   FindErrorExtrema(candidate_nodes);
   FindOutputExtrema(candidate_nodes);

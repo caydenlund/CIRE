@@ -88,12 +88,12 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
       case UNARY_OP:
         Operand = ((UnaryOp *) node)->Operand;
         derivThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
-                                                      *getDerivativeWRTChildNode(node, 0)).simplify(1);
+                                                      *getDerivativeWRTChildNode(node, 0)).simplify(0);
         if(node->OpRndType == Node::FL32 && Operand->OpRndType == Node::FL64) {
           derivTypeCastProd = (ibex::ExprNode *) &product(*derivThroughNode,
                                                           ibex::ExprConstant::new_scalar(
                                                                   node->RoundingAmount[Operand->OpRndType])).simplify(
-                  1);
+                  0);
         } else {
           derivTypeCastProd = derivThroughNode;
         }
