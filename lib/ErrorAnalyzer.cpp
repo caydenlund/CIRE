@@ -131,12 +131,12 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         // Computing the backward derivative of outVar with respect to node's children
         leftOperand = ((BinaryOp *) node)->leftOperand;
         derivLeftThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
-                                                          *getDerivativeWRTChildNode(node, 0)).simplify(1);
+                                                          *getDerivativeWRTChildNode(node, 0)).simplify(0);
         if(node->OpRndType == Node::FL32 && leftOperand->OpRndType == Node::FL64) {
           derivTypeCastProd = (ibex::ExprNode *) &product(*derivLeftThroughNode,
                                                           ibex::ExprConstant::new_scalar(
                                                                   node->RoundingAmount[leftOperand->OpRndType])).simplify(
-                  1);
+                  0);
         } else {
           derivTypeCastProd = derivLeftThroughNode;
         }
@@ -167,12 +167,12 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
 
         rightOperand = ((BinaryOp *) node)->rightOperand;
         derivRightThroughNode = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
-                                                           *getDerivativeWRTChildNode(node, 1)).simplify(1);
+                                                           *getDerivativeWRTChildNode(node, 1)).simplify(0);
         if(node->OpRndType == Node::FL32 && rightOperand->OpRndType == Node::FL64) {
           derivTypeCastProd = (ibex::ExprNode *) &product(*derivRightThroughNode,
                                                           ibex::ExprConstant::new_scalar(
                                                                   node->RoundingAmount[rightOperand->OpRndType])).simplify(
-                  1);
+                  0);
         } else {
           derivTypeCastProd = derivRightThroughNode;
         }
@@ -324,9 +324,9 @@ void ErrorAnalyzer::propagateError(Node *node) {
 
     // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
     // the local_error (product of the expression corresponding the node and the operator rounding)
-    auto local_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), node->getRounding()).simplify(1);
+    auto local_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), node->getRounding()).simplify(0);
     auto expr = (ibex::ExprNode *) &abs(product(*BwdDerivatives[node][outVar],
-                                                *local_error)).simplify(1);
+                                                *local_error)).simplify(0);
 
     if (contains(ErrAccumulator, outVar)) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*ErrAccumulator[outVar] + *expr);
