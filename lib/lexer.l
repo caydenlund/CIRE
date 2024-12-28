@@ -5,6 +5,7 @@
 %}
 num [0-9][0-9]*
 id [a-zA-Z][a-zA-Z0-9_]*
+comment "#".*
 
 /* rules */
 %%
@@ -26,6 +27,7 @@ id [a-zA-Z][a-zA-Z0-9_]*
 "fl64" { yylval.rnd_type = Node::RoundingType::FL64;
          return FPTYPE; }
 
+{comment} { }
 {num}  {yylval.num.type = Number::INT;
         yylval.num.ival = atoi(yytext);
         return INT; }
