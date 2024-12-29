@@ -92,7 +92,7 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         if(node->OpRndType == Node::FL32 && Operand->OpRndType == Node::FL64) {
           derivTypeCastProd = (ibex::ExprNode *) &product(*derivThroughNode,
                                                           ibex::ExprConstant::new_scalar(
-                                                                  node->RoundingAmount[Operand->OpRndType])).simplify(
+                                                                  node->RoundingAmount[node->OpRndType])).simplify(
                   0);
         } else {
           derivTypeCastProd = derivThroughNode;
@@ -135,7 +135,7 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         if(node->OpRndType == Node::FL32 && leftOperand->OpRndType == Node::FL64) {
           derivTypeCastProd = (ibex::ExprNode *) &product(*derivLeftThroughNode,
                                                           ibex::ExprConstant::new_scalar(
-                                                                  node->RoundingAmount[leftOperand->OpRndType])).simplify(
+                                                                  node->RoundingAmount[node->OpRndType])).simplify(
                   0);
         } else {
           derivTypeCastProd = derivLeftThroughNode;
@@ -171,7 +171,7 @@ void ErrorAnalyzer::derivativeComputing(Node *node) {
         if(node->OpRndType == Node::FL32 && rightOperand->OpRndType == Node::FL64) {
           derivTypeCastProd = (ibex::ExprNode *) &product(*derivRightThroughNode,
                                                           ibex::ExprConstant::new_scalar(
-                                                                  node->RoundingAmount[rightOperand->OpRndType])).simplify(
+                                                                  node->RoundingAmount[node->OpRndType])).simplify(
                   0);
         } else {
           derivTypeCastProd = derivRightThroughNode;
