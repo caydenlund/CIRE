@@ -1,3 +1,4 @@
+* Fix another type cast rounding problem. The type cast rounding should not be multiplied by the backward derivative. You only determine the type cast rounding simultaneously with the backward deriv computation but it is used by adding to the operator rounding error during error expression generation.
 * Fix the type cast rounding problem. type cast rounding should not be multiplied with the backward derivatives. Have a separate dictionary for the product.
 * Add CHPC batch scripts for the benchmarks
 * Get the C++ counterparts of satire benchmarks and modify them to work with CIRE
