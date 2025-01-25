@@ -138,6 +138,7 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
   errorAnalyzer->numParentsOfNode.clear();
   errorAnalyzer->parentsOfNode.clear();
   errorAnalyzer->BwdDerivatives.clear();
+  errorAnalyzer->typeCastRnd.clear();
   errorAnalyzer->ErrAccumulator.clear();
 
   // Insert candidate_nodes with max depth into worklist
@@ -150,6 +151,7 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
   // Set BwdDerivatives of each node with respect to itself to 1
   for (auto &node : candidate_nodes) {
     errorAnalyzer->BwdDerivatives[node][node] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+    errorAnalyzer->typeCastRnd[node][node] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0);
   }
 
   // Set numParentsOfNode of each node to the number of parents it has

@@ -21,6 +21,9 @@ public:
   // Map with derivative information (Contains maps of derivatives of expression corresponding to the node corresponding
   // key in the inner map with respect to node corresponding key in outer map)
   std::map<Node *, std::map<Node *, ibex::ExprNode *>> BwdDerivatives;
+  // Map with type cast rounding information (Contains maps of type cast amount to operation corresponding the node corresponding
+  // key in the outer map)
+  std::map<Node *, std::map<Node *, ibex::ExprNode *>> typeCastRnd;
   // Map from depth to nodes at that depth whose Backward derivative has been computed
   std::map<int, std::set<Node *>> derivativeComputedNodes;
   // Map from depth to nodes at that depth whose error has been computed

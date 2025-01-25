@@ -119,6 +119,7 @@ int main(int argc, char *argv[]) {
         << "\n\tOutput: " << result.outputExtrema << ","
         << "\n\tError: " << result.errorExtrema << std::endl;
     }
+    i++;
   }
 
   if (cire.logLevel > 0) {

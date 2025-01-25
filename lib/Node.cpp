@@ -37,17 +37,17 @@ bool Node::isTernaryOp() const {
   return type == TERNARY_OP;
 }
 
-void Node::setRoundingType(Node::RoundingType OpRndType) {
-  OpRndType = OpRndType;
+void Node::setRoundingType(Node::RoundingType RndType) {
+  OpRndType = RndType;
 }
 
-void Node::setRoundingFromType(RoundingType OpRndType) {
-  OpRndType = OpRndType;
+void Node::setRoundingFromType(RoundingType RndType) {
+  OpRndType = RndType;
   OpRounding = RoundingAmount[OpRndType];
 }
 
-void Node::setRounding(double OpRounding) {
-  this->OpRounding = OpRounding;
+void Node::setRounding(double RoundingAmt) {
+  OpRounding = RoundingAmt;
 }
 
 void Node::setAbsoluteError(const ibex::ExprNode *absErr) {
