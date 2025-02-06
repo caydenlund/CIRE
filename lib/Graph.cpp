@@ -148,7 +148,7 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
     }
   }
 
-  // Set BwdDerivatives of each node with respect to itself to 1
+  // Set BwdDerivatives of each candidate_node (output node) with respect to itself to 1
   for (auto &node : candidate_nodes) {
     errorAnalyzer->BwdDerivatives[node][node] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
     errorAnalyzer->typeCastRnd[node][node] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(0);
@@ -158,12 +158,6 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
   for (auto &node : candidate_nodes) {
     errorAnalyzer->numParentsOfNode[node] = node->parents.size();
   }
-
-//  errorAnalyzer->workList.insert(symbolTables[currentScope]->table[outputs[0]]);
-//  errorAnalyzer->BwdDerivatives[symbolTables[currentScope]->table[outputs[0]]][symbolTables[currentScope]->table[outputs[0]]] =
-//          (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
-//  errorAnalyzer->numParentsOfNode[symbolTables[currentScope]->table[outputs[0]]] =
-//          symbolTables[currentScope]->table[outputs[0]]->parents.size();
 }
 
 void Graph::errorComputingDriver(const std::set<Node*> &candidate_nodes) {

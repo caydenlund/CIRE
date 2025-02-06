@@ -31,18 +31,24 @@ void ErrorAnalyzer::derivativeComputingDriver() {
     if(derivativeComputedNodes[current_depth].find(node) != derivativeComputedNodes[current_depth].end()) {
       // If derivative of node has already been computed, move on.
     }
+    // These are constants and their derivatives are 0
     else if(node->type == NodeType::INTEGER ||
             node->type == NodeType::FLOAT ||
             node->type == NodeType::DOUBLE) {
       derivativeComputedNodes[current_depth].insert(node);
     }
+    // If all parents of node have been visited, compute derivative of node
     else if(parentsVisited(node)) {
       derivativeComputing(node);
     }
+    // This means that requirements for computing derivative of node are not met
+    //  and we need to add it to the worklist again
+    // Requirements are that all parents of node have been visited and node is not a constant
     else {
       workList.insert(node);
     }
 
+    // If all nodes at current depth have been processed, move to next depth and add nodes at that depth to worklist
     if(workList.empty() && !nextWorkList.empty() && next_depth >= 0) {
       std::copy_if(nextWorkList.begin(), nextWorkList.end(), std::inserter(workList, workList.end()), [&next_depth](
               Node *node) { return node->depth == next_depth;});
@@ -68,6 +74,7 @@ void ErrorAnalyzer::derivativeComputingDriver() {
   }
 }
 
+// Compute the Backward derivative of outVar with respect to node's children by using the chain rule
 void ErrorAnalyzer::derivativeComputing(Node *node) {
   // TODO: Type rounding handled only for FL64 --> FL32. Handle for other cases.
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
