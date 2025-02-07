@@ -509,6 +509,55 @@ Node *Graph::mergeNodes(Node *node1, Node *node2, std::map<Node *, std::set<Node
   return node2;
 }
 
+// Uses ibex eval to evaluate the backward derivatives and local errors and stores them in a map of node to ibex::IntervalVector, ibex::IntervalVector
+void Graph::examineBwdDerivativeAndLocalError() {
+  // Create a map similar to errorAnalyzer->BwdDerivatives but with a pair of double as the value
+  std::map<Node *, std::map<Node *, std::pair<double, double>> > evaluatedBwdDerivatives;
+
+  // Iterate through the bwdDerivative map
+  for(auto &node_bwd_derivatives : errorAnalyzer->BwdDerivatives) {
+    Node* node = node_bwd_derivatives.first;
+    // Iterate through the nodeBwdDerivatives map
+    for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
+      Node *output_node = node_output_bwd_derivative.first;
+
+      ibex::Array<const ibex::ExprSymbol> variables_for_bwd_derivative = ibex::Array<const ibex::ExprSymbol>();
+      for (auto &input : inputs) {
+        variables_for_bwd_derivative.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
+//        variables_for_bwd_derivative.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
+//        variables_for_bwd_derivative.add(ibex::ExprSymbol::new_(input.first.c_str()));
+      }
+      std::cout << "f: " << *node_output_bwd_derivative.second << std::endl;
+      ibex::Function f(variables_for_bwd_derivative, *node_output_bwd_derivative.second);
+      double max_bwd = ibexInterface->eval(f).mag();
+
+      ibex::Array<const ibex::ExprSymbol> variables_for_local_error = ibex::Array<const ibex::ExprSymbol>();
+      for (auto &input : inputs) {
+        variables_for_local_error.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
+//        variables_for_local_error.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
+//        variables_for_local_error.add(ibex::ExprSymbol::new_(input.first.c_str()));
+        std::cout << "variable: " << variables_for_local_error[variables_for_local_error.size()-1] << std::endl;
+      }
+//      ibex::Function g(variables_for_bwd_derivative, product(node->getAbsoluteError(), node->getRounding()));
+      std::cout << "g: " << node->getAbsoluteError() << " " << node->getRounding() << std::endl;
+      ibex::Function g(variables_for_local_error, node->getAbsoluteError());
+      double max_local_err = ibexInterface->eval(g).mag();
+
+      evaluatedBwdDerivatives[node][output_node] = std::make_pair(max_bwd, max_local_err);
+    }
+  }
+
+  // print the evaluatedBwdDerivatives
+  for(auto &node_bwd_derivatives : evaluatedBwdDerivatives) {
+    Node* node = node_bwd_derivatives.first;
+    for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
+      Node *output_node = node_output_bwd_derivative.first;
+      std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
+      std::cout << "Node: " << node->id << " Output: " << output_node->id << " Bwd: " << bwd_local_err.first << " Local Error: " << bwd_local_err.second << std::endl;
+    }
+  }
+}
+
 bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
   if (expr1.type_id() == expr2.type_id()) {
     switch (expr1.type_id()) {
@@ -1238,6 +1287,10 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
 
   errorAnalyzer->derivativeComputingDriver();
   errorComputingDriver(candidate_nodes);
+
+  if (collect_error_component_data) {
+    examineBwdDerivativeAndLocalError();
+  }
 
   std::map<Node *, OptResult> min;
   for (auto &node : candidate_nodes) {

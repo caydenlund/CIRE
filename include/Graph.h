@@ -67,6 +67,9 @@ public:
   // Merges node1 and node2 into node2
   Node *mergeNodes(Node *node1, Node *node2, std::map<Node *, std::set<Node *>> &parentsOfNode);
 
+  // Collects BwdDerivative and Local Error data
+  void examineBwdDerivativeAndLocalError();
+
   bool compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2);
 
   // Abstraction related functions

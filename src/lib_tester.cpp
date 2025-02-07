@@ -1,34 +1,41 @@
 #include <iostream>
-#include "Graph.h"
+#include "ibex.h"
 
 using namespace std;
 using namespace ibex;
 
 int main(int argc, char * argv[]) {
   Interval x(0, 1.0), y(0, 1.0);
-  auto a = Variable("x");
-  auto b = Variable("y");
+//  auto a = Variable("x");
+//  auto b = Variable("y");
+  string x_str = "x";
+  string y_str = "y";
+  const ExprNode *a = &ExprSymbol::new_(x_str.c_str());
+  const ExprNode *b = &ExprSymbol::new_(y_str.c_str());
 
   IntervalVector m(x);
   m.resize(m.size()+1);
   m[m.size()-1] = y;
 
-  cout << (a+b) << endl;
+  cout << (*a+*b) << endl;
   cout << "x+y = " << x + y << endl;
   cout << "m = " << m << endl;
 
   for(int i = 0; i < 2; i++) {
-    Array<const ExprSymbol> symbols = Array<const ExprSymbol>();
-    symbols.add(a);
-    symbols.add(b);
+//    Array<const ExprSymbol> symbols = Array<const ExprSymbol>();
+    Array<const ExprSymbol> *symbols = new ibex::Array<const ibex::ExprSymbol>;
+    symbols->add(*(ExprSymbol *)a);
+    symbols->add(*(ExprSymbol *)b);
 
-    if (i == 0) {
-      Function f(symbols, a+b);
+      Function f(*symbols, *a+*b);
       cout << "f=" << f.eval(m) << endl;
-    } else {
-      Function f(symbols, a-b);
-      cout << "f=" << f.eval(m).mag() << endl;
-    }
+//      delete symbols;
+
+    Array<const ExprSymbol> symbols1 = Array<const ExprSymbol>();
+    symbols1.add(*(ExprSymbol *)a);
+    symbols1.add(*(ExprSymbol *)b);
+      Function g(symbols1, *a-*b);
+      cout << "g=" << g.eval(m).mag() << endl;
   }
   // Create an ibex function and evaluate it
 //  Array<const ExprSymbol> symbols = Array<const ExprSymbol>();
@@ -53,15 +60,15 @@ int main(int argc, char * argv[]) {
 //  Function f1(*symbols1, (a* pow(2, -53)+b* pow(2, -53)) * pow(2, -53));
 //  cout << "f1=" << f1.eval(m) << endl;
 
-  SystemFactory factory;
-  factory.add_var(a);
-  factory.add_var(b);
+//  SystemFactory factory;
+//  factory.add_var(a);
+//  factory.add_var(b);
 //  factory.add_goal((a* pow(2, -53)+b* pow(2, -53)) * pow(2, -53));
-  factory.add_goal((a+b));
-  System sys(factory);
-  DefaultOptimizer opt(sys);
-  opt.optimize(m);
-  opt.report();
+//  factory.add_goal((a+b));
+//  System sys(factory);
+//  DefaultOptimizer opt(sys);
+//  opt.optimize(m);
+//  opt.report();
 
 
 
