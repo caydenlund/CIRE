@@ -42,12 +42,16 @@ class IBEXInterface {
   void setFunction(ibex::ExprNode *Expression);
   void setSystem(ibex::SystemFactory *Factory);
 
+  ibex::Array<const ibex::ExprSymbol> *getVariables();
+
+  ibex::IntervalVector getInputIntervals();
   ibex::Function* getFunction();
   ibex::System* getSystem();
 
 
   // IBEX Operations
-  ibex::IntervalVector eval();
+  ibex::Interval eval();
+  ibex::Interval eval(ibex::Function &Function);
   OptResult FindMin(ibex::ExprNode &Expression);
   OptResult FindMax(ibex::ExprNode &Expression);
 

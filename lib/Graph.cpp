@@ -1130,7 +1130,7 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   }
 
   for (auto &node: candidate_nodes) {
-    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     if(debugLevel > 4) {
       std::cout << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
     }
@@ -1151,7 +1151,7 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding min for: " << *node->getExprNode() << std::endl;
     }
-    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(*node->getExprNode());
 
     // print the output interval
@@ -1173,7 +1173,7 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding max for: " << *node->getExprNode() << std::endl;
     }
-    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(*node->getExprNode());
 
     // print the output interval - Max have to be flipped since we find the min of the negative of the function
@@ -1282,7 +1282,7 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding max for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
-    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(*errorAnalyzer->ErrAccumulator[node]);
 
     // print the error interval - Max have to be flipped since we find the min of the negative of the function

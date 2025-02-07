@@ -26,12 +26,13 @@ public:
   ~Cire();
 
   void setFile(std::string file);
-  void setAbstaction(bool value);
+  void setAbstraction(bool value);
   void setDebugLevel(unsigned int level);
   void setLogLevel(unsigned int level);
   void setAbstractionWindow(std::pair<unsigned int, unsigned int> window);
   void setMinDepth(unsigned int depth);
   void setMaxDepth(unsigned int depth);
+  void setCollectErrorComponentData(bool value);
   std::map<Node *, ErrorAnalysisResult> performErrorAnalysis();
 };
 

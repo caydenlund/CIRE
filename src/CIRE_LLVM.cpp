@@ -61,6 +61,9 @@ namespace {
                                        cl::desc("Timeout for the optimizer. Default: 20 seconds"),
                                        cl::init(UINT_MAX));
 
+    cl::opt<bool> CollectErrorComponentData("collect-error-component-data",
+                                            cl::desc("Enable collection of backward derivatives and local errors"),
+                                            cl::init(false));
 }
 
 
@@ -96,7 +99,7 @@ int main(int argc, char **argv) {
   cire.setFile(File);
 
   if (Abstraction) {
-    cire.setAbstaction(true);
+    cire.setAbstraction(true);
     cire.setAbstractionWindow(std::make_pair(MinDepth.getValue(), MaxDepth.getValue()));
   }
   if (DebugLevel) {
@@ -123,6 +126,9 @@ int main(int argc, char **argv) {
   }
   if (cire.logLevel > 0) {
     std::cout << "Parsing LLVM IR..." << std::endl;
+  }
+  if (CollectErrorComponentData) {
+    cire.setCollectErrorComponentData(true);
   }
 
   if(!Func.empty()) {

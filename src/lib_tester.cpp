@@ -17,6 +17,34 @@ int main(int argc, char * argv[]) {
   cout << "x+y = " << x + y << endl;
   cout << "m = " << m << endl;
 
+  for(int i = 0; i < 2; i++) {
+    Array<const ExprSymbol> symbols = Array<const ExprSymbol>();
+    symbols.add(a);
+    symbols.add(b);
+
+    if (i == 0) {
+      Function f(symbols, a+b);
+      cout << "f=" << f.eval(m) << endl;
+    } else {
+      Function f(symbols, a-b);
+      cout << "f=" << f.eval(m).mag() << endl;
+    }
+  }
+  // Create an ibex function and evaluate it
+//  Array<const ExprSymbol> symbols = Array<const ExprSymbol>();
+//  symbols.add(a);
+//  symbols.add(b);
+//
+//  Function f(symbols, a+b);
+//  cout << "f=" << f.eval(m) << endl;
+//
+//  Array<const ExprSymbol> symbols = Array<const ExprSymbol>();
+//  symbols->add(a);
+//  symbols->add(b);
+
+//  Function g(symbols, a-b);
+//  cout << "g=" << g.eval(m) << endl;
+
 //  ibex::Array<const ExprSymbol> *symbols1;
 //  symbols1 = new ibex::Array<const ExprSymbol>;
 //  symbols1->add(a);

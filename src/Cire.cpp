@@ -24,7 +24,7 @@ void Cire::setLogLevel(unsigned int level) {
   logLevel = level;
 }
 
-void Cire::setAbstaction(bool _value) {
+void Cire::setAbstraction(bool _value) {
   abstraction = _value;
 }
 
@@ -38,6 +38,10 @@ void Cire::setMinDepth(unsigned int depth) {
 
 void Cire::setMaxDepth(unsigned int depth) {
   abstractionWindow.second = depth;
+}
+
+void Cire::setCollectErrorComponentData(bool _value) {
+  graph->collect_error_component_data = _value;
 }
 
 std::map<Node *, ErrorAnalysisResult> Cire::performErrorAnalysis() {

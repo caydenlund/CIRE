@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
         show_usage(argv[0]);
         return 0;
       } else if ((arg == "-a") || (arg == "--abstraction")) {
-        cire.setAbstaction(true);
+        cire.setAbstraction(true);
       } else if ((arg == "-m") || (arg == "--min-depth")) {
         if (i + 1 < argc) {
           cire.setMinDepth(std::stoi(argv[++i]));
@@ -90,6 +90,8 @@ int main(int argc, char *argv[]) {
           std::cerr << "--global-opt-timeout option requires one argument. Default: 20 seconds" << std::endl;
           return 1;
         }
+      } else if ((arg == "-cecd") || (arg == "--collect-error-component-data")) {
+        cire.setCollectErrorComponentData(true);
       } else {
         cire.setFile(argv[i]);
       }

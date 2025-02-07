@@ -45,13 +45,21 @@ void IBEXInterface::setFunction(ibex::Function *Function) {
   _function = Function;
 }
 
+void IBEXInterface::setFunction(ibex::ExprNode *Expression) {
+  delete _function;
+  _function = new ibex::Function(*_variables, *Expression);
+}
+
 void IBEXInterface::setSystem(ibex::SystemFactory *Factory) {
   _system = new ibex::System(*Factory);
 }
 
-void IBEXInterface::setFunction(ibex::ExprNode *Expression) {
-  delete _function;
-  _function = new ibex::Function(*_variables, *Expression);
+ibex::Array<const ibex::ExprSymbol> *IBEXInterface::getVariables() {
+  return _variables;
+}
+
+ibex::IntervalVector IBEXInterface::getInputIntervals() {
+  return _inputIntervals;
 }
 
 ibex::Function *IBEXInterface::getFunction() {
@@ -62,8 +70,12 @@ ibex::System *IBEXInterface::getSystem() {
   return _system;
 }
 
-ibex::IntervalVector IBEXInterface::eval() {
+ibex::Interval IBEXInterface::eval() {
   return _function->eval(_inputIntervals);
+}
+
+ibex::Interval IBEXInterface::eval(ibex::Function &Function) {
+  return Function.eval(_inputIntervals);
 }
 
 OptResult IBEXInterface::FindMin(ibex::ExprNode &Expression) {
