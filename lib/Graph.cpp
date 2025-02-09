@@ -520,30 +520,15 @@ void Graph::examineBwdDerivativeAndLocalError() {
     // Iterate through the nodeBwdDerivatives map
     for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
       Node *output_node = node_output_bwd_derivative.first;
+      OptResult max_bwd = ibexInterface->FindMax(*node_output_bwd_derivative.second);
+      OptResult min_bwd = ibexInterface->FindMin(*node_output_bwd_derivative.second);
+      OptResult max_local_err = ibexInterface->FindMax(
+              const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
+      OptResult min_local_err = ibexInterface->FindMin(
+              const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
 
-      ibex::Array<const ibex::ExprSymbol> variables_for_bwd_derivative = ibex::Array<const ibex::ExprSymbol>();
-      for (auto &input : inputs) {
-        variables_for_bwd_derivative.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
-//        variables_for_bwd_derivative.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
-//        variables_for_bwd_derivative.add(ibex::ExprSymbol::new_(input.first.c_str()));
-      }
-      std::cout << "f: " << *node_output_bwd_derivative.second << std::endl;
-      ibex::Function f(variables_for_bwd_derivative, *node_output_bwd_derivative.second);
-      double max_bwd = ibexInterface->eval(f).mag();
-
-      ibex::Array<const ibex::ExprSymbol> variables_for_local_error = ibex::Array<const ibex::ExprSymbol>();
-      for (auto &input : inputs) {
-        variables_for_local_error.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
-//        variables_for_local_error.add(*(ibex::ExprSymbol *) symbolTables[currentScope]->table[input.first]->getExprNode());
-//        variables_for_local_error.add(ibex::ExprSymbol::new_(input.first.c_str()));
-        std::cout << "variable: " << variables_for_local_error[variables_for_local_error.size()-1] << std::endl;
-      }
-//      ibex::Function g(variables_for_bwd_derivative, product(node->getAbsoluteError(), node->getRounding()));
-      std::cout << "g: " << node->getAbsoluteError() << " " << node->getRounding() << std::endl;
-      ibex::Function g(variables_for_local_error, node->getAbsoluteError());
-      double max_local_err = ibexInterface->eval(g).mag();
-
-      evaluatedBwdDerivatives[node][output_node] = std::make_pair(max_bwd, max_local_err);
+      evaluatedBwdDerivatives[node][output_node] = std::make_pair(ibex::max(min_bwd.result, -max_bwd.result).mag(),
+                                                                   ibex::max(min_local_err.result, -max_local_err.result).mag());
     }
   }
 
@@ -553,9 +538,26 @@ void Graph::examineBwdDerivativeAndLocalError() {
     for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
       Node *output_node = node_output_bwd_derivative.first;
       std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
-      std::cout << "Node: " << node->id << " Output: " << output_node->id << " Bwd: " << bwd_local_err.first << " Local Error: " << bwd_local_err.second << std::endl;
+      std::cout << "(Output Id, Depth): " << output_node->id << ", " << output_node->depth
+      << " (Node Id, Depth): " << node->id << ", " << node->depth
+      << " Bwd: " << bwd_local_err.first << " Local Error: " << bwd_local_err.second << std::endl;
     }
   }
+
+  // Store the evaluatedBwdDerivatives in a file
+  std::ofstream bwd_derivatives_file("bwd_derivatives.txt");
+  // Output format: Node Id, Depth, Bwd, Local Error
+  bwd_derivatives_file << "Node Id, Depth, Bwd, Local Error" << std::endl;
+  for(auto &node_bwd_derivatives : evaluatedBwdDerivatives) {
+    Node* node = node_bwd_derivatives.first;
+    for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
+      Node *output_node = node_output_bwd_derivative.first;
+      std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
+      bwd_derivatives_file << node->id << ", " << node->depth << ", "
+                            << bwd_local_err.first << ", "  << bwd_local_err.second << std::endl;
+    }
+  }
+  bwd_derivatives_file.close();
 }
 
 bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
@@ -1179,7 +1181,6 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   }
 
   for (auto &node: candidate_nodes) {
-//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     if(debugLevel > 4) {
       std::cout << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
     }
@@ -1200,7 +1201,6 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding min for: " << *node->getExprNode() << std::endl;
     }
-//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     min[node] = ibexInterface->FindMin(*node->getExprNode());
 
     // print the output interval
@@ -1222,7 +1222,6 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding max for: " << *node->getExprNode() << std::endl;
     }
-//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(*node->getExprNode());
 
     // print the output interval - Max have to be flipped since we find the min of the negative of the function
@@ -1302,7 +1301,7 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
       log.logFile << "Finding min for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
 
-    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
+
     min[node] = ibexInterface->FindMin(*errorAnalyzer->ErrAccumulator[node]);
 
     // print the error interval
@@ -1335,7 +1334,6 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding max for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
-//    ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     max[node] = ibexInterface->FindMax(*errorAnalyzer->ErrAccumulator[node]);
 
     // print the error interval - Max have to be flipped since we find the min of the negative of the function
@@ -1359,16 +1357,13 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
     if (min[node].result.lb() <= -max[node].result.lb() ) {
       errorAnalysisResults[node].errorExtrema = ibex::Interval(min[node].result.lb() * pow(2, -53),
                                                                -max[node].result.lb() * pow(2, -53));
-      errorAnalysisResults[node].lbPoint = min[node].optimumPoint;
-      errorAnalysisResults[node].ubPoint = max[node].optimumPoint;
-      errorAnalysisResults[node].totalOptimizationTime = min[node].optimizationTime + max[node].optimizationTime;
     } else {
       std::cout << "Error extrema is empty! Setting to 0" << std::endl;
       errorAnalysisResults[node].errorExtrema = ibex::Interval(0, 0);
-      errorAnalysisResults[node].lbPoint = min[node].optimumPoint;
-      errorAnalysisResults[node].ubPoint = max[node].optimumPoint;
-      errorAnalysisResults[node].totalOptimizationTime = min[node].optimizationTime + max[node].optimizationTime;
     }
+    errorAnalysisResults[node].lbPoint = min[node].optimumPoint;
+    errorAnalysisResults[node].ubPoint = max[node].optimumPoint;
+    errorAnalysisResults[node].totalOptimizationTime = min[node].optimizationTime + max[node].optimizationTime;
 
     if (debugLevel > 4) {
       std::cout << "Error Extrema: " << errorAnalysisResults[node].errorExtrema
@@ -1403,6 +1398,7 @@ std::map<Node *, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::
 
   ibexInterface->setInputIntervals(inputs);
   generateIbexSymbols();
+  ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
   generateExprDriver(candidate_nodes);
 
   FindErrorExtrema(candidate_nodes);
