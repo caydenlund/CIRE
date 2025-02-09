@@ -545,16 +545,16 @@ void Graph::examineBwdDerivativeAndLocalError() {
   }
 
   // Store the evaluatedBwdDerivatives in a file
-  std::ofstream bwd_derivatives_file("bwd_derivatives.txt");
+  std::ofstream bwd_derivatives_file("bwd_derivatives.csv");
   // Output format: Node Id, Depth, Bwd, Local Error
-  bwd_derivatives_file << "Node Id, Depth, Bwd, Local Error" << std::endl;
+  bwd_derivatives_file << "Node Id,Depth,Bwd,Local Error" << std::endl;
   for(auto &node_bwd_derivatives : evaluatedBwdDerivatives) {
     Node* node = node_bwd_derivatives.first;
     for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
       Node *output_node = node_output_bwd_derivative.first;
       std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
-      bwd_derivatives_file << node->id << ", " << node->depth << ", "
-                            << bwd_local_err.first << ", "  << bwd_local_err.second << std::endl;
+      bwd_derivatives_file << node->id << "," << node->depth << ","
+                            << bwd_local_err.first << ","  << bwd_local_err.second << std::endl;
     }
   }
   bwd_derivatives_file.close();
