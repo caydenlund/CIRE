@@ -21,6 +21,7 @@ CIRE requires the following softwares installed on your system. The tool will no
 ### If you want to use the LLVM frontend
 * LLVM > 16
 This version is necessary since the frontend uses the new pass manager by default.
+Use gcc (version 13) to build LLVM to ensure standard libraries are compatible with CIRE and IBEX
 
 ## IBEX installation
 ### Linux and MacOS

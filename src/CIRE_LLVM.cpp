@@ -148,8 +148,8 @@ int main(int argc, char **argv) {
     // Iterate the function arguments
     for (auto &arg : F->args()) {
       if (arg.getType()->isFloatingPointTy()) {
-        llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand()];
-        cireToLLVMNodeMap[cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand()]] = &arg;
+        llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getName().str()];
+        cireToLLVMNodeMap[cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getName().str()]] = &arg;
       }
     }
 
@@ -171,8 +171,8 @@ int main(int argc, char **argv) {
       // Iterate the function arguments
       for (auto &arg : srcFn.args()) {
         if (arg.getType()->isFloatingPointTy()) {
-          llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand()];
-          cireToLLVMNodeMap[cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand()]] = &arg;
+          llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getName().str()];
+          cireToLLVMNodeMap[cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getName().str()]] = &arg;
         }
       }
 

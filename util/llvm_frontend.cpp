@@ -21,7 +21,7 @@ void addDataForCreatedNode(Instruction &I, Graph &g, Node* res) {
 
   llvmToCireNodeMap[&I] = res;
   cireToLLVMNodeMap[res] = &I;
-  g.symbolTables[g.currentScope]->insert(I.getNameOrAsOperand(), res);
+  g.symbolTables[g.currentScope]->insert(I.getName().str(), res);
 }
 
 Node *getNodeFromLLVMValue(Value *V, Graph &g) {
@@ -84,9 +84,9 @@ void parseInputsInLLVM(Graph &g, Function &F) {
 
     auto *new_variable = new VariableNode(rounding_type);
     g.nodes.insert(new_variable);
-    g.symbolTables[g.currentScope]->insert(arg.getNameOrAsOperand(), new_variable);
-    g.inputs[arg.getNameOrAsOperand()] = new FreeVariable(rounding_type);
-    g.nodes.insert(g.inputs[arg.getNameOrAsOperand()]);
+    g.symbolTables[g.currentScope]->insert(arg.getName().str(), new_variable);
+    g.inputs[arg.getName().str()] = new FreeVariable(rounding_type);
+    g.nodes.insert(g.inputs[arg.getName().str()]);
   }
 }
 
@@ -106,7 +106,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
     switch(opcode) {
       case Instruction::Ret: {
         if (I.getOperand(0)->getType()->isFloatingPointTy()) {
-          g.outputs.push_back(I.getOperand(0)->getNameOrAsOperand());
+          g.outputs.push_back(I.getOperand(0)->getName().str());
         }
         break;
       }
@@ -253,7 +253,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
       case Instruction::Call: {
         auto CI = dyn_cast<CallInst>(&I);
         if(CI->getCalledFunction()->arg_size() == 1) {
-          auto CalledFunctionName = CI->getCalledFunction()->getNameOrAsOperand();
+          auto CalledFunctionName = CI->getCalledFunction()->getName().str();
           auto op1 = getNodeFromLLVMValue(CI->getOperand(0), g);
 
           if(CalledFunctionName == "sin" ||
@@ -297,7 +297,7 @@ void parseExprsInLLVM(Graph &g, Function &F) {
             exit(1);
           }
         } else if(CI->getCalledFunction()->arg_size() == 3) {
-          auto CalledFunctionName = CI->getCalledFunction()->getNameOrAsOperand();
+          auto CalledFunctionName = CI->getCalledFunction()->getName().str();
           auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
           auto op2 = getNodeFromLLVMValue(I.getOperand(1), g);
           auto op3 = getNodeFromLLVMValue(I.getOperand(2), g);
