@@ -15,13 +15,13 @@ def plot_bwd_local_error(csv_filename):
     #     return
 
     # Plot Bwd and Local Error against Node Id
-    fig1 = px.line(df, x='Node Id', y=df.columns[2:],
+    fig1 = px.scatter(df, x='Node Id', y=df.columns[2:],
                       title="Bwd and Local Error vs Node Id",
                       labels={'value': 'Bwd and Local Error', 'variable': 'Metric'},
                       symbol_sequence=['circle', 'square'])
 
     # Plot Bwd and Local Error against Depth
-    fig2 = px.line(df, x='Depth', y=df.columns[2:],
+    fig2 = px.scatter(df, x='Depth', y=df.columns[2:],
                       title="Bwd and Local Error vs Depth",
                       labels={'value': 'Bwd and Local Error', 'variable': 'Metric'},
                       symbol_sequence=['circle', 'square'])
@@ -31,8 +31,14 @@ def plot_bwd_local_error(csv_filename):
     fig2.show()
 
 
+def main():
+    import sys
+    if len(sys.argv) != 2:
+        print("Usage: python plot_bwd_and_err.py <filename>")
+        return
+    filename = sys.argv[1]
+    plot_bwd_local_error(filename)
 
 
-# Example usage
-filename = "../build-debug/bin/bwd_derivatives.csv"
-plot_bwd_local_error(filename)
+if __name__ == '__main__':
+    main()
