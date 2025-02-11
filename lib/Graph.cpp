@@ -212,19 +212,19 @@ void Graph::generateExprDriver(const std::set<Node *> &candidate_nodes) {
   }
 
   for (auto &node : candidate_nodes) {
-    if (debugLevel > 1) {
+    if (debugLevel > 2) {
       std::cout << "Processing Node " << node->id << std::endl;
     }
-    if (logLevel > 1) {
+    if (logLevel > 2) {
       log.logFile << "Processing Node " << node->id << std::endl;
     }
     if (generatedExprsAtDepth[node->depth].find(node) == generatedExprsAtDepth[node->depth].end()) {
       generateExpr(node, generatedExprsAtDepth, cseTable);
     }
-    if (debugLevel > 1) {
+    if (debugLevel > 2) {
       std::cout << "Node " << node->id << " processed." << std::endl;
     }
-    if (logLevel > 1) {
+    if (logLevel > 2) {
       log.logFile << "Node " << node->id << " processed." << std::endl;
     }
   }
@@ -1195,11 +1195,13 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   std::map<Node *, OptResult> min;
   for (auto &node : candidate_nodes) {
     if(debugLevel > 3) {
-      std::cout << "Finding min for: " << *node->getExprNode() << std::endl;
+      std::cout << "Finding min for: " << node->id << std::endl;
+      std::cout << "Output Expression: " << *node->getExprNode() << std::endl;
     }
     if(logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Finding min for: " << *node->getExprNode() << std::endl;
+      log.logFile << "Finding min for: " << node->id << std::endl;
+      log.logFile << "Output Expression: " << *node->getExprNode() << std::endl;
     }
     min[node] = ibexInterface->FindMin(*node->getExprNode());
 
@@ -1216,11 +1218,13 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
     if(debugLevel > 3) {
-      std::cout << "Finding max for: " << *node->getExprNode() << std::endl;
+      std::cout << "Finding max for: " << node->id << std::endl;
+      std::cout << "Output Expression: " << *node->getExprNode() << std::endl;
     }
     if(logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Finding max for: " << *node->getExprNode() << std::endl;
+      log.logFile << "Finding max for: " << node->id << std::endl;
+      log.logFile << "Output Expression: " << *node->getExprNode() << std::endl;
     }
     max[node] = ibexInterface->FindMax(*node->getExprNode());
 
@@ -1294,11 +1298,13 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   std::map<Node *, OptResult> min;
   for (auto &node : candidate_nodes) {
     if (debugLevel > 3) {
-      std::cout << "Finding min for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      std::cout << "Finding min for: " << node->id << std::endl;
+      std::cout << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
     if (logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Finding min for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      log.logFile << "Finding min for: " << node->id << std::endl;
+      log.logFile << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
 
 
@@ -1328,11 +1334,13 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
     if (debugLevel > 3) {
-      std::cout << "Finding max for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      std::cout << "Finding max for: " << node->id << std::endl;
+      std::cout << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
     if (logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Finding max for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      log.logFile << "Finding max for: " << node->id << std::endl;
+      log.logFile << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
     max[node] = ibexInterface->FindMax(*errorAnalyzer->ErrAccumulator[node]);
 
@@ -1415,6 +1423,21 @@ std::map<Node *, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::
     return errorAnalysisResults;
   }
 
+  if (debugLevel > 1) {
+    std::cout << "Abstracting nodes ";
+    for (auto &node : candidate_nodes) {
+      std::cout << node->id << ", " << std::endl;
+    }
+  }
+
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Abstracting nodes ";
+    for (auto &node : candidate_nodes) {
+      log.logFile << node->id << ", " << std::endl;
+    }
+  }
+
   std::map<Node *, std::vector<ibex::Interval>> results;
 
   for (auto &node : candidate_nodes) {
@@ -1424,24 +1447,6 @@ std::map<Node *, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::
 
   AbstractNodes(results);
   RebuildAST();
-
-  if (debugLevel > 2) {
-    for (auto &singleResult: results) {
-      std::cout
-              << *singleResult.first << " : "
-              << "\n\tOutput: " << singleResult.second[0] << ","
-              << "\n\tError: " << singleResult.second[1] << std::endl;
-    }
-  }
-  if (logLevel > 2) {
-    assert(log.logFile.is_open() && "Log file not open");
-    for (auto &singleResult: results) {
-      log.logFile
-              << *singleResult.first << " : "
-              << "\n\tOutput: " << singleResult.second[0] << ","
-              << "\n\tError: " << singleResult.second[1] << std::endl;
-    }
-  }
 
   return errorAnalysisResults;
 }
@@ -1500,6 +1505,24 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
     nodes.insert(free_node);
     free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(singleResult.second[1].ub()));
     free_node->setRounding(converted_node->getRounding());
+
+    if (debugLevel > 1) {
+      std::cout << "Converted Node " << node->id << " --> " << *converted_node->variable << " (" << converted_node->id << ")" << std::endl;
+      if (debugLevel > 2) {
+        std::cout << *singleResult.first << " : "
+                  << "\n\tOutput: " << singleResult.second[0] << ","
+                  << "\n\tError: " << singleResult.second[1] << std::endl;
+      }
+    }
+    if (logLevel > 1) {
+      assert(log.logFile.is_open() && "Log file not open");
+      log.logFile << "Converted Node " << node->id << " --> " << *converted_node->variable << " (" << converted_node->id << ")" << std::endl;
+      if (logLevel > 2) {
+        log.logFile << *singleResult.first << " : "
+                    << "\n\tOutput: " << singleResult.second[0] << ","
+                    << "\n\tError: " << singleResult.second[1] << std::endl;
+      }
+    }
   }
 
   if (debugLevel > 1) {

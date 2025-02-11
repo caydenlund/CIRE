@@ -30,6 +30,7 @@ comment "#".*
 {comment} { }
 {num}  {yylval.num.type = Number::INT;
         yylval.num.ival = atoi(yytext);
+        yylval.num.fval = atof(yytext);
         return INT; }
 ([0-9]*\.[0-9]+([eE][-+]?[0-9]+)?) { yylval.num.type = Number::FP;
                                        yylval.num.fval = atof(yytext);
