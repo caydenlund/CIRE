@@ -19,7 +19,6 @@ Message = {'noAbs' : 'Without Abstraction ', \
 BenchmarkNames = {
 				  'chainSum' : 'Serial Summation', \
 				  'dqmom' : 'Direct Quadrature Method of Moments', \
-				  'jetEngine' : 'Jet Engine', \
 				  'poisson2d0' : 'P0', \
 				  'poisson2d1_t32' : 'P1', \
 				  'poisson2d2_t32' : 'P2', \

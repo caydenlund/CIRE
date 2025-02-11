@@ -23,7 +23,6 @@ DIRS="
 	heat2d0_t32\
 	heat2d1_t32\
 	heat2d2_t32\
-	advect3d\
 	fdtd1d_t64\
 	lorentz20\
 	lorentz30\
@@ -38,7 +37,6 @@ DIRS="
 	chainSum\
 	poly-eval\
 	horner\
-  jetEngine\
 	reduction\
 	Scan_1024\
 	Scan_4096\
@@ -46,6 +44,11 @@ DIRS="
 	CG_EX5\
 	CG_Pores\
 	CG_Tref\
+	advect3d\
+	wave2d1
+	"
+
+BIG_OUTPUT_DIRS="
 	var_ccsd_type0_0\
   var_ccsd_type0_1\
   var_ccsd_type1_0\
@@ -56,8 +59,7 @@ DIRS="
   ccsd_type1_0\
   ccsd_type1_1\
 	ccsd_type2_0\
-	ccsd_type2_1\
-	wave2d1
+	ccsd_type2_1
 	"
 
 set -x
