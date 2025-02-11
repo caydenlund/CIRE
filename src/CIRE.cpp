@@ -134,6 +134,7 @@ int main(int argc, char *argv[]) {
     i++;
   }
 
+  i = 0;
   if (cire.logLevel > 0) {
     // print the answer map
     for (auto const &[node, result]: answer) {

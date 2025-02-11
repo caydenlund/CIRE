@@ -218,7 +218,10 @@ int main(int argc, char **argv) {
         << "\n\tOutput: " << result.outputExtrema << ","
         << "\n\tError: " << result.errorExtrema << std::endl;
     }
+    i++;
   }
+
+  i = 0;
   if (cire.logLevel > 0) {
     // print the answer map
     for (auto const &[node, result]: answer) {
@@ -230,6 +233,7 @@ int main(int argc, char **argv) {
         << "\n\tOutput: " << result.outputExtrema << ","
         << "\n\tError: " << result.errorExtrema << std::endl;
     }
+    i++;
   }
 
   const auto end = std::chrono::high_resolution_clock::now();
