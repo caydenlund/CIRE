@@ -47,6 +47,11 @@ namespace {
     cl::opt<unsigned> LogLevel("log-level",
                             cl::desc("Set the log level"),
                             cl::init(0));
+    
+    cl::opt<string> LogOutput("log-output",
+                              cl::desc("Set the log output file"),
+                              cl::value_desc("Sets the log output file"),
+                              cl::init("default.log"));
 
     cl::opt<bool> CSVFriendly("csv-friendly",
                         cl::desc("Enable output to JSON file in a CSV friendly manner"),
@@ -70,7 +75,6 @@ namespace {
 int main(int argc, char **argv) {
   const auto start = std::chrono::high_resolution_clock::now();
   if (true) {
-    // FIXME remove when done debugging
     for (int i = 0; i < argc; ++i)
       cout << "'" << argv[i] << "' ";
     cout << endl;
@@ -117,6 +121,7 @@ int main(int argc, char **argv) {
     cire.graph->logLevel = LogLevel;
     cire.graph->errorAnalyzer->logLevel = LogLevel;
   }
+  
   if (!Output.empty()) {
     cire.results->setFile(Output);
   }
@@ -127,9 +132,16 @@ int main(int argc, char **argv) {
   if (cire.logLevel > 0) {
     std::cout << "Parsing LLVM IR..." << std::endl;
   }
+  
+  if(!LogOutput.empty()) {
+    cire.graph->log.setFile(LogOutput);
+  }
+  
   if (CollectErrorComponentData) {
     cire.setCollectErrorComponentData(true);
   }
+  
+  cire.graph->log.openFile();
 
   if(!Func.empty()) {
     auto F = findFunction(*M, Func);
@@ -213,7 +225,7 @@ int main(int argc, char **argv) {
       // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
       // always the case
       assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
-      cire.log.logFile
+      cire.graph->log.logFile
 //        << *node << " : "
         << "\n\tOutput: " << result.outputExtrema << ","
         << "\n\tError: " << result.errorExtrema << std::endl;
@@ -231,10 +243,10 @@ int main(int argc, char **argv) {
     std::cout << "Total Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
   }
   if(cire.logLevel > 0) {
-    cire.log.logFile << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
-    cire.log.logFile << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
-    cire.log.logFile << "Total Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
-    cire.log.log("Writing results to " + cire.results->file + " ...");
+    cire.graph->log.logFile << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
+    cire.graph->log.logFile << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
+    cire.graph->log.logFile << "Total Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+    cire.graph->log.log("Writing results to " + cire.results->file + " ...");
   }
 
 
@@ -255,7 +267,7 @@ int main(int argc, char **argv) {
 
 
   if(cire.logLevel > 0) {
-    cire.log.log("Results written to " + cire.results->file + "!");
+    cire.graph->log.log("Results written to " + cire.results->file + "!");
   }
 
   return 0;

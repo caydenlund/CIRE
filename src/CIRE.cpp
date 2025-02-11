@@ -11,6 +11,7 @@ void show_usage(std::string name) {
             << "\t-o,--output\t\tSet the output file\n"
             << "\t-d,--debug-level\t\tSet the debug level\n"
             << "\t-l,--log-level\t\tSet the log level\n"
+            << "\t-lo,--log-output\t\tSet the log output file\n"
             << "\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner\n"
             << "\t-to,--global-opt-timeout\t\tSet the global optimization timeout\n"
             << std::endl;
@@ -81,6 +82,13 @@ int main(int argc, char *argv[]) {
           std::cerr << "--log-level option requires one argument." << std::endl;
           return 1;
         }
+      } else if((arg == "-lo") || (arg == "--log-output")) {
+        if (i + 1 < argc) {
+          cire.graph->log.setFile(argv[++i]);
+        } else {
+          std::cerr << "--log-output option requires one argument." << std::endl;
+          return 1;
+        }
       } else if ((arg == "-cf" || (arg == "--csv-friendly"))) {
         CSV_friendly = true;
       } else if ((arg == "-to" || (arg == "--global-opt-timeout"))) {
@@ -97,6 +105,8 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  cire.graph->log.openFile();
 
   if(cire.graph->parse(*cire.file.c_str()) != 0) {
     return 1;
@@ -130,7 +140,7 @@ int main(int argc, char *argv[]) {
       // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
       // always the case
       assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
-      cire.log.logFile
+      cire.graph->log.logFile
 //        << *node << " : "
               << "\n\tOutput: " << result.outputExtrema << ","
               << "\n\tError: " << result.errorExtrema << std::endl;
@@ -148,10 +158,10 @@ int main(int argc, char *argv[]) {
     std::cout << "Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
   }
   if(cire.logLevel > 0) {
-    cire.log.logFile << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
-    cire.log.logFile << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
-    cire.log.logFile << "Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
-    cire.log.log("Writing results to " + cire.results->file + " ...\n");
+    cire.graph->log.logFile << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds" << std::endl;
+    cire.graph->log.logFile << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds" << std::endl;
+    cire.graph->log.logFile << "Time taken: " << cire.time_map["Total"].count() << " seconds" << std::endl;
+    cire.graph->log.log("Writing results to " + cire.results->file + " ...\n");
   }
 
   if (CSV_friendly) {
@@ -169,7 +179,7 @@ int main(int argc, char *argv[]) {
   }
 
   if(cire.logLevel > 0) {
-    cire.log.logFile << "Results written to " << cire.results->file << "!" << std::endl;
+    cire.graph->log.logFile << "Results written to " << cire.results->file << "!" << std::endl;
   }
 
   return 0;
