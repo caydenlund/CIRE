@@ -212,13 +212,13 @@ int main(int argc, char **argv) {
     for (auto const &[node, result]: answer) {
       // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
       // always the case
-      assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
+      assert(cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[i]] == node);
       std::cout
 //        << *node << " : "
         << "\n\tOutput: " << result.outputExtrema << ","
         << "\n\tError: " << result.errorExtrema << std::endl;
+      i++;
     }
-    i++;
   }
 
   i = 0;
@@ -227,13 +227,13 @@ int main(int argc, char **argv) {
     for (auto const &[node, result]: answer) {
       // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
       // always the case
-      assert(cire.graph->symbolTables[i]->table[cire.graph->outputs[i]] == node);
+      assert(cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[i]] == node);
       cire.graph->log.logFile
 //        << *node << " : "
         << "\n\tOutput: " << result.outputExtrema << ","
         << "\n\tError: " << result.errorExtrema << std::endl;
+      i++;
     }
-    i++;
   }
 
   const auto end = std::chrono::high_resolution_clock::now();
