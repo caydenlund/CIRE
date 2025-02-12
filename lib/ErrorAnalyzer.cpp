@@ -266,6 +266,37 @@ void ErrorAnalyzer::logBwdDerivativesIbexExprs() {
   }
 }
 
+void ErrorAnalyzer::errorComputingDriver(const std::set<Node*> &candidate_nodes) {
+  if (debugLevel > 1) {
+    std::cout << "Computing Error..." << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Computing Error..." << std::endl;
+  }
+
+  for(auto &output : candidate_nodes) {
+    if(errorComputedNodes[output->depth].find(output) ==
+       errorComputedNodes[output->depth].end()) {
+      errorComputing(output);
+    }
+
+    ErrAccumulator[output] = (ibex::ExprNode*) &(*ErrAccumulator[output]
+   // The power term is the value of double ULP. We dont multiply by it here so optimizer can function better
+   // AND we get the optimal value in terms of number of ULPs.
+   // If uncommenting, comment the power term in the error computation
+//            * pow(2, -53)
+            );
+  }
+
+  if (debugLevel > 1) {
+    std::cout << "Error Expressions generated!" << std::endl;
+  }
+  if (logLevel > 1) {
+    assert(log.logFile.is_open() && "Log file not open");
+    log.logFile << "Error Expressions generated!" << std::endl;
+  }
+}
 
 void ErrorAnalyzer::errorComputing(Node *node) {
   Node *Operand, *leftOperand, *middleOperand, *rightOperand;
@@ -345,6 +376,7 @@ void ErrorAnalyzer::propagateError(Node *node) {
     // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
     // the local_error (product of the expression corresponding the node and (the operator rounding + type cast rounding)
     // Add the type cast rounding to the nodes rounding amount
+    // rounding is the amount to round at ULP level whereas rounding error is the absolute amount of error introduced
     auto total_rounding = (ibex::ExprNode *) &(node->getRounding() + *typeCastRnd[node][outVar]);
     auto local_plus_type_cast_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), *total_rounding).simplify(0);
     auto expr = (ibex::ExprNode *) &abs(product(*BwdDerivatives[node][outVar],
@@ -365,8 +397,6 @@ void ErrorAnalyzer::propagateError(Node *node) {
       log.logFile << std::endl;
     }
   }
-
-
 }
 
 ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {

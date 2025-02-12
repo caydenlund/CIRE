@@ -14,6 +14,8 @@ void show_usage(std::string name) {
             << "\t-lo,--log-output\t\tSet the log output file\n"
             << "\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner\n"
             << "\t-to,--global-opt-timeout\t\tSet the global optimization timeout\n"
+            << "\t-cec,--concretize-error-components\t\tConcretize error components\n"
+            << "\t-cecd,--collect-error-component-data\t\tCollect error component data\n"
             << std::endl;
 }
 
@@ -98,8 +100,10 @@ int main(int argc, char *argv[]) {
           std::cerr << "--global-opt-timeout option requires one argument. Default: 20 seconds" << std::endl;
           return 1;
         }
+      } else if ((arg == "-cec") || (arg == "--concretize-error-components")) {
+        cire.graph->concretize_error_components = true;
       } else if ((arg == "-cecd") || (arg == "--collect-error-component-data")) {
-        cire.setCollectErrorComponentData(true);
+          cire.setCollectErrorComponentData(true);
       } else {
         cire.setFile(argv[i]);
       }

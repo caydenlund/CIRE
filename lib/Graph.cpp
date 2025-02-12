@@ -160,39 +160,6 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
   }
 }
 
-void Graph::errorComputingDriver(const std::set<Node*> &candidate_nodes) {
-  if (debugLevel > 1) {
-    std::cout << "Computing Error..." << std::endl;
-  }
-  if (logLevel > 1) {
-    assert(log.logFile.is_open() && "Log file not open");
-    log.logFile << "Computing Error..." << std::endl;
-  }
-
-  for(auto &output : candidate_nodes) {
-    if(errorAnalyzer->errorComputedNodes[output->depth].find(output) ==
-       errorAnalyzer->errorComputedNodes[output->depth].end()) {
-      errorAnalyzer->errorComputing(output);
-    }
-
-    errorAnalyzer->ErrAccumulator[output] =
-            (ibex::ExprNode*) &(*errorAnalyzer->ErrAccumulator[output]
-            // The power term is the value of double ULP. We dont multiply by it here so optimizer can function better
-            // AND we get the optimal value in terms of number of ULPs.
-            // If uncommenting, comment the power term in the error computation
-//                                * pow(2, -53)
-                                );
-  }
-
-  if (debugLevel > 1) {
-    std::cout << "Error Expressions generated!" << std::endl;
-  }
-  if (logLevel > 1) {
-    assert(log.logFile.is_open() && "Log file not open");
-    log.logFile << "Error Expressions generated!" << std::endl;
-  }
-}
-
 // Generates Expressions corresponding to all candidate_nodes bottom up
 void Graph::generateExprDriver(const std::set<Node *> &candidate_nodes) {
   // Map from depth to nodes at that depth whose expression has been generated. Similar to "reachable" in Satire
@@ -507,6 +474,42 @@ Node *Graph::mergeNodes(Node *node1, Node *node2, std::map<Node *, std::set<Node
   parentsOfNode.erase(node1);
 
   return node2;
+}
+
+void Graph::concretizeErrorComponents() {
+  int totalNodesInBwdDerivatives = errorAnalyzer->BwdDerivatives.size();
+  int processedNodes = 0;
+
+  // Iterate through the bwdDerivative map
+  for(auto &node_bwd_derivatives : errorAnalyzer->BwdDerivatives) {
+    Node* node = node_bwd_derivatives.first;
+
+    node_bwd_derivatives.second.size();
+
+    if(debugLevel > 2) {
+      std::cout << "Processing Node " << node->id << ". Processed "
+                << processedNodes << "/" << totalNodesInBwdDerivatives << std::endl;
+    }
+
+    // Iterate through the nodeBwdDerivatives map
+    for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
+      Node *output_node = node_output_bwd_derivative.first;
+      OptResult max_bwd = ibexInterface->FindMax(*node_output_bwd_derivative.second);
+      OptResult min_bwd = ibexInterface->FindMin(*node_output_bwd_derivative.second);
+
+      OptResult max_local_err = ibexInterface->FindMax(
+              const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
+      OptResult min_local_err = ibexInterface->FindMin(
+              const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
+
+      errorAnalyzer->BwdDerivatives[node][output_node] =
+              (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(ibex::max(min_bwd.result, -max_bwd.result).mag());
+      node->setAbsoluteError((ibex::ExprNode *) &ibex::ExprConstant::new_scalar(ibex::max(min_local_err.result,
+                                                                                          -max_local_err.result).mag()));
+    }
+
+    processedNodes++;
+  }
 }
 
 // Uses ibex eval to evaluate the backward derivatives and local errors and stores them in a map of node to ibex::IntervalVector, ibex::IntervalVector
@@ -1289,7 +1292,12 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   setupDerivativeComputation(candidate_nodes);
 
   errorAnalyzer->derivativeComputingDriver();
-  errorComputingDriver(candidate_nodes);
+
+  if (concretize_error_components) {
+    concretizeErrorComponents();
+  }
+
+  errorAnalyzer->errorComputingDriver(candidate_nodes);
 
   if (collect_error_component_data) {
     examineBwdDerivativeAndLocalError();

@@ -66,6 +66,10 @@ namespace {
                                        cl::desc("Timeout for the optimizer. Default: 20 seconds"),
                                        cl::init(UINT_MAX));
 
+    cl::opt<bool> ConcretizeErrorComponents("concretize-error-components",
+                                            cl::desc("Concretize error components"),
+                                            cl::init(false));
+
     cl::opt<bool> CollectErrorComponentData("collect-error-component-data",
                                             cl::desc("Enable collection of backward derivatives and local errors"),
                                             cl::init(false));
@@ -135,6 +139,10 @@ int main(int argc, char **argv) {
   
   if(!LogOutput.empty()) {
     cire.graph->log.setFile(LogOutput);
+  }
+
+  if (ConcretizeErrorComponents) {
+    cire.graph->concretize_error_components = true;
   }
   
   if (CollectErrorComponentData) {

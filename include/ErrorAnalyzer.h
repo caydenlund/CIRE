@@ -40,6 +40,7 @@ public:
   void derivativeComputingDriver();
   void derivativeComputing(Node *node);
 
+  void errorComputingDriver(const std::set<Node*> &candidate_nodes);
   void errorComputing(Node *node);
 
   void propagateError(Node *node);

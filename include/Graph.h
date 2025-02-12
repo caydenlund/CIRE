@@ -20,6 +20,8 @@ public:
   Logging log;
   unsigned int debugLevel = 0;
   unsigned int logLevel = 0;
+
+  bool concretize_error_components = false;
   bool collect_error_component_data = false;
   std::map<int, SymbolTable *> symbolTables;
   int currentScope = 0;
@@ -60,12 +62,14 @@ public:
   Node *findVarNode(string Var) const;
 
   void setupDerivativeComputation(std::set<Node*> candidate_nodes);
-  void errorComputingDriver(const std::set<Node*> &candidate_nodes);
   void generateExprDriver(const std::set<Node *> &candidate_nodes);
   void generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedExprsAtDepth, std::map<ibex::ExprNode *, std::set<Node *>> &cseTable);
 
   // Merges node1 and node2 into node2
   Node *mergeNodes(Node *node1, Node *node2, std::map<Node *, std::set<Node *>> &parentsOfNode);
+
+  // Concretizes the error components - Backward Derivatives and Ab
+  void concretizeErrorComponents();
 
   // Collects BwdDerivative and Local Error data
   void examineBwdDerivativeAndLocalError();

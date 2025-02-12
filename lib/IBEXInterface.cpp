@@ -102,7 +102,7 @@ OptResult IBEXInterface::FindMin(ibex::ExprNode &Expression) {
   }
   ibex::Optimizer opt(optConfig);
   try {
-    if(debugLevel > 2) {
+    if(debugLevel > 3) {
       // Remove the last "end" keyword from the file before using with IBEX to avoid syntax errors
       dumpIbexSystemToFile("ibexFunctionMin.txt", *_system);
       std::cout << "Input Intervals: " << _inputIntervals << std::endl;
