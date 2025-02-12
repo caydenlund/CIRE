@@ -44,11 +44,11 @@ DIRS="
 	CG_EX5\
 	CG_Pores\
 	CG_Tref\
-	advect3d\
 	wave2d1
 	"
 
 BIG_OUTPUT_DIRS="
+  advect3d\
 	var_ccsd_type0_0\
   var_ccsd_type0_1\
   var_ccsd_type1_0\
