@@ -1426,16 +1426,18 @@ std::map<Node *, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::
   if (debugLevel > 1) {
     std::cout << "Abstracting nodes ";
     for (auto &node : candidate_nodes) {
-      std::cout << node->id << ", " << std::endl;
+      std::cout << node->id << ", ";
     }
+    std::cout << std::endl;
   }
 
   if (logLevel > 1) {
     assert(log.logFile.is_open() && "Log file not open");
     log.logFile << "Abstracting nodes ";
     for (auto &node : candidate_nodes) {
-      log.logFile << node->id << ", " << std::endl;
+      log.logFile << node->id << ", ";
     }
+    log.logFile << std::endl;
   }
 
   std::map<Node *, std::vector<ibex::Interval>> results;
@@ -1498,7 +1500,7 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
     symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
 
     // Create corresponding FreeVariable node using the singleResult IntervalVector
-    auto *free_node = new FreeVariable(singleResult.second[0], Node::RoundingType::FL64);
+    auto *free_node = new FreeVariable(*new ibex::Interval(singleResult.second[0]), Node::RoundingType::FL64);
     inputs[converted_node->variable->name] = free_node;
 
     // Add free node to nodes and inputs
