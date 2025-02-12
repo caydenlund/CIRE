@@ -118,34 +118,33 @@ int main(int argc, char *argv[]) {
 
   const auto error_analysis_end = std::chrono::high_resolution_clock::now();
 
-  unsigned i = 0;
-
   if(cire.debugLevel > 0) {
-    // print the answer map
-    for (auto const &[node, result]: answer) {
-      // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
-      // always the case
-      assert(cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[i]] == node);
-      std::cout
-//        << *node << " : "
-        << "\n\tOutput: " << result.outputExtrema << ","
-        << "\n\tError: " << result.errorExtrema << std::endl;
-      i++;
+    // print the result of nodes corresponding nodes in the output list
+    for (string &output: cire.graph->outputs) {
+      Node *node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
+      assert(answer.find(node) != answer.end());
+
+      std::cout << "\nOutput Variable: " << output << "";
+      if(cire.debugLevel > 2) {
+        std::cout << *node;
+      }
+      std::cout << ": \tOutput: " << answer[node].outputExtrema << ","
+                << "  \n\tError: " << answer[node].errorExtrema << std::endl;
     }
   }
 
-  i = 0;
   if (cire.logLevel > 0) {
-    // print the answer map
-    for (auto const &[node, result]: answer) {
-      // This assumes that the map nodes are ordered in the same way as the outputs list nodes which is not
-      // always the case
-      assert(cire.graph->symbolTables[cire.graph->currentScope]->table[cire.graph->outputs[i]] == node);
-      cire.graph->log.logFile
-//        << *node << " : "
-              << "\n\tOutput: " << result.outputExtrema << ","
-              << "\n\tError: " << result.errorExtrema << std::endl;
-      i++;
+    // print the result of nodes corresponding nodes in the output list
+    for (string &output: cire.graph->outputs) {
+      Node *node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
+      assert(answer.find(node) != answer.end());
+
+      cire.graph->log.logFile << "\nOutput Variable: " << output << "";
+      if(cire.debugLevel > 2) {
+        cire.graph->log.logFile << *node;
+      }
+      cire.graph->log.logFile << ": \tOutput: " << answer[node].outputExtrema << ","
+                              << "  \n\tError: " << answer[node].errorExtrema << std::endl;
     }
   }
 
