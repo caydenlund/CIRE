@@ -1,0 +1,1 @@
+This folder was compiled with O1 and without fast-math flags

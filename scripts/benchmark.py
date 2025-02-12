@@ -155,7 +155,7 @@ def main():
         clang_search_path = sys.argv[2]
 
     # Provide flags to pass to clang
-    flag_list = ["O3", "ffast-math"]
+    flag_list = ["O1", "ffast-math"]
 
     global CLANG_PATH
     CLANG_PATH = os.path.dirname(find_clang(clang_search_path))

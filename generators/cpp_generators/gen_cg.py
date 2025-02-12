@@ -66,13 +66,14 @@ if __name__ == "__main__":
         lhs_alpha = "alpha_{kid}".format(kid = k)
         dumpStr += "\t\tdouble " + lhs_alpha + " = " + rhs_alpha + ";\n"
 
+        ## Solve Ax=b
         for i in range(N):
             rhs_x = "x_{kid}_{idx} + {alpha}*{Rid}".format(alpha = lhs_alpha, kid = k, idx = i, Rid = R[0][i])
             lhs_x = "x_{kpid}_{idx}".format(kpid = str(k+1), idx = str(i))
             dumpStr += "\t\tdouble " + lhs_x + " = " + rhs_x + ";\n"
 
-            ## update next residue r1
 
+        ## update next residue r1
         for i in range(0, N):
             rhs_next_residue = "{Rid} - {alpha}*{APi}".format(Rid=R[0][i], alpha=lhs_alpha, APi = rhs_AP[i])
             lhs_next_residue = "r_{kpid}_{idx}".format(kpid = k+1, idx= i)
@@ -80,6 +81,8 @@ if __name__ == "__main__":
 
             dumpStr += "\t\tdouble " + lhs_next_residue + " = " + rhs_next_residue + ";\n"
 
+
+        ## Compute beta
         rhs_r1tr1 = "+".join(["{R1id}*{R1id}".format(R1id = R[1][i]) for i in range(N)])
         lhs_r1tr1 = "r1tr1_{kid}".format(kid=k)
         dumpStr += "\t\tdouble " + lhs_r1tr1 + " = " + rhs_r1tr1 + ";\n"
@@ -91,6 +94,8 @@ if __name__ == "__main__":
         lhs_beta = "beta_{kid}".format(kid=k)
         dumpStr += "\t\tdouble " + lhs_beta + " = " + rhs_beta + ";\n"
 
+
+        ## Update P
         for i in range(0, N):
             rhs_next_p = "{R1id} + {beta}*{p0id}".format(R1id = R[1][i], beta=lhs_beta, p0id=P[0][i])
             lhs_next_p = "p_{kpid}_{idx}".format(kpid = k+1, idx=i)
