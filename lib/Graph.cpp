@@ -1180,17 +1180,17 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
     log.logFile << "Finding output extremas..." << std::endl;
   }
 
-  for (auto &node: candidate_nodes) {
-    if(debugLevel > 4) {
-      std::cout << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
-    }
-  }
-  if(logLevel > 4) {
-    for (auto &node: candidate_nodes) {
-      assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
-    }
-  }
+//  if(debugLevel > 4) {
+//    for (auto &node: candidate_nodes) {
+//      std::cout << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
+//    }
+//  }
+//  if(logLevel > 4) {
+//    for (auto &node: candidate_nodes) {
+//      assert(log.logFile.is_open() && "Log file not open");
+//      log.logFile << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
+//    }
+//  }
 
   std::map<Node *, OptResult> min;
   for (auto &node : candidate_nodes) {

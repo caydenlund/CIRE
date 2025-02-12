@@ -319,7 +319,7 @@ void ErrorAnalyzer::errorComputing(Node *node) {
       break;
   }
 
-  if(derivativeComputedNodes[node->depth].find(node) != derivativeComputedNodes[node->depth].end()) {
+  if(errorComputedNodes[node->depth].find(node) == errorComputedNodes[node->depth].end()) {
     propagateError(node);
   }
   errorComputedNodes[node->depth].insert(node);
