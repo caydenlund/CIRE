@@ -3,7 +3,6 @@
 
 #include "SymbolTable.h"
 #include "ErrorAnalyzer.h"
-#include "IBEXInterface.h"
 
 class ErrorAnalysisResult {
 public:

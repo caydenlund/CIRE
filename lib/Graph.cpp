@@ -1297,7 +1297,7 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
     concretizeErrorComponents();
   }
 
-  errorAnalyzer->errorComputingDriver(candidate_nodes);
+  errorAnalyzer->errorComputingDriver(candidate_nodes, ibexInterface);
 
   if (collect_error_component_data) {
     examineBwdDerivativeAndLocalError();

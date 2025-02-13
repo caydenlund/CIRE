@@ -3,6 +3,7 @@
 
 #include "Node.h"
 #include "Logging.h"
+#include "IBEXInterface.h"
 
 class ErrorAnalyzer {
 public:
@@ -40,10 +41,10 @@ public:
   void derivativeComputingDriver();
   void derivativeComputing(Node *node);
 
-  void errorComputingDriver(const std::set<Node*> &candidate_nodes);
-  void errorComputing(Node *node);
+  void errorComputingDriver(const std::set<Node*> &candidate_nodes, IBEXInterface *ibexInterface);
+  void errorComputing(Node *node, IBEXInterface *ibexInterface);
 
-  void propagateError(Node *node);
+  void propagateError(Node *node, IBEXInterface *ibexInterface);
 
   void printBwdDerivative(Node *outNode, Node *WRTNode);
   void printBwdDerivativesIbexExprs();

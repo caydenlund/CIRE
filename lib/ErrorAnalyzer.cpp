@@ -266,7 +266,7 @@ void ErrorAnalyzer::logBwdDerivativesIbexExprs() {
   }
 }
 
-void ErrorAnalyzer::errorComputingDriver(const std::set<Node*> &candidate_nodes) {
+void ErrorAnalyzer::errorComputingDriver(const std::set<Node*> &candidate_nodes, IBEXInterface *ibexInterface) {
   if (debugLevel > 1) {
     std::cout << "Computing Error..." << std::endl;
   }
@@ -278,7 +278,7 @@ void ErrorAnalyzer::errorComputingDriver(const std::set<Node*> &candidate_nodes)
   for(auto &output : candidate_nodes) {
     if(errorComputedNodes[output->depth].find(output) ==
        errorComputedNodes[output->depth].end()) {
-      errorComputing(output);
+      errorComputing(output, ibexInterface);
     }
 
     ErrAccumulator[output] = (ibex::ExprNode*) &(*ErrAccumulator[output]
@@ -298,7 +298,7 @@ void ErrorAnalyzer::errorComputingDriver(const std::set<Node*> &candidate_nodes)
   }
 }
 
-void ErrorAnalyzer::errorComputing(Node *node) {
+void ErrorAnalyzer::errorComputing(Node *node, IBEXInterface *ibexInterface) {
   Node *Operand, *leftOperand, *middleOperand, *rightOperand;
 
   switch (node->type) {
@@ -313,50 +313,50 @@ void ErrorAnalyzer::errorComputing(Node *node) {
       Operand = ((UnaryOp *) node)->Operand;
       if(errorComputedNodes[Operand->depth].find(Operand) ==
          errorComputedNodes[Operand->depth].end()) {
-        errorComputing(Operand);
+        errorComputing(Operand, ibexInterface);
       }
       break;
     case BINARY_OP:
       leftOperand = ((BinaryOp *) node)->leftOperand;
       if(errorComputedNodes[leftOperand->depth].find(leftOperand) ==
          errorComputedNodes[leftOperand->depth].end()) {
-        errorComputing(leftOperand);
+        errorComputing(leftOperand, ibexInterface);
       }
 
       rightOperand = ((BinaryOp *) node)->rightOperand;
       if(errorComputedNodes[rightOperand->depth].find(rightOperand) ==
          errorComputedNodes[rightOperand->depth].end()) {
-        errorComputing(rightOperand);
+        errorComputing(rightOperand, ibexInterface);
       }
       break;
     case TERNARY_OP:
       leftOperand = ((TernaryOp *) node)->leftOperand;
       if(errorComputedNodes[leftOperand->depth].find(leftOperand) ==
          errorComputedNodes[leftOperand->depth].end()) {
-        errorComputing(leftOperand);
+        errorComputing(leftOperand, ibexInterface);
       }
 
       middleOperand = ((TernaryOp *) node)->middleOperand;
       if(errorComputedNodes[middleOperand->depth].find(middleOperand) ==
          errorComputedNodes[middleOperand->depth].end()) {
-        errorComputing(middleOperand);
+        errorComputing(middleOperand, ibexInterface);
       }
 
       rightOperand = ((TernaryOp *) node)->rightOperand;
       if(errorComputedNodes[rightOperand->depth].find(rightOperand) ==
          errorComputedNodes[rightOperand->depth].end()) {
-        errorComputing(rightOperand);
+        errorComputing(rightOperand, ibexInterface);
       }
       break;
   }
 
   if(errorComputedNodes[node->depth].find(node) == errorComputedNodes[node->depth].end()) {
-    propagateError(node);
+    propagateError(node, ibexInterface);
   }
   errorComputedNodes[node->depth].insert(node);
 }
 
-void ErrorAnalyzer::propagateError(Node *node) {
+void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
 
   for (Node *outVar : outputList) {
@@ -386,6 +386,13 @@ void ErrorAnalyzer::propagateError(Node *node) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*ErrAccumulator[outVar] + *expr);
     } else {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*expr);
+    }
+
+    if(ErrAccumulator[outVar]->size > 1000) {
+      OptResult max_err = ibexInterface->FindMax(*ErrAccumulator[outVar]);
+      OptResult min_err = ibexInterface->FindMin(*ErrAccumulator[outVar]);
+      ErrAccumulator[outVar] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(ibex::max(min_err.result,
+                                                                                            -max_err.result).mag());
     }
 
     if (debugLevel > 4) {
