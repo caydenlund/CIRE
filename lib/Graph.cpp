@@ -494,18 +494,13 @@ void Graph::concretizeErrorComponents() {
     // Iterate through the nodeBwdDerivatives map
     for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
       Node *output_node = node_output_bwd_derivative.first;
-      OptResult max_bwd = ibexInterface->FindMax(*node_output_bwd_derivative.second);
-      OptResult min_bwd = ibexInterface->FindMin(*node_output_bwd_derivative.second);
-
-      OptResult max_local_err = ibexInterface->FindMax(
-              const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
-      OptResult min_local_err = ibexInterface->FindMin(
+      OptResult max_bwd = ibexInterface->FindAbsMax(*node_output_bwd_derivative.second);
+      OptResult max_local_err = ibexInterface->FindAbsMax(
               const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
 
       errorAnalyzer->BwdDerivatives[node][output_node] =
-              (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(ibex::max(min_bwd.result, -max_bwd.result).mag());
-      node->setAbsoluteError((ibex::ExprNode *) &ibex::ExprConstant::new_scalar(ibex::max(min_local_err.result,
-                                                                                          -max_local_err.result).mag()));
+              (ibex::ExprNode *) &ibex::ExprConstant::new_scalar((-max_bwd.result).mag());
+      node->setAbsoluteError((ibex::ExprNode *) &ibex::ExprConstant::new_scalar((-max_local_err.result).mag()));
     }
 
     processedNodes++;
@@ -523,15 +518,11 @@ void Graph::examineBwdDerivativeAndLocalError() {
     // Iterate through the nodeBwdDerivatives map
     for(auto &node_output_bwd_derivative : node_bwd_derivatives.second) {
       Node *output_node = node_output_bwd_derivative.first;
-      OptResult max_bwd = ibexInterface->FindMax(*node_output_bwd_derivative.second);
-      OptResult min_bwd = ibexInterface->FindMin(*node_output_bwd_derivative.second);
-      OptResult max_local_err = ibexInterface->FindMax(
-              const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
-      OptResult min_local_err = ibexInterface->FindMin(
+      OptResult max_bwd = ibexInterface->FindAbsMax(*node_output_bwd_derivative.second);
+      OptResult max_local_err = ibexInterface->FindAbsMax(
               const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
 
-      evaluatedBwdDerivatives[node][output_node] = std::make_pair(ibex::max(min_bwd.result, -max_bwd.result).mag(),
-                                                                   ibex::max(min_local_err.result, -max_local_err.result).mag());
+      evaluatedBwdDerivatives[node][output_node] = std::make_pair(-max_bwd.result.mag(), -max_local_err.result.mag());
     }
   }
 
@@ -1195,29 +1186,6 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
 //    }
 //  }
 
-  std::map<Node *, OptResult> min;
-  for (auto &node : candidate_nodes) {
-    if(debugLevel > 3) {
-      std::cout << "Finding min for: " << node->id << std::endl;
-      std::cout << "Output Expression: " << *node->getExprNode() << std::endl;
-    }
-    if(logLevel > 3) {
-      assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Finding min for: " << node->id << std::endl;
-      log.logFile << "Output Expression: " << *node->getExprNode() << std::endl;
-    }
-    min[node] = ibexInterface->FindMin(*node->getExprNode());
-
-    // print the output interval
-    if(debugLevel > 3) {
-      std::cout << "Min Interval: " << min[node].result << std::endl;
-    }
-    if(logLevel > 3) {
-      assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Min Interval: " << min[node].result << std::endl;
-    }
-  }
-
   std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
     if(debugLevel > 3) {
@@ -1229,7 +1197,7 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       log.logFile << "Finding max for: " << node->id << std::endl;
       log.logFile << "Output Expression: " << *node->getExprNode() << std::endl;
     }
-    max[node] = ibexInterface->FindMax(*node->getExprNode());
+    max[node] = ibexInterface->FindAbsMax(*node->getExprNode());
 
     // print the output interval - Max have to be flipped since we find the min of the negative of the function
     if(debugLevel > 3) {
@@ -1249,18 +1217,7 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Output Extrema for: " << *node->getExprNode() << std::endl;
     }
-    if (min[node].result.lb() <= -max[node].result.lb() ) {
-      errorAnalysisResults[node].outputExtrema = ibex::Interval(min[node].result.lb(), -max[node].result.lb());
-    } else {
-      if (debugLevel > 4) {
-        std::cout << "Output extrema is empty! Setting to 0" << std::endl;
-      }
-      if (logLevel > 4) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Output extrema is empty! Setting to 0" << std::endl;
-      }
-      errorAnalysisResults[node].outputExtrema = ibex::Interval(0, 0);
-    }
+    errorAnalysisResults[node].outputExtrema = -max[node].result;
 
     if(debugLevel > 4) {
       std::cout << "Output Extrema: " << errorAnalysisResults[node].outputExtrema << std::endl;
@@ -1303,31 +1260,6 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
     examineBwdDerivativeAndLocalError();
   }
 
-  std::map<Node *, OptResult> min;
-  for (auto &node : candidate_nodes) {
-    if (debugLevel > 3) {
-      std::cout << "Finding min for: " << node->id << std::endl;
-      std::cout << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
-    }
-    if (logLevel > 3) {
-      assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Finding min for: " << node->id << std::endl;
-      log.logFile << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
-    }
-
-
-    min[node] = ibexInterface->FindMin(*errorAnalyzer->ErrAccumulator[node]);
-
-    // print the error interval
-    if (debugLevel > 3) {
-      std::cout << "Min Interval: " << min[node].result << std::endl;
-    }
-    if (logLevel > 3) {
-      assert(log.logFile.is_open() && "Log file not open");
-      log.logFile << "Min Interval: " << min[node].result << std::endl;
-    }
-  }
-
 //  if(!validationFile.empty()) {
 //    std::cout << "Comparing Error expression with validation file: " << validationFile << std::endl;
 //    try {
@@ -1350,7 +1282,7 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
       log.logFile << "Finding max for: " << node->id << std::endl;
       log.logFile << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
-    max[node] = ibexInterface->FindMax(*errorAnalyzer->ErrAccumulator[node]);
+    max[node] = ibexInterface->FindAbsMax(*errorAnalyzer->ErrAccumulator[node]);
 
     // print the error interval - Max have to be flipped since we find the min of the negative of the function
     if (debugLevel > 3) {
@@ -1370,27 +1302,19 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
     }
-    if (min[node].result.lb() <= -max[node].result.lb() ) {
-      errorAnalysisResults[node].errorExtrema = ibex::Interval(min[node].result.lb() * pow(2, -53),
-                                                               -max[node].result.lb() * pow(2, -53));
-    } else {
-      std::cout << "Error extrema is empty! Setting to 0" << std::endl;
-      errorAnalysisResults[node].errorExtrema = ibex::Interval(0, 0);
-    }
-    errorAnalysisResults[node].lbPoint = min[node].optimumPoint;
-    errorAnalysisResults[node].ubPoint = max[node].optimumPoint;
-    errorAnalysisResults[node].totalOptimizationTime = min[node].optimizationTime + max[node].optimizationTime;
+    errorAnalysisResults[node].errorExtrema = ibex::Interval(-(max[node].result) * pow(2, -53));
+
+    errorAnalysisResults[node].OptPoint = max[node].optimumPoint;
+    errorAnalysisResults[node].totalOptimizationTime = max[node].optimizationTime;
 
     if (debugLevel > 4) {
       std::cout << "Error Extrema: " << errorAnalysisResults[node].errorExtrema
-                << " at " << errorAnalysisResults[node].lbPoint
-                << " and " << errorAnalysisResults[node].ubPoint << std::endl;
+                << " at " << errorAnalysisResults[node].OptPoint << std::endl;
     }
     if (logLevel > 4) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Error Extrema: " << errorAnalysisResults[node].errorExtrema
-                  << " at " << errorAnalysisResults[node].lbPoint
-                  << " and " << errorAnalysisResults[node].ubPoint << std::endl;
+                  << " at " << errorAnalysisResults[node].OptPoint << std::endl;
     }
   }
 

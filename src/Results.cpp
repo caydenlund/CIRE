@@ -52,14 +52,11 @@ bool Results::writeResults(std::vector<std::string> outputs,
       json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Results"]["Height"] = heightDAG;
       json_object[file_stem]["Results"]["Optimization Time"] = result.totalOptimizationTime;
-      std::vector<std::pair<double, double>> lbPoint;
-      std::vector<std::pair<double, double>> ubPoint;
-      for (int i = 0; i < result.lbPoint.size(); i++) {
-        lbPoint.emplace_back(result.lbPoint[i].lb(), result.lbPoint[i].ub());
-        ubPoint.emplace_back(result.ubPoint[i].lb(), result.ubPoint[i].ub());
+      std::vector<std::pair<double, double>> optPoint;
+      for (int i = 0; i < result.OptPoint.size(); i++) {
+        optPoint.emplace_back(result.OptPoint[i].lb(), result.OptPoint[i].ub());
       }
-      json_object[file_stem]["Results"][outputs[k]]["Lower Bound Optima"] = lbPoint;
-      json_object[file_stem]["Results"][outputs[k]]["Upper Bound Optima"] = ubPoint;
+      json_object[file_stem]["Results"][outputs[k]]["Optima"] = optPoint;
       k++;
     }
     // Parsing Time + Error Analysis Time = Total Time
@@ -113,17 +110,14 @@ Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOp
       json_object[file_stem]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Height"] = heightDAG;
       json_object[file_stem]["Optimization Time"] = result.totalOptimizationTime;
-      std::vector<std::pair<double, double>> lbPoint;
-      std::vector<std::pair<double, double>> ubPoint;
-      for (int i = 0; i < result.lbPoint.size(); i++) {
-        lbPoint.emplace_back(result.lbPoint[i].lb(), result.lbPoint[i].ub());
-        ubPoint.emplace_back(result.ubPoint[i].lb(), result.ubPoint[i].ub());
+      std::vector<std::pair<double, double>> optPoint;
+      for (int i = 0; i < result.OptPoint.size(); i++) {
+        optPoint.emplace_back(result.OptPoint[i].lb(), result.OptPoint[i].ub());
       }
       // Fields written to JSON file in lexigraphical order so name the fields accordingly to maintain
       // order of importance.
       // eg: Fields with varied number of values should be placed last in a record.
-      json_object[file_stem]["zLower Bound Optima"] = lbPoint;
-      json_object[file_stem]["zUpper Bound Optima"] = ubPoint;
+      json_object[file_stem]["zOptima"] = optPoint;
       break;
     }
     // Parsing Time + Error Analysis Time = Total Time

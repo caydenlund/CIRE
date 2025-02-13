@@ -391,9 +391,7 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
 
     if(ErrAccumulator[outVar]->size > 1000) {
       OptResult max_err = ibexInterface->FindMax(*ErrAccumulator[outVar]);
-      OptResult min_err = ibexInterface->FindMin(*ErrAccumulator[outVar]);
-      ErrAccumulator[outVar] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(ibex::max(min_err.result,
-                                                                                            -max_err.result).mag());
+      ErrAccumulator[outVar] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar((-max_err.result).mag());
     }
 
     if (debugLevel > 4) {
@@ -446,9 +444,11 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
         case Node::EXP:
           return child->getExprNode();
         case Node::FPTRUNC:
-          return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
         case Node::FPEXT:
           return (ibex::ExprNode *) &ibex::ExprConstant::new_scalar(1);
+        default:
+          std::cout << "Error: Should not be here. Unknown unary operator or not a unary operator." << std::endl;
+          break;
       }
       break;
     case NodeType::BINARY_OP:
@@ -476,6 +476,9 @@ ibex::ExprNode *getDerivativeWRTChildNode(Node *node, int index) {
             return (ibex::ExprNode *) &(-*((BinaryOp*) node)->leftOperand->getExprNode() /
                                         sqr(*((BinaryOp*) node)->rightOperand->getExprNode()));
           }
+        default:
+          std::cout << "Error: Should not be here. Unknown binary operator or not a binary operator." << std::endl;
+          break;
       }
       break;
     case NodeType::TERNARY_OP:

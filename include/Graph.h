@@ -8,8 +8,7 @@ class ErrorAnalysisResult {
 public:
   ibex::Interval outputExtrema;
   ibex::Interval errorExtrema;
-  ibex::IntervalVector lbPoint;
-  ibex::IntervalVector ubPoint;
+  ibex::IntervalVector OptPoint;
   double totalOptimizationTime;
 };
 

@@ -54,6 +54,7 @@ class IBEXInterface {
   ibex::Interval eval(ibex::Function &Function);
   OptResult FindMin(ibex::ExprNode &Expression);
   OptResult FindMax(ibex::ExprNode &Expression);
+  OptResult FindAbsMax(ibex::ExprNode &Expression);
 
   // File IO
   void dumpIbexSystemToFile(std::string filename, ibex::System &System);

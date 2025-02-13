@@ -211,6 +211,10 @@ OptResult IBEXInterface::FindMax(ibex::ExprNode &Expression) {
   return optResult;
 }
 
+OptResult IBEXInterface::FindAbsMax(ibex::ExprNode &Expression) {
+  return FindMax((ibex::ExprNode &) abs(Expression));
+}
+
 void IBEXInterface::dumpIbexSystemToFile(std::string filename, ibex::System &System) {
   std::ofstream file;
   file.open(filename);
