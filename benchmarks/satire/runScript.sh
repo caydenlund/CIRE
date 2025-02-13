@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --account=soc-kp
 #SBATCH --partition=soc-kp
+#SBATCH --reservation=DAT-u1260704
 #SBATCH --job-name=benchmarks_abs
 #SBATCH -o benchmarks-abs.log
 #SBATCH -e benchmarks-abs.log

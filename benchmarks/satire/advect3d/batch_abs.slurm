@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --account=soc-kp
 #SBATCH --partition=soc-kp
+#SBATCH --reservation=DAT-u1260704
 #SBATCH --job-name=advect3d_20_cire_abs
 #SBATCH -o advect3d_20_cire_abs.log
 #SBATCH -e advect3d_20_cire_abs.log

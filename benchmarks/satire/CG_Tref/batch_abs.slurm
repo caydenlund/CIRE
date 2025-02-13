@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --account=soc-kp
 #SBATCH --partition=soc-kp
+#SBATCH --reservation=DAT-u1260704
 #SBATCH --job-name=_cire_abs
 #SBATCH -o _cire_abs.log
 #SBATCH -e _cire_abs.log

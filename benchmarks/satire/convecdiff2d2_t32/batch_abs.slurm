@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --account=soc-kp
 #SBATCH --partition=soc-kp
+#SBATCH --reservation=DAT-u1260704
 #SBATCH --job-name=convecdiff2d2_t32_cire_abs
 #SBATCH -o convecdiff2d2_t32_cire_abs.log
 #SBATCH -e convecdiff2d2_t32_cire_abs.log

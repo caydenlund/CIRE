@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --account=soc-kp
 #SBATCH --partition=soc-kp
+#SBATCH --reservation=DAT-u1260704
 #SBATCH --job-name=20_ccsd_type2_var_0_cire_abs
 #SBATCH -o 20_ccsd_type2_var_0_cire_abs.log
 #SBATCH -e 20_ccsd_type2_var_0_cire_abs.log
