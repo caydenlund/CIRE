@@ -378,9 +378,10 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
     // Add the type cast rounding to the nodes rounding amount
     // rounding is the amount to round at ULP level whereas rounding error is the absolute amount of error introduced
     auto total_rounding = (ibex::ExprNode *) &(node->getRounding() + *typeCastRnd[node][outVar]);
-    auto local_plus_type_cast_error = (ibex::ExprNode *) &product(node->getAbsoluteError(), *total_rounding).simplify(0);
-    auto expr = (ibex::ExprNode *) &abs(product(*BwdDerivatives[node][outVar],
-                                                *local_plus_type_cast_error)).simplify(0);
+    auto local_plus_type_cast_error = (ibex::ExprNode *) &product(node->getAbsoluteError(),
+                                                                  *total_rounding).simplify(0);
+    auto expr = (ibex::ExprNode *) &product(*BwdDerivatives[node][outVar],
+                                           *local_plus_type_cast_error).simplify(0);
 
     if (contains(ErrAccumulator, outVar)) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*ErrAccumulator[outVar] + *expr);
