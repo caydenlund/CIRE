@@ -12,6 +12,31 @@
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
 
+# Abs window : (15,25)
+../../../build-debug/bin/CIRE \
+    MD_2_10_step10.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output MD_2_10_step10_cire_15_25.csv \
+    --log-output MD_2_10_step10_cire_15_25.clog \
+    --csv-friendly
+
+# Abs window : (15,25)
+../../../build-debug/bin/CIRE \
+    MD_2_10-err.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output MD_2_10-err_cire_15_25.csv \
+    --log-output MD_2_10-err_cire_15_25.clog \
+    --csv-friendly
+
+# No abstraction
 ../../../build-debug/bin/CIRE \
     MD_2_10_step10.txt \
     --debug-level 1 \
@@ -20,6 +45,7 @@
     --log-output MD_2_10_step10_cire_noAbs.clog \
     --csv-friendly
 
+# No abstraction
 ../../../build-debug/bin/CIRE \
     MD_2_10-err.txt \
     --debug-level 1 \

@@ -12,6 +12,19 @@
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
 
+# Abs window : (15,25)
+../../../build-debug/bin/CIRE \
+    CG_ex5_InError_K20_N27_E0.1.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output ccsd_type2_0_cire_15_25.csv \
+    --log-output ccsd_type2_0_cire_15_25.clog \
+    --csv-friendly
+
+# No abstraction
 ../../../build-debug/bin/CIRE \
     CG_ex5_InError_K20_N27_E0.1.txt \
     --debug-level 1 \

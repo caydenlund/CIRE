@@ -12,6 +12,19 @@
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
 
+# Abs window : (15,25)
+../../../build-debug/bin/CIRE \
+    poisson2d1_t32.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output poisson2d1_t32_cire_15_25.csv \
+    --log-output poisson2d1_t32_cire_15_25.clog \
+    --csv-friendly
+
+# No abstraction
 ../../../build-debug/bin/CIRE \
     poisson2d1_t32.txt \
     --debug-level 1 \

@@ -12,6 +12,19 @@
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
 
+# Abs window : (15,25)
+../../../build-debug/bin/CIRE \
+    Scan_4096.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output Scan_4096_cire_15_25.csv \
+    --log-output Scan_4096_cire_15_25.clog \
+    --csv-friendly
+
+# No abstraction
 ../../../build-debug/bin/CIRE \
     Scan_4096.txt \
     --debug-level 1 \

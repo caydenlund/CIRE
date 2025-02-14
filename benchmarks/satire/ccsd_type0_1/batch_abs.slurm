@@ -14,6 +14,18 @@
 
 ../../../build-debug/bin/CIRE \
     ccsd_type0_1.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output ccsd_type0_1_cire_15_25.csv \
+    --log-output ccsd_type0_1_cire_15_25.clog \
+    --csv-friendly
+
+# No abstraction
+../../../build-debug/bin/CIRE \
+    ccsd_type0_1.txt \
     --debug-level 1 \
     --log-level 2 \
     --output ccsd_type0_1_cire_noAbs.csv \

@@ -12,6 +12,19 @@
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
 
+# Abs window : (15,25)
+../../../build-debug/bin/CIRE \
+    f_horner_50.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output Horner50_cire_15_25.csv \
+    --log-output Horner50_cire_15_25.clog \
+    --csv-friendly
+
+# No abstraction
 ../../../build-debug/bin/CIRE \
     f_horner_50.txt \
     --debug-level 1 \

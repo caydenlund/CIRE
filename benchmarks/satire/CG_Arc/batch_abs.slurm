@@ -12,6 +12,19 @@
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
 
+# Abs window : (15,25)
+../../../build-debug/bin/CIRE \
+    CG_arc_noErr_K20_N130_E0.0.txt \
+    --abstraction \
+    --min-depth 15 \
+    --max-depth 25 \
+    --debug-level 1 \
+    --log-level 2 \
+    --output CG_arc_cire_15_25.csv \
+    --log-output CG_arc_cire_15_25.clog \
+    --csv-friendly
+
+# No abstraction
 ../../../build-debug/bin/CIRE \
     CG_arc_noErr_K20_N130_E0.0.txt \
     --debug-level 1 \
