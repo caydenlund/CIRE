@@ -522,7 +522,7 @@ void Graph::examineBwdDerivativeAndLocalError() {
       OptResult max_local_err = ibexInterface->FindAbsMax(
               const_cast<ibex::ExprNode &>(product(node->getAbsoluteError(), node->getRounding())));
 
-      evaluatedBwdDerivatives[node][output_node] = std::make_pair(-max_bwd.result.mag(), -max_local_err.result.mag());
+      evaluatedBwdDerivatives[node][output_node] = std::make_pair((-max_bwd.result).mag(), (-max_local_err.result).mag());
     }
   }
 
