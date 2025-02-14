@@ -138,3 +138,7 @@ add_custom_target("check"
                    DEPENDS CIRE_LLVM
                    USES_TERMINAL
                  )
+
+add_executable(ibex_simplify_1 paper_tests/ibex_simplify/ibex_simplify_1.cpp)
+target_link_libraries(ibex_simplify_1
+                        PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa)

@@ -389,7 +389,7 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*expr);
     }
 
-    if(ErrAccumulator[outVar]->size > 1000) {
+    if(ErrAccumulator[outVar]->size > 4000) {
       OptResult max_err = ibexInterface->FindMax(*ErrAccumulator[outVar]);
       ErrAccumulator[outVar] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar((-max_err.result).mag());
     }
