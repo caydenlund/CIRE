@@ -1,0 +1,3 @@
+Scan_4096
+****** Benchmark : Scan Sum 4096 points **************
+Without Abstraction  -- SUCCESSFULLY executed 
