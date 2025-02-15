@@ -8,21 +8,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=72:00:00
+#SBATCH --time=96:00:00
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
-
-# Abs window : (15,25)
-../../../build-debug/bin/CIRE \
-    f_polynomial_50.txt \
-    --abstraction \
-    --min-depth 15 \
-    --max-depth 25 \
-    --debug-level 1 \
-    --log-level 2 \
-    --output poly-eval_cire_15_25.csv \
-    --log-output poly-eval_cire_15_25.clog \
-    --csv-friendly
 
 # No abstraction
 ../../../build-debug/bin/CIRE \

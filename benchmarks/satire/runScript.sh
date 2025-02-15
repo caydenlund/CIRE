@@ -8,7 +8,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=72:00:00
+#SBATCH --time=96:00:00
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
 

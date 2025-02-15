@@ -8,21 +8,9 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=72:00:00
+#SBATCH --time=96:00:00
 #SBATCH --export=ALL
 #SBATCH --qos=soc-kp
-
-# Abs window : (15,25)
-../../../build-debug/bin/CIRE \
-    fdtd1d_64.txt \
-    --abstraction \
-    --min-depth 15 \
-    --max-depth 25 \
-    --debug-level 1 \
-    --log-level 2 \
-    --output fdtd1d_64_cire_15_25.csv \
-    --log-output fdtd1d_64_cire_15_25.clog \
-    --csv-friendly
 
 # No abstraction
 ../../../build-debug/bin/CIRE \
