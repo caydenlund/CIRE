@@ -128,18 +128,24 @@ OptResult IBEXInterface::FindMin(ibex::ExprNode &Expression) {
     exit(1);
   } else if(opt.get_status() == ibex::Optimizer::UNBOUNDED_OBJ) {
     std::cerr << "Optimizer returned UNBOUNDED. Objective tends to inf or -inf." << std::endl;
-    exit(1);
+    optResult.result = ibex::Interval(std::numeric_limits<double>::min(), std::numeric_limits<double>::min());
+    optResult.optimumPoint = opt.get_loup_point();
+    optResult.optimizationTime = opt.get_time();
   }  else if(opt.get_status() == ibex::Optimizer::UNREACHED_PREC) {
     std::cerr << "Optimizer returned UNREACHED_PREC. Might need to change objective, constrains or objective precision." << std::endl;
     exit(1);
   } else if(opt.get_status() == ibex::Optimizer::TIME_OUT) {
-    std::cerr << "Optimizer TIMEOUT." << std::endl;
-    exit(1);
+    std::cerr << "Optimizer TIMEOUT. Default error." << std::endl;
+    optResult.result = ibex::Interval(std::numeric_limits<double>::min(), std::numeric_limits<double>::min());
+    optResult.optimumPoint = opt.get_loup_point();
+    optResult.optimizationTime = opt.get_time();
+  } else {
+    optResult.result = ibex::Interval(opt.get_uplo(), opt.get_loup());
+    optResult.optimumPoint = opt.get_loup_point();
+    optResult.optimizationTime = opt.get_time();
   }
-//  opt.report();
-  optResult.result = ibex::Interval(opt.get_uplo(), opt.get_loup());
-  optResult.optimumPoint = opt.get_loup_point();
-  optResult.optimizationTime = opt.get_time();
+
+  //  opt.report();
 
   return optResult;
 }
@@ -195,18 +201,25 @@ OptResult IBEXInterface::FindMax(ibex::ExprNode &Expression) {
     exit(1);
   } else if(opt.get_status() == ibex::Optimizer::UNBOUNDED_OBJ) {
     std::cerr << "Optimizer returned UNBOUNDED. Objective tends to inf or -inf." << std::endl;
-    exit(1);
+    optResult.result = ibex::Interval(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+    optResult.optimumPoint = opt.get_loup_point();
+    optResult.optimizationTime = opt.get_time();
   }  else if(opt.get_status() == ibex::Optimizer::UNREACHED_PREC) {
     std::cerr << "Optimizer returned UNREACHED_PREC. Might need to change objective, constrains or objective precision." << std::endl;
     exit(1);
   } else if(opt.get_status() == ibex::Optimizer::TIME_OUT) {
-    std::cerr << "Optimizer TIMEOUT." << std::endl;
-    exit(1);
+    std::cerr << "Optimizer TIMEOUT. Default error." << std::endl;
+    optResult.result = ibex::Interval(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
+    optResult.optimumPoint = opt.get_loup_point();
+    optResult.optimizationTime = opt.get_time();
+  } else {
+    optResult.result = ibex::Interval(opt.get_uplo(), opt.get_loup());
+    optResult.optimumPoint = opt.get_loup_point();
+    optResult.optimizationTime = opt.get_time();
   }
+
 //  opt.report();
-  optResult.result = ibex::Interval(opt.get_uplo(), opt.get_loup());
-  optResult.optimumPoint = opt.get_loup_point();
-  optResult.optimizationTime = opt.get_time();
+
 
   return optResult;
 }
