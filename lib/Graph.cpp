@@ -179,19 +179,19 @@ void Graph::generateExprDriver(const std::set<Node *> &candidate_nodes) {
   }
 
   for (auto &node : candidate_nodes) {
-    if (debugLevel > 2) {
+    if (debugLevel > 3) {
       std::cout << "Processing Node " << node->id << std::endl;
     }
-    if (logLevel > 2) {
+    if (logLevel > 3) {
       log.logFile << "Processing Node " << node->id << std::endl;
     }
     if (generatedExprsAtDepth[node->depth].find(node) == generatedExprsAtDepth[node->depth].end()) {
       generateExpr(node, generatedExprsAtDepth, cseTable);
     }
-    if (debugLevel > 2) {
+    if (debugLevel > 3) {
       std::cout << "Node " << node->id << " processed." << std::endl;
     }
-    if (logLevel > 2) {
+    if (logLevel > 3) {
       log.logFile << "Node " << node->id << " processed." << std::endl;
     }
   }

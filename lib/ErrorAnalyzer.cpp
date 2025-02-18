@@ -360,17 +360,24 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
 
   for (Node *outVar : outputList) {
-    if (debugLevel > 4) {
-      printBwdDerivative(outVar, node);
-      std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
-      std::cout << "OpRounding:" << node->getRounding() << std::endl;
-      std::cout << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
+    if (debugLevel > 2) {
+      std::cout << "Propagating error for " << outVar->id << " through node " << node->id << std::endl;
+      if (debugLevel > 4) {
+        printBwdDerivative(outVar, node);
+        std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
+        std::cout << "OpRounding:" << node->getRounding() << std::endl;
+        std::cout << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
+      }
     }
-    if (logLevel > 4) {
-      logBwdDerivative(outVar, node);
-      log.logFile << "absolute error:" << node->getAbsoluteError() << std::endl;
-      log.logFile << "OpRounding:" << node->getRounding() << std::endl;
-      log.logFile << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
+    if(logLevel > 2) {
+      log.logFile << "Propagating error for " << outVar->id << " through node " << node->id << std::endl;
+
+      if (logLevel > 4) {
+        logBwdDerivative(outVar, node);
+        log.logFile << "absolute error:" << node->getAbsoluteError() << std::endl;
+        log.logFile << "OpRounding:" << node->getRounding() << std::endl;
+        log.logFile << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
+      }
     }
 
     // Generate the error expression by computing the product of the Backward derivative of outVar wrt node and
@@ -389,9 +396,16 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*expr);
     }
 
-    if(ErrAccumulator[outVar]->size > 4000) {
+    unsigned op_threshold = 1000;
+    if(ErrAccumulator[outVar]->size > op_threshold) {
       OptResult max_err = ibexInterface->FindMax(*ErrAccumulator[outVar]);
       ErrAccumulator[outVar] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar((-max_err.result).mag());
+      if(debugLevel > 1) {
+        std::cout << "Error Accumulator size exceeded " << op_threshold << ". Concretizing error." << std::endl;
+      }
+      if(logLevel > 1) {
+        log.logFile << "Error Accumulator size exceeded " << op_threshold << ". Concretizing error." << std::endl;
+      }
     }
 
     if (debugLevel > 4) {
