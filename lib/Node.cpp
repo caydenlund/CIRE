@@ -408,12 +408,12 @@ Node *Double::getChildNode(int index) const {
 }
 
 FreeVariable::FreeVariable() {
-  var = new ibex::Interval(0.1, 100);
+  var = new ibex::Interval(-1.0, 1.0);
   type = FREE_VARIABLE;
 }
 
 FreeVariable::FreeVariable(RoundingType rnd_typ) {
-  var = new ibex::Interval(0.1, 100);
+  var = new ibex::Interval(-1.0, 1.0);
   type = FREE_VARIABLE;
   OpRndType = rnd_typ;
   OpRounding = RoundingAmount[rnd_typ];
