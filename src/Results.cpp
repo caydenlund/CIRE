@@ -52,7 +52,7 @@ bool Results::writeResults(std::vector<std::string> outputs,
       json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Results"]["Height"] = heightDAG;
       json_object[file_stem]["Results"]["Optimization Time"] = result.totalOptimizationTime;
-      json_object[file_stem]["Results"]["Number of Optimization Calls"] = result.numOptimizationCalls;
+      json_object[file_stem]["Results"]["Number of Optimizer Calls"] = result.numOptimizationCalls;
       std::vector<std::pair<double, double>> optPoint;
       for (int i = 0; i < result.OptPoint.size(); i++) {
         optPoint.emplace_back(result.OptPoint[i].lb(), result.OptPoint[i].ub());
@@ -111,7 +111,7 @@ Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOp
       json_object[file_stem]["NumOperators"] = numOperatorsOutput;
       json_object[file_stem]["Height"] = heightDAG;
       json_object[file_stem]["Optimization Time"] = result.totalOptimizationTime;
-      json_object[file_stem]["Number of Optimization Calls"] = result.numOptimizationCalls;
+      json_object[file_stem]["Number of Optimizer Calls"] = result.numOptimizationCalls;
       std::vector<std::pair<double, double>> optPoint;
       for (int i = 0; i < result.OptPoint.size(); i++) {
         optPoint.emplace_back(result.OptPoint[i].lb(), result.OptPoint[i].ub());

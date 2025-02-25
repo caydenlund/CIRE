@@ -1449,7 +1449,7 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
         std::cout << *singleResult.first << " : "
                   << "\n\tOutput: " << singleResult.second[0] << ","
                   << "\n\tError: " << singleResult.second[1] << ","
-                  << "\n\tNumber of optimization calls: " << errorAnalysisResults[node].numOptimizationCalls << std::endl;
+                  << "\n\tNumber of Optimizer Calls: " << errorAnalysisResults[node].numOptimizationCalls << std::endl;
       }
     }
     if (logLevel > 1) {
@@ -1459,7 +1459,7 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
         log.logFile << *singleResult.first << " : "
                     << "\n\tOutput: " << singleResult.second[0] << ","
                     << "\n\tError: " << singleResult.second[1] << ","
-                    << "\n\tNumber of optimization calls: " << errorAnalysisResults[node].numOptimizationCalls << std::endl;
+                    << "\n\tNumber of Optimizer Calls: " << errorAnalysisResults[node].numOptimizationCalls << std::endl;
       }
     }
   }
