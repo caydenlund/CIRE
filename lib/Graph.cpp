@@ -1168,11 +1168,19 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
 
 void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   if(debugLevel > 1) {
-    std::cout << "Finding output extremas..." << std::endl;
+    std::cout << "Finding output extremas...";
+    if(debugLevel > 2) {
+      std::cout << " for " << candidate_nodes.size() << " nodes" << std::endl;
+    }
+    std::cout << std::endl;
   }
   if(logLevel > 1) {
     assert(log.logFile.is_open() && "Log file not open");
-    log.logFile << "Finding output extremas..." << std::endl;
+    log.logFile << "Finding output extremas...";
+    if(logLevel > 2) {
+      log.logFile << " for " << candidate_nodes.size() << " nodes" << std::endl;
+    }
+    log.logFile << std::endl;
   }
 
 //  if(debugLevel > 4) {
@@ -1245,11 +1253,19 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
 
 void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   if (debugLevel > 1) {
-    std::cout << "Finding error extrema..." << std::endl;
+    std::cout << "Finding error extrema...";
+    if(debugLevel > 2) {
+      std::cout << " for " << candidate_nodes.size() << " nodes" << std::endl;
+    }
+    std::cout << std::endl;
   }
   if(logLevel > 1) {
     assert(log.logFile.is_open() && "Log file not open");
-    log.logFile << "Finding error extremas..." << std::endl;
+    log.logFile << "Finding error extremas...";
+    if(logLevel > 2) {
+      log.logFile << " for " << candidate_nodes.size() << " nodes" << std::endl;
+    }
+    log.logFile << std::endl;
   }
 
   setupDerivativeComputation(candidate_nodes);
