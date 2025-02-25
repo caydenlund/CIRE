@@ -1253,19 +1253,11 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
 
 void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   if (debugLevel > 1) {
-    std::cout << "Finding error extrema...";
-    if(debugLevel > 2) {
-      std::cout << " for " << candidate_nodes.size() << " nodes" << std::endl;
-    }
-    std::cout << std::endl;
+    std::cout << "Finding error extrema..." << std::endl;
   }
   if(logLevel > 1) {
     assert(log.logFile.is_open() && "Log file not open");
-    log.logFile << "Finding error extremas...";
-    if(logLevel > 2) {
-      log.logFile << " for " << candidate_nodes.size() << " nodes" << std::endl;
-    }
-    log.logFile << std::endl;
+    log.logFile << "Finding error extremas..." << std::endl;
   }
 
   setupDerivativeComputation(candidate_nodes);
@@ -1292,6 +1284,15 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
 //      std::cout << e << std::endl;
 //    }
 //  }
+
+  if(debugLevel > 2) {
+    std::cout << "Solving for " << candidate_nodes.size() << " nodes" << std::endl;
+  }
+
+  if(logLevel > 2) {
+    log.logFile << "Solving for " << candidate_nodes.size() << " nodes" << std::endl;
+  }
+
 
   std::map<Node *, OptResult> max;
   for (auto &node : candidate_nodes) {
