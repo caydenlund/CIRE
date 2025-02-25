@@ -224,7 +224,8 @@ int main(int argc, char **argv) {
         std::cout << *node;
       }
       std::cout << ": \tOutput: " << answer[node].outputExtrema << ","
-                << "  \n\tError: " << answer[node].errorExtrema << std::endl;
+                << "  \tError: " << answer[node].errorExtrema << ","
+                << "  \n\tNum Optimizer Calls: " << answer[node].numOptimizationCalls << std::endl;
     }
   }
 
@@ -239,7 +240,8 @@ int main(int argc, char **argv) {
         cire.graph->log.logFile << *node;
       }
       cire.graph->log.logFile << ": \tOutput: " << answer[node].outputExtrema << ","
-                              << "  \n\tError: " << answer[node].errorExtrema << std::endl;
+                              << "  \tError: " << answer[node].errorExtrema << ","
+                              << "  \n\tNum Optimizer Calls: " << answer[node].numOptimizationCalls << std::endl;
     }
   }
 

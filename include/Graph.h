@@ -10,6 +10,7 @@ public:
   ibex::Interval errorExtrema;
   ibex::IntervalVector OptPoint;
   double totalOptimizationTime;
+  unsigned int numOptimizationCalls;
 };
 
 class Graph {

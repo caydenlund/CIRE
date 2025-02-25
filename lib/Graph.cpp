@@ -314,6 +314,7 @@ void Graph::generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedE
   // 1) Find all subexpressions similar to the current node
   std::vector<Node *> nodes_to_merge;
   for (auto &n: cseTable[node->getExprNode()]) {
+    // Ensuring n and node are not the same nodes
     if(n != node) {
       // Check if all children of n and node are the same
       switch (n->type) {
@@ -1218,6 +1219,7 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       log.logFile << "Output Extrema for: " << *node->getExprNode() << std::endl;
     }
     errorAnalysisResults[node].outputExtrema = -max[node].result;
+    errorAnalysisResults[node].numOptimizationCalls += 1;
 
     if(debugLevel > 4) {
       std::cout << "Output Extrema: " << errorAnalysisResults[node].outputExtrema << std::endl;
@@ -1305,7 +1307,8 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
     errorAnalysisResults[node].errorExtrema = ibex::Interval(-(max[node].result) * pow(2, -53));
 
     errorAnalysisResults[node].OptPoint = max[node].optimumPoint;
-    errorAnalysisResults[node].totalOptimizationTime = max[node].optimizationTime;
+    errorAnalysisResults[node].totalOptimizationTime += max[node].optimizationTime;
+    errorAnalysisResults[node].numOptimizationCalls += 1;
 
     if (debugLevel > 4) {
       std::cout << "Error Extrema: " << errorAnalysisResults[node].errorExtrema
