@@ -55,11 +55,11 @@ void ErrorAnalyzer::derivativeComputingDriver() {
     }
   }
 
-  if (debugLevel > 3) {
+  if (debugLevel > 4) {
     printBwdDerivativesIbexExprs();
     std::cout << std::endl;
   }
-  if (logLevel > 3) {
+  if (logLevel > 4) {
     assert(log.logFile.is_open());
     logBwdDerivativesIbexExprs();
     log.logFile << std::endl;
@@ -360,7 +360,7 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
   std::vector<Node *> outputList = keys(BwdDerivatives[node]);
 
   for (Node *outVar : outputList) {
-    if (debugLevel > 2) {
+    if (debugLevel > 3) {
       std::cout << "Propagating error for " << outVar->id << " through node " << node->id << std::endl;
       if (debugLevel > 4) {
         printBwdDerivative(outVar, node);
@@ -369,7 +369,7 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
         std::cout << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
       }
     }
-    if(logLevel > 2) {
+    if(logLevel > 3) {
       log.logFile << "Propagating error for " << outVar->id << " through node " << node->id << std::endl;
 
       if (logLevel > 4) {

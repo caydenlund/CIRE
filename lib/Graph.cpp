@@ -230,15 +230,15 @@ void Graph::generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedE
       }
       ((UnaryOp *)node)->expr = (ibex::ExprUnaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((UnaryOp *)node)->Operand].insert(node);
-      if (debugLevel > 2) {
+      if (debugLevel > 3) {
         std::cout << "Node " << node->id << " processed." << std::endl;
-        if (debugLevel > 3) {
+        if (debugLevel > 4) {
           std::cout << "UnaryOp: " << *((UnaryOp *) node)->expr << std::endl;
         }
       }
-      if (logLevel > 2) {
+      if (logLevel > 3) {
         log.logFile << "Node " << node->id << " processed." << std::endl;
-        if (logLevel > 3) {
+        if (logLevel > 4) {
           assert(log.logFile.is_open() && "Log file not open");
           log.logFile << "UnaryOp: " << *((UnaryOp *) node)->expr << std::endl;
         }
@@ -256,15 +256,15 @@ void Graph::generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedE
       ((BinaryOp *)node)->expr = (ibex::ExprBinaryOp *)&node->generateSymExpr();
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((BinaryOp *)node)->rightOperand].insert(node);
-      if (debugLevel > 2) {
+      if (debugLevel > 3) {
         std::cout << "Node " << node->id << " processed." << std::endl;
-        if (debugLevel > 3) {
+        if (debugLevel > 4) {
           std::cout << "BinaryOp: " << *((BinaryOp *) node)->expr << std::endl;
         }
       }
-      if (logLevel > 2) {
+      if (logLevel > 3) {
         log.logFile << "Node " << node->id << " processed." << std::endl;
-        if (logLevel > 3) {
+        if (logLevel > 4) {
           assert(log.logFile.is_open() && "Log file not open");
           log.logFile << "BinaryOp: " << *((BinaryOp *) node)->expr << std::endl;
         }
@@ -288,15 +288,15 @@ void Graph::generateExpr(Node *node, std::map<int, std::set<Node *>> &generatedE
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->leftOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->middleOperand].insert(node);
       errorAnalyzer->parentsOfNode[((TernaryOp *)node)->rightOperand].insert(node);
-      if (debugLevel > 2) {
+      if (debugLevel > 3) {
         std::cout << "Node " << node->id << " processed." << std::endl;
-        if (debugLevel > 3) {
+        if (debugLevel > 4) {
           std::cout << "TernaryOp: " << *((TernaryOp *) node)->expr << std::endl;
         }
       }
-      if (logLevel > 2) {
+      if (logLevel > 3) {
         log.logFile << "Node " << node->id << " processed." << std::endl;
-        if (logLevel > 3) {
+        if (logLevel > 4) {
           assert(log.logFile.is_open() && "Log file not open");
           log.logFile << "TernaryOp: " << *((TernaryOp *) node)->expr << std::endl;
         }
@@ -1087,7 +1087,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
     if (debugLevel > 1) {
       std::cout << "Abstraction count: " << abstraction_count << std::endl;
 
-      if (debugLevel > 3 && !candidate_nodes.empty()) {
+      if (debugLevel > 4 && !candidate_nodes.empty()) {
         // Print candidate nodes
         std::cout << "Candidate Nodes:" << std::endl;
         for (auto &node : candidate_nodes) {
@@ -1191,12 +1191,16 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
   for (auto &node : candidate_nodes) {
     if(debugLevel > 3) {
       std::cout << "Finding max for: " << node->id << std::endl;
-      std::cout << "Output Expression: " << *node->getExprNode() << std::endl;
+      if(debugLevel > 4) {
+        std::cout << "Output Expression: " << *node->getExprNode() << std::endl;
+      }
     }
     if(logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding max for: " << node->id << std::endl;
-      log.logFile << "Output Expression: " << *node->getExprNode() << std::endl;
+      if(logLevel > 4) {
+        log.logFile << "Output Expression: " << *node->getExprNode() << std::endl;
+      }
     }
     max[node] = ibexInterface->FindAbsMax(*node->getExprNode());
 
@@ -1277,12 +1281,16 @@ void Graph::FindErrorExtrema(const std::set<Node *>& candidate_nodes) {
   for (auto &node : candidate_nodes) {
     if (debugLevel > 3) {
       std::cout << "Finding max for: " << node->id << std::endl;
-      std::cout << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      if (debugLevel > 4) {
+        std::cout << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      }
     }
     if (logLevel > 3) {
       assert(log.logFile.is_open() && "Log file not open");
       log.logFile << "Finding max for: " << node->id << std::endl;
-      log.logFile << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      if (logLevel > 4) {
+        log.logFile << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
+      }
     }
     max[node] = ibexInterface->FindAbsMax(*errorAnalyzer->ErrAccumulator[node]);
 
