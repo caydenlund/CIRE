@@ -10,6 +10,7 @@ public:
   unsigned int debugLevel = 0;
   unsigned int logLevel = 0;
   Logging &log;
+  std::map<Node *, unsigned> nodeNumOptCallsMap;
 
   // Data structures for derivative computation
   // Map from node to number of parents of node

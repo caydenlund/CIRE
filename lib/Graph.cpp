@@ -1219,7 +1219,7 @@ void Graph::FindOutputExtrema(const std::set<Node *>& candidate_nodes) {
       log.logFile << "Output Extrema for: " << *node->getExprNode() << std::endl;
     }
     errorAnalysisResults[node].outputExtrema = -max[node].result;
-    errorAnalysisResults[node].numOptimizationCalls += 1;
+    errorAnalysisResults[node].numOptimizationCalls += 1 + errorAnalyzer->nodeNumOptCallsMap[node];
 
     if(debugLevel > 4) {
       std::cout << "Output Extrema: " << errorAnalysisResults[node].outputExtrema << std::endl;
@@ -1448,7 +1448,8 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
       if (debugLevel > 2) {
         std::cout << *singleResult.first << " : "
                   << "\n\tOutput: " << singleResult.second[0] << ","
-                  << "\n\tError: " << singleResult.second[1] << std::endl;
+                  << "\n\tError: " << singleResult.second[1] << ","
+                  << "\n\tNumber of optimization calls: " << errorAnalysisResults[node].numOptimizationCalls << std::endl;
       }
     }
     if (logLevel > 1) {
@@ -1457,7 +1458,8 @@ void Graph::AbstractNodes(std::map<Node *, std::vector<ibex::Interval>> results)
       if (logLevel > 2) {
         log.logFile << *singleResult.first << " : "
                     << "\n\tOutput: " << singleResult.second[0] << ","
-                    << "\n\tError: " << singleResult.second[1] << std::endl;
+                    << "\n\tError: " << singleResult.second[1] << ","
+                    << "\n\tNumber of optimization calls: " << errorAnalysisResults[node].numOptimizationCalls << std::endl;
       }
     }
   }
