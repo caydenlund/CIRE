@@ -396,16 +396,15 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
       ErrAccumulator[outVar] = (ibex::ExprNode *) &(*expr);
     }
 
-    unsigned op_threshold = 1000;
-    if(ErrAccumulator[outVar]->size > op_threshold) {
+    if(ErrAccumulator[outVar]->size > errorExpressionOperatorThreshold) {
       OptResult max_err = ibexInterface->FindMax(*ErrAccumulator[outVar]);
       ErrAccumulator[outVar] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar((-max_err.result).mag());
       nodeNumOptCallsMap[outVar]++;
       if(debugLevel > 1) {
-        std::cout << "Error Accumulator size exceeded " << op_threshold << ". Concretizing error." << std::endl;
+        std::cout << "Error Accumulator size exceeded " << errorExpressionOperatorThreshold << ". Concretizing error." << std::endl;
       }
       if(logLevel > 1) {
-        log.logFile << "Error Accumulator size exceeded " << op_threshold << ". Concretizing error." << std::endl;
+        log.logFile << "Error Accumulator size exceeded " << errorExpressionOperatorThreshold << ". Concretizing error." << std::endl;
       }
     }
 

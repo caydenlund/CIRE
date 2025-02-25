@@ -9,6 +9,7 @@ class ErrorAnalyzer {
 public:
   unsigned int debugLevel = 0;
   unsigned int logLevel = 0;
+  unsigned int errorExpressionOperatorThreshold = 10000;
   Logging &log;
   std::map<Node *, unsigned> nodeNumOptCallsMap;
 

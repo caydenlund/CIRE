@@ -66,6 +66,10 @@ namespace {
                                        cl::desc("Timeout for the optimizer. Default: 20 seconds"),
                                        cl::init(UINT_MAX));
 
+    cl::opt<unsigned int> OperatorThreshold("operator-threshold",
+                                            cl::desc("Set the threshold on number of operators on the error expression"),
+                                            cl::init(10000));
+
     cl::opt<bool> ConcretizeErrorComponents("concretize-error-components",
                                             cl::desc("Concretize error components"),
                                             cl::init(false));
@@ -119,6 +123,9 @@ int main(int argc, char **argv) {
   }
   if (OptimizerTimeOut) {
     cire.graph->ibexInterface->optimizerTimeOut = OptimizerTimeOut;
+  }
+  if (OperatorThreshold) {
+    cire.graph->errorAnalyzer->errorExpressionOperatorThreshold = OperatorThreshold;
   }
   if (LogLevel) {
     cire.setLogLevel(LogLevel);
