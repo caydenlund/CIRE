@@ -1,3 +1,0 @@
-heat1d_t32
-****** Benchmark : H1D **************
-Without Abstraction  -- SUCCESSFULLY executed 
