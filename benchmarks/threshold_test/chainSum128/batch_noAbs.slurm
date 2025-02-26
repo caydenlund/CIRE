@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=soc-kp
 #SBATCH --partition=soc-kp
-#SBATCH --reservation=DAT-u1260704
+#SBATCH --reservation=DAT-u1260704-2
 #SBATCH --job-name=ChainSum_128pt_cire_noAbs
 #SBATCH -o ChainSum_128pt_cire_noAbs.log
 #SBATCH -e ChainSum_128pt_cire_noAbs.log

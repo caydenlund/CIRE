@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --account=soc-kp
 #SBATCH --partition=soc-kp
-#SBATCH --reservation=DAT-u1260704
+#SBATCH --reservation=DAT-u1260704-2
 #SBATCH --job-name=ChainSum_1024pt_cire_5_15
 #SBATCH -o ChainSum_1024pt_cire_5_15.log
 #SBATCH -e ChainSum_1024pt_cire_5_15.log
