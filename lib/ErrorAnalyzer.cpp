@@ -397,7 +397,7 @@ void ErrorAnalyzer::propagateError(Node *node, IBEXInterface *ibexInterface) {
     }
 
     if(ErrAccumulator[outVar]->size > errorExpressionOperatorThreshold) {
-      OptResult max_err = ibexInterface->FindMax(*ErrAccumulator[outVar]);
+      OptResult max_err = ibexInterface->FindAbsMax(*ErrAccumulator[outVar]);
       ErrAccumulator[outVar] = (ibex::ExprNode *) &ibex::ExprConstant::new_scalar((-max_err.result).mag());
       nodeNumOptCallsMap[outVar]++;
       if(debugLevel > 1) {
