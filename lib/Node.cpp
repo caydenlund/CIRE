@@ -1003,8 +1003,8 @@ Node &fpext(Node &x, Node::RoundingType rnd_typ) {
 }
 
 Node &fma(Node &x, Node &y, Node &z) {
-  return x*y+z;
-//  return *new TernaryOp(&x, &y, &z, Node::FMA);
+//  return x*y+z;
+  return *new TernaryOp(&x, &y, &z, Node::FMA);
 }
 
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right) {
