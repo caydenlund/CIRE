@@ -14,25 +14,15 @@ FetchContent_MakeAvailable(json)
 add_subdirectory(lib)
 add_subdirectory(benchmarks)
 
+set(IBEX_INSTALL_DIR "/usr/local" CACHE PATH "Ibex installation directory")
+
 include_directories(include
-            /usr/local/include
-            /usr/local/include/ibex
-            /usr/local/include/soplex
-            /usr/local/include/ibex/3rd
-            /usr/local/include/ibex/3rd/gaol
-            # CHPC specififc paths
-            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/include
-            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/include/ibex
-            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include
-            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include/gaol
-            /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/include/soplex)
-link_directories(/usr/local/lib
-                /usr/local/lib64
-                /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/gaol-4.2.0/lib
-                /home/tanmay/Downloads/ibex-lib-ibex-2.8.9/build/interval_lib_wrapper/gaol/mathlib-2.1.0/lib
-                # CHPC specififc paths
-                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/src
-                /uufs/chpc.utah.edu/common/home/u1260704/Tools/ibex-lib-ibex-2.8.9/__build__/3rd/lib)
+    ${IBEX_INSTALL_DIR}/include
+    ${IBEX_INSTALL_DIR}/include/ibex
+    ${IBEX_INSTALL_DIR}/include/ibex/3rd)
+
+link_directories(${IBEX_INSTALL_DIR}/lib
+    ${IBEX_INSTALL_DIR}/lib/ibex/3rd)
 
 option(ENABLE_LLVM_FRONTEND "Enable the LLVM frontend" OFF)
 
