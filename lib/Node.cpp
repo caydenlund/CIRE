@@ -896,8 +896,7 @@ Node &TernaryOp::operator/(Node &other) const {
 }
 
 double TernaryOp::getRounding() {
-  // TODO: Add OpRounding for Ternary operations
-  return OpRounding;
+  return OpRounding * OpErrorULPs[op];
 }
 
 ibex::ExprNode &TernaryOp::generateSymExpr() {

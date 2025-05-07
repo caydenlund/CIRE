@@ -53,9 +53,9 @@ public:
           {SINH, 2.0},
           {COSH, 2.0},
           {TANH, 2.0},
-          {ASIN, 2.0},  // Check whether 2.0 is correct
-          {ACOS, 2.0},  // Check whether 2.0 is correct
-          {ATAN, 2.0},  // Check whether 2.0 is correct
+          {ASIN, 2.0},
+          {ACOS, 2.0},
+          {ATAN, 2.0},
           {LOG, 2.0},
           {SQRT, 1.0},
           {EXP, 2.0},
