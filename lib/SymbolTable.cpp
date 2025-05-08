@@ -1,8 +1,8 @@
 #include "../include/SymbolTable.h"
 
 void SymbolTable::insert(const string& symbol, Node *node) {
-//  std::cout << "Inserting " << symbol << " in scope " << scopeID << std::endl;
-//  std::cout << *node << std::endl;
+  std::cout << "Inserting " << symbol << " in scope " << scopeID << std::endl;
+  std::cout << *node << std::endl;
   table[symbol] = node;
 }
 
