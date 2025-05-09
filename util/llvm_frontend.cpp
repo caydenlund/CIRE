@@ -84,9 +84,9 @@ void parseInputsInLLVM(Graph &g, Function &F) {
 
     auto *new_variable = new VariableNode(rounding_type);
     g.nodes.insert(new_variable);
-    g.symbolTables[g.currentScope]->insert(arg.getName().str(), new_variable);
-    g.inputs[arg.getName().str()] = new FreeVariable(rounding_type);
-    g.nodes.insert(g.inputs[arg.getName().str()]);
+    g.symbolTables[g.currentScope]->insert(arg.getNameOrAsOperand().c_str(), new_variable);
+    g.inputs[arg.getNameOrAsOperand().c_str()] = new FreeVariable(rounding_type);
+    g.nodes.insert(g.inputs[arg.getNameOrAsOperand().c_str()]);
   }
 }
 
