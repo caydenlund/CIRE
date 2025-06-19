@@ -2,3 +2,7 @@
 /build/
 /build-debug/
 /build-release/
+
+# clangd
+/.cache
+/compile_commands.json
