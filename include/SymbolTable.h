@@ -5,17 +5,17 @@
 
 class SymbolTable {
 public:
-  static int SCOPE_COUNTER;
-  int scopeID = SCOPE_COUNTER++;
-  std::map<string, Node *> table;
+    static int SCOPE_COUNTER;
+    int scopeID = SCOPE_COUNTER++;
+    std::map<string, Node*> table;
 
-  SymbolTable() = default;
-  ~SymbolTable() = default;
+    SymbolTable() = default;
+    ~SymbolTable() = default;
 
-  void insert(const string& symbol, Node *node);
-  Node *lookup(const string& symbol, Node *node = new VariableNode(Node::RoundingType::INT));
-  string ReverseLookup(const Node *node);
+    void insert(const string& symbol, Node* node);
+    Node* lookup(const string& symbol, Node* node = new VariableNode(Node::RoundingType::INT));
+    string ReverseLookup(const Node* node);
 };
 
 
-#endif //CIRE_SYMBOLTABLE_H
+#endif  // CIRE_SYMBOLTABLE_H

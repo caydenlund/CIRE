@@ -1,8 +1,9 @@
-#include <string>
 #include <fstream>
+#include <string>
 
 class Logging {
-    std::string file="default.log";
+    std::string file = "default.log";
+
 public:
     std::ofstream logFile;
     void setFile(std::string file);

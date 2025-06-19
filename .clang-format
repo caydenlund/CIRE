@@ -17,7 +17,7 @@ BreakBeforeBraces: Attach
 BreakBeforeBinaryOperators: All
 BreakBeforeTernaryOperators: true
 BreakInheritanceList: AfterComma
-ColumnLimit: 100
+ColumnLimit: 120
 CompactNamespaces: false
 IndentCaseLabels: true
 IndentPPDirectives: None

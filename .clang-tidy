@@ -1,6 +1,9 @@
 Checks: '
     *,
     -*-avoid-c-arrays,
+    -*-braces-around-statements,
+    -*-non-private-member-variables-in-classes,
+    -*-statically-constructed-objects,
     -*-vararg,
     -altera-id-dependent-backward-branch,
     -altera-unroll-loops,
@@ -8,17 +11,14 @@ Checks: '
     -bugprone-easily-swappable-parameters,
     -cppcoreguidelines-avoid-const-or-ref-data-members,
     -cppcoreguidelines-init-variables,
-    -cppcoreguidelines-non-private-member-variables-in-classes,
     -cppcoreguidelines-pro-bounds-pointer-arithmetic,
     -cppcoreguidelines-special-member-functions,
     -fuchsia-default-arguments-calls,
     -fuchsia-default-arguments-declarations,
     -fuchsia-overloaded-operator,
     -google-explicit-constructor,
-    -google-readability-braces-around-statements,
     -google-readability-casting,
     -google-runtime-int,
-    -hicpp-braces-around-statements,
     -hicpp-explicit-conversions,
     -hicpp-named-parameter,
     -hicpp-signed-bitwise,
@@ -26,10 +26,33 @@ Checks: '
     -llvm-header-guard,
     -llvmlibc*,
     -misc-no-recursion,
-    -misc-non-private-member-variables-in-classes,
     -modernize-use-trailing-return-type,
     -performance-no-automatic-move,
-    -readability-braces-around-statements,
     -readability-function-cognitive-complexity,
     -readability-named-parameter,
     '
+
+FormatStyle: file
+
+CheckOptions:
+    readability-identifier-naming.AbstractClassCase: "CamelCase"
+    readability-identifier-naming.ClassCase: "CamelCase"
+    readability-identifier-naming.EnumCase: "CamelCase"
+    readability-identifier-naming.EnumConstantCase: "UPPER_CASE"
+    readability-identifier-naming.FunctionCase: "camelBack"
+    readability-identifier-naming.MemberCase: "camelBack"
+    readability-identifier-naming.MethodCase: "camelBack"
+    readability-identifier-naming.NamespaceCase: "CamelCase"
+    readability-identifier-naming.ParameterCase: "snake_case"
+    readability-identifier-naming.PrivateMemberPrefix: "_"
+    readability-identifier-naming.PrivateMethodPrefix: "_"
+    readability-identifier-naming.ProtectedMemberPrefix: "_"
+    readability-identifier-naming.ProtectedMethodPrefix: "_"
+    readability-identifier-naming.StructCase: "CamelCase"
+    readability-identifier-naming.TemplateParameterCase: "CamelCase"
+    readability-identifier-naming.TemplateTemplateParameterSuffix: "Type"
+    readability-identifier-naming.TypeAliasCase: "CamelCase"
+    readability-identifier-naming.TypedefCase: "CamelCase"
+    readability-identifier-naming.TypeTemplateParameterSuffix: "Type"
+    readability-identifier-naming.ValueTemplateParameterSuffix: "Val"
+    readability-identifier-naming.VariableCase: "snake_case"

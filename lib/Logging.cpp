@@ -3,28 +3,24 @@
 
 using namespace std;
 
-void Logging::setFile(std::string _file) {
-  file = _file;
-}
+void Logging::setFile(std::string _file) { file = _file; }
 
 bool Logging::openFile() {
-  logFile.open(file, ios::app);
-  if (logFile.is_open()) {
-    return true;
-  } else {
-    return false;
-  }
+    logFile.open(file, ios::app);
+    if (logFile.is_open()) {
+        return true;
+    } else {
+        return false;
+    }
 }
 
 bool Logging::closeFile() {
-  logFile.close();
-  if (logFile.is_open()) {
-    return false;
-  } else {
-    return true;
-  }
+    logFile.close();
+    if (logFile.is_open()) {
+        return false;
+    } else {
+        return true;
+    }
 }
 
-void Logging::log(const std::string& message) {
-  logFile << message << endl;
-}
+void Logging::log(const std::string& message) { logFile << message << endl; }
