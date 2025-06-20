@@ -1,60 +1,70 @@
+/**
+ * @file util/llvm_frontend.cpp
+ * @brief Implementation of the LLVM frontend for converting LLVM IR to a CIRE graph.
+ *
+ * This file implements functions to parse LLVM IR instructions and convert them into nodes in a CIRE graph,
+ * handling various LLVM instructions and types with appropriate conversions and mappings.
+ *
+ * See the header file for documentation.
+ */
+
 #include "llvm_frontend.h"
 #include <llvm/IR/Constants.h>
 
 using namespace llvm;
 using namespace std;
 
-void addDataForCreatedNode(Instruction& I, Graph& g, Node* res) {
-    if (I.getType()->isHalfTy()) {
-        res->setRoundingType(Node::RoundingType::FL16);
-        res->setRoundingFromType(Node::RoundingType::FL16);
-    } else if (I.getType()->isFloatTy()) {
-        res->setRoundingType(Node::RoundingType::FL32);
-        res->setRoundingFromType(Node::RoundingType::FL32);
-    } else if (I.getType()->isDoubleTy()) {
-        res->setRoundingType(Node::RoundingType::FL64);
-        res->setRoundingFromType(Node::RoundingType::FL64);
+void addDataForCreatedNode(Instruction& instr, Graph& graph, Node* node) {
+    if (instr.getType()->isHalfTy()) {
+        node->setRoundingType(Node::RoundingType::FL16);
+        node->setRoundingFromType(Node::RoundingType::FL16);
+    } else if (instr.getType()->isFloatTy()) {
+        node->setRoundingType(Node::RoundingType::FL32);
+        node->setRoundingFromType(Node::RoundingType::FL32);
+    } else if (instr.getType()->isDoubleTy()) {
+        node->setRoundingType(Node::RoundingType::FL64);
+        node->setRoundingFromType(Node::RoundingType::FL64);
     }
-    g.nodes.insert(res);
-    g.depthTable[res->depth].insert(res);
-    g.numOperatorsOutput++;
+    graph.nodes.insert(node);
+    graph.depthTable[node->depth].insert(node);
+    graph.numOperatorsOutput++;
 
-    llvmToCireNodeMap[&I] = res;
-    cireToLLVMNodeMap[res] = &I;
-    g.symbolTables[g.currentScope]->insert(I.getName().str(), res);
+    llvmToCireNodeMap[&instr] = node;
+    cireToLLVMNodeMap[node] = &instr;
+    graph.symbolTables[graph.currentScope]->insert(instr.getName().str(), node);
 }
 
-Node* getNodeFromLLVMValue(Value* V, Graph& g) {
-    if (isa<ConstantData>(V)) {
-        if (V->getType()->isFloatingPointTy()) {
-            auto* CD = dyn_cast<ConstantFP>(V);
-            auto new_node = new Double(CD->getValueAPF().convertToDouble());
+Node* getNodeFromLLVMValue(Value* val, Graph& graph) {
+    if (isa<ConstantData>(val)) {
+        if (val->getType()->isFloatingPointTy()) {
+            auto* CD = dyn_cast<ConstantFP>(val);
+            auto* new_node = new Double(CD->getValueAPF().convertToDouble());
 
-            g.nodes.insert(new_node);
-            llvmToCireNodeMap[V] = new_node;
-            cireToLLVMNodeMap[new_node] = V;
+            graph.nodes.insert(new_node);
+            llvmToCireNodeMap[val] = new_node;
+            cireToLLVMNodeMap[new_node] = val;
             return new_node;
-        } else if (V->getType()->isIntegerTy()) {
-            auto* CI = dyn_cast<ConstantInt>(V);
-            auto new_node = new Integer(CI->getSExtValue());
+        } else if (val->getType()->isIntegerTy()) {
+            auto* CI = dyn_cast<ConstantInt>(val);
+            auto* new_node = new Integer(CI->getSExtValue());
 
-            g.nodes.insert(new_node);
-            llvmToCireNodeMap[V] = new_node;
-            cireToLLVMNodeMap[new_node] = V;
+            graph.nodes.insert(new_node);
+            llvmToCireNodeMap[val] = new_node;
+            cireToLLVMNodeMap[new_node] = val;
             return new_node;
         }
     } else {
-        return llvmToCireNodeMap[V];
+        return llvmToCireNodeMap[val];
     }
 
     return nullptr;
 }
 
-void parseInputsInLLVM(Graph& g, Function& F) {
-    g.createNewSymbolTable();
+void parseInputsInLLVM(Graph& graph, Function& func) {
+    graph.createNewSymbolTable();
 
     // Iterate the function arguments
-    for (auto& arg : F.args()) {
+    for (auto& arg : func.args()) {
         Type* arg_type = arg.getType();
         Node::RoundingType rounding_type;
 
@@ -83,21 +93,21 @@ void parseInputsInLLVM(Graph& g, Function& F) {
         }
 
         auto* new_variable = new VariableNode(rounding_type);
-        g.nodes.insert(new_variable);
-        g.symbolTables[g.currentScope]->insert(arg.getNameOrAsOperand().c_str(), new_variable);
-        g.inputs[arg.getNameOrAsOperand().c_str()] = new FreeVariable(rounding_type);
-        g.nodes.insert(g.inputs[arg.getNameOrAsOperand().c_str()]);
+        graph.nodes.insert(new_variable);
+        graph.symbolTables[graph.currentScope]->insert(arg.getNameOrAsOperand().c_str(), new_variable);
+        graph.inputs[arg.getNameOrAsOperand().c_str()] = new FreeVariable(rounding_type);
+        graph.nodes.insert(graph.inputs[arg.getNameOrAsOperand().c_str()]);
     }
 }
 
-void parseExprsInLLVM(Graph& g, Function& F) {
+void parseExprsInLLVM(Graph& graph, Function& func) {
     // TODO: Make this work for multiple Basic blocks after you have support for
     //  conditionals
     // assume we have just one basic block
-    assert(F.size() == 1 && "Function has more than one basic block. Cant work.");
+    assert(func.size() == 1 && "Function has more than one basic block. Cant work.");
 
     // Get the basic block
-    BasicBlock& BB = F.getEntryBlock();
+    BasicBlock& BB = func.getEntryBlock();
 
     // Iterate over the instructions in the basic block
     for (auto& I : BB) {
@@ -106,7 +116,7 @@ void parseExprsInLLVM(Graph& g, Function& F) {
         switch (opcode) {
             case Instruction::Ret: {
                 if (I.getOperand(0)->getType()->isFloatingPointTy()) {
-                    g.outputs.push_back(I.getOperand(0)->getName().str());
+                    graph.outputs.push_back(I.getOperand(0)->getName().str());
                 }
                 break;
             }
@@ -128,8 +138,8 @@ void parseExprsInLLVM(Graph& g, Function& F) {
             }
             case Instruction::FNeg: {
                 if (I.getType()->isFloatingPointTy()) {
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
-                    addDataForCreatedNode(I, g, &(-*op1));
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
+                    addDataForCreatedNode(I, graph, &(-*op1));
                 }
                 break;
             }
@@ -139,10 +149,10 @@ void parseExprsInLLVM(Graph& g, Function& F) {
             }
             case Instruction::FAdd: {
                 if (I.getType()->isFloatingPointTy()) {
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
-                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), g);
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
+                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), graph);
 
-                    addDataForCreatedNode(I, g, &(*op1 + op2));
+                    addDataForCreatedNode(I, graph, &(*op1 + op2));
                 }
                 break;
             }
@@ -152,10 +162,10 @@ void parseExprsInLLVM(Graph& g, Function& F) {
             }
             case Instruction::FSub: {
                 if (I.getType()->isFloatingPointTy()) {
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
-                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), g);
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
+                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), graph);
 
-                    addDataForCreatedNode(I, g, &(*op1 - op2));
+                    addDataForCreatedNode(I, graph, &(*op1 - op2));
                 }
                 break;
             }
@@ -165,10 +175,10 @@ void parseExprsInLLVM(Graph& g, Function& F) {
             }
             case Instruction::FMul: {
                 if (I.getType()->isFloatingPointTy()) {
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
-                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), g);
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
+                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), graph);
 
-                    addDataForCreatedNode(I, g, &(*op1 * op2));
+                    addDataForCreatedNode(I, graph, &(*op1 * op2));
                 }
                 break;
             }
@@ -179,10 +189,10 @@ void parseExprsInLLVM(Graph& g, Function& F) {
             }
             case Instruction::FDiv: {
                 if (I.getType()->isFloatingPointTy()) {
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
-                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), g);
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
+                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), graph);
 
-                    addDataForCreatedNode(I, g, &(*op1 / op2));
+                    addDataForCreatedNode(I, graph, &(*op1 / op2));
                 }
                 break;
             }
@@ -208,10 +218,13 @@ void parseExprsInLLVM(Graph& g, Function& F) {
             case Instruction::FPToUI:
             case Instruction::FPToSI:
             case Instruction::UIToFP:
-            case Instruction::SIToFP:
+            case Instruction::SIToFP: {
+                outs() << "Unhandled Instruction:" << I << "\n";
+                exit(1);
+            }
             case Instruction::FPTrunc:
                 if (I.getType()->isFloatingPointTy()) {
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
                     Node::RoundingType rounding_type;
                     if (dyn_cast<FPTruncInst>(&I)->getDestTy()->isFloatTy()) {
                         rounding_type = Node::FL32;
@@ -222,12 +235,12 @@ void parseExprsInLLVM(Graph& g, Function& F) {
                         exit(1);
                     }
 
-                    addDataForCreatedNode(I, g, &fptrunc(*op1, rounding_type));
+                    addDataForCreatedNode(I, graph, &fptrunc(*op1, rounding_type));
                 }
                 break;
             case Instruction::FPExt:
                 if (I.getType()->isFloatingPointTy()) {
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
                     Node::RoundingType rounding_type;
                     if (dyn_cast<FPExtInst>(&I)->getDestTy()->isFloatTy()) {
                         rounding_type = Node::FL32;
@@ -238,7 +251,7 @@ void parseExprsInLLVM(Graph& g, Function& F) {
                         exit(1);
                     }
 
-                    addDataForCreatedNode(I, g, &fpext(*op1, rounding_type));
+                    addDataForCreatedNode(I, graph, &fpext(*op1, rounding_type));
                 }
                 break;
             case Instruction::PtrToInt:
@@ -254,57 +267,57 @@ void parseExprsInLLVM(Graph& g, Function& F) {
                 auto CI = dyn_cast<CallInst>(&I);
                 if (CI->getCalledFunction()->arg_size() == 1) {
                     auto CalledFunctionName = CI->getCalledFunction()->getName().str();
-                    auto op1 = getNodeFromLLVMValue(CI->getOperand(0), g);
+                    auto op1 = getNodeFromLLVMValue(CI->getOperand(0), graph);
 
                     if (CalledFunctionName == "sin" || CalledFunctionName == "sinf"
                         || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::sin) {
-                        addDataForCreatedNode(I, g, &sin(*op1));
+                        addDataForCreatedNode(I, graph, &sin(*op1));
                     } else if (CalledFunctionName == "cos" || CalledFunctionName == "cosf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::cos) {
-                        addDataForCreatedNode(I, g, &cos(*op1));
+                        addDataForCreatedNode(I, graph, &cos(*op1));
                     } else if (CalledFunctionName == "tan" || CalledFunctionName == "tanf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::tan) {
-                        addDataForCreatedNode(I, g, &tan(*op1));
+                        addDataForCreatedNode(I, graph, &tan(*op1));
                     } else if (CalledFunctionName == "sinh" || CalledFunctionName == "sinhf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::sinh) {
-                        addDataForCreatedNode(I, g, &sinh(*op1));
+                        addDataForCreatedNode(I, graph, &sinh(*op1));
                     } else if (CalledFunctionName == "cosh" || CalledFunctionName == "coshf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::cosh) {
-                        addDataForCreatedNode(I, g, &cosh(*op1));
+                        addDataForCreatedNode(I, graph, &cosh(*op1));
                     } else if (CalledFunctionName == "tanh" || CalledFunctionName == "tanhf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::tanh) {
-                        addDataForCreatedNode(I, g, &tanh(*op1));
+                        addDataForCreatedNode(I, graph, &tanh(*op1));
                     } else if (CalledFunctionName == "asin" || CalledFunctionName == "asinf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::asin) {
-                        addDataForCreatedNode(I, g, &asin(*op1));
+                        addDataForCreatedNode(I, graph, &asin(*op1));
                     } else if (CalledFunctionName == "acos" || CalledFunctionName == "acosf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::acos) {
-                        addDataForCreatedNode(I, g, &acos(*op1));
+                        addDataForCreatedNode(I, graph, &acos(*op1));
                     } else if (CalledFunctionName == "atan" || CalledFunctionName == "atanf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::atan) {
-                        addDataForCreatedNode(I, g, &atan(*op1));
+                        addDataForCreatedNode(I, graph, &atan(*op1));
                     } else if (CalledFunctionName == "log" || CalledFunctionName == "logf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::log) {
-                        addDataForCreatedNode(I, g, &log(*op1));
+                        addDataForCreatedNode(I, graph, &log(*op1));
                     } else if (CalledFunctionName == "sqrt" || CalledFunctionName == "sqrtf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::sqrt) {
-                        addDataForCreatedNode(I, g, &sqrt(*op1));
+                        addDataForCreatedNode(I, graph, &sqrt(*op1));
                     } else if (CalledFunctionName == "exp" || CalledFunctionName == "expf"
                                || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::exp) {
-                        addDataForCreatedNode(I, g, &exp(*op1));
+                        addDataForCreatedNode(I, graph, &exp(*op1));
                     } else {
                         outs() << "Unhandled Function in Call Instruction:" << I << "\n";
                         exit(1);
                     }
                 } else if (CI->getCalledFunction()->arg_size() == 3) {
                     auto CalledFunctionName = CI->getCalledFunction()->getName().str();
-                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), g);
-                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), g);
-                    auto op3 = getNodeFromLLVMValue(I.getOperand(2), g);
+                    auto op1 = getNodeFromLLVMValue(I.getOperand(0), graph);
+                    auto op2 = getNodeFromLLVMValue(I.getOperand(1), graph);
+                    auto op3 = getNodeFromLLVMValue(I.getOperand(2), graph);
 
                     if (CI->getCalledFunction()->getIntrinsicID() == Intrinsic::fma
                         || CI->getCalledFunction()->getIntrinsicID() == Intrinsic::fmuladd) {
-                        addDataForCreatedNode(I, g, &fma(*op1, *op2, *op3));
+                        addDataForCreatedNode(I, graph, &fma(*op1, *op2, *op3));
                     } else {
                         outs() << "Unhandled Function in Call Instruction:" << I << "\n";
                         exit(1);
