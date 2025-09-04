@@ -12,11 +12,13 @@ public:
     std::string file;
     nlohmann::json json_object;
     unsigned int debugLevel = 0;
+    bool stdout_output = false;
     Results();
     explicit Results(std::string file);
     ~Results();
 
     void setFile(std::string file);
+    void setStdoutOutput(bool enable);
 
     bool writeResults(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                       std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,

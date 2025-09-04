@@ -19,6 +19,7 @@ void show_usage(std::string name) {
                  "error expression\n"
               << "\t-cec,--concretize-error-components\t\tConcretize error components\n"
               << "\t-cecd,--collect-error-component-data\t\tCollect error component data\n"
+              << "\t--stdout\t\tPrint output to stdout in non-nested format for compiler explorer\n"
               << std::endl;
 }
 
@@ -116,6 +117,8 @@ int main(int argc, char* argv[]) {
                 cire.graph->concretize_error_components = true;
             } else if ((arg == "-cecd") || (arg == "--collect-error-component-data")) {
                 cire.setCollectErrorComponentData(true);
+            } else if ((arg == "--stdout")) {
+                cire.results->setStdoutOutput(true);
             } else {
                 cire.setFile(argv[i]);
             }

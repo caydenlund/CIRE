@@ -17,6 +17,8 @@ Results::~Results() = default;
 
 void Results::setFile(std::string _file) { file = std::move(_file); }
 
+void Results::setStdoutOutput(bool enable) { stdout_output = enable; }
+
 bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                            std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                            const std::string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
@@ -66,10 +68,30 @@ bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOpe
         std::cout << e.what() << std::endl;
         return false;
     }
-    std::ofstream out(file);
-    out << std::setw(4) << json_object;
 
-    if (debugLevel > 0) { std::cout << "Results written to " << file << "!" << std::endl; }
+    if (stdout_output) {
+        // Print non-nested format to stdout for compiler explorer
+        std::filesystem::path file_path = input_file;
+        std::string file_stem = file_path.stem().string();
+        
+        for (auto const& [node, result] : results) {
+            std::cout << "Output: [" << result.outputExtrema.lb() << ", " << result.outputExtrema.ub() << "]" << std::endl;
+            std::cout << "Error: [" << result.errorExtrema.lb() << ", " << result.errorExtrema.ub() << "]" << std::endl;
+            std::cout << "NumOperators: " << numOperatorsOutput << std::endl;
+            std::cout << "Height: " << heightDAG << std::endl;
+            std::cout << "Optimization Time: " << result.totalOptimizationTime << std::endl;
+            std::cout << "Number of Optimizer Calls: " << result.numOptimizationCalls << std::endl;
+            std::cout << "Parsing Time: " << time_map.at("Parsing").count() << std::endl;
+            std::cout << "Error Analysis Time: " << time_map.at("Error_Analysis").count() << std::endl;
+            std::cout << "Total Time: " << time_map.at("Total").count() << std::endl;
+            break; // Only output first result for stdout
+        }
+    } else {
+        std::ofstream out(file);
+        out << std::setw(4) << json_object;
+        
+        if (debugLevel > 0) { std::cout << "Results written to " << file << "!" << std::endl; }
+    }
 
     return true;
 }
@@ -124,10 +146,30 @@ bool Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int 
         std::cout << e.what() << std::endl;
         return false;
     }
-    std::ofstream out(file);
-    out << std::setw(4) << json_object;
 
-    if (debugLevel > 0) { std::cout << "Results written to " << file << "!" << std::endl; }
+    if (stdout_output) {
+        // Print non-nested format to stdout for compiler explorer
+        std::filesystem::path file_path = input_file;
+        std::string file_stem = file_path.stem().string();
+        
+        for (auto const& [node, result] : results) {
+            std::cout << "Output: [" << result.outputExtrema.lb() << ", " << result.outputExtrema.ub() << "]" << std::endl;
+            std::cout << "Error: [" << result.errorExtrema.lb() << ", " << result.errorExtrema.ub() << "]" << std::endl;
+            std::cout << "NumOperators: " << numOperatorsOutput << std::endl;
+            std::cout << "Height: " << heightDAG << std::endl;
+            std::cout << "Optimization Time: " << result.totalOptimizationTime << std::endl;
+            std::cout << "Number of Optimizer Calls: " << result.numOptimizationCalls << std::endl;
+            std::cout << "Parsing Time: " << time_map.at("Parsing").count() << std::endl;
+            std::cout << "Error Analysis Time: " << time_map.at("Error_Analysis").count() << std::endl;
+            std::cout << "Total Time: " << time_map.at("Total").count() << std::endl;
+            break; // Only output first result for stdout
+        }
+    } else {
+        std::ofstream out(file);
+        out << std::setw(4) << json_object;
+        
+        if (debugLevel > 0) { std::cout << "Results written to " << file << "!" << std::endl; }
+    }
 
     return true;
 }

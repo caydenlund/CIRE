@@ -55,6 +55,9 @@ namespace {
     cl::opt<bool> CollectErrorComponentData("collect-error-component-data",
                                             cl::desc("Enable collection of backward derivatives and local errors"),
                                             cl::init(false));
+
+    cl::opt<bool> StdoutOutput("stdout", cl::desc("Print output to stdout in non-nested format for compiler explorer"),
+                               cl::init(false));
 }  // namespace
 
 
@@ -112,6 +115,8 @@ int main(int argc, char** argv) {
     if (ConcretizeErrorComponents) cire.graph->concretize_error_components = true;
 
     if (CollectErrorComponentData) cire.setCollectErrorComponentData(true);
+
+    if (StdoutOutput) cire.results->setStdoutOutput(true);
 
     cire.graph->log.openFile();
 
