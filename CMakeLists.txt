@@ -11,18 +11,41 @@ FetchContent_Declare(json URL https://github.com/nlohmann/json/releases/download
 FetchContent_MakeAvailable(json)
 
 
-add_subdirectory(lib)
+# Building Scanner and Parser
+find_package(BISON REQUIRED)
+find_package(FLEX REQUIRED)
+
 add_subdirectory(benchmarks)
 
-set(IBEX_INSTALL_DIR "/usr/local" CACHE PATH "Ibex installation directory")
+set(IBEX_INSTALL_DIR "/home/cayden/git/cire/ibex-2.8.9-install" CACHE PATH "Ibex installation directory")
 
 include_directories(include
+    include/cire
+    ${CMAKE_CURRENT_BINARY_DIR}
     ${IBEX_INSTALL_DIR}/include
     ${IBEX_INSTALL_DIR}/include/ibex
     ${IBEX_INSTALL_DIR}/include/ibex/3rd)
 
 link_directories(${IBEX_INSTALL_DIR}/lib
     ${IBEX_INSTALL_DIR}/lib/ibex/3rd)
+
+BISON_TARGET(MyParser
+        src/frontend/parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp
+        DEFINES_FILE ${CMAKE_CURRENT_BINARY_DIR}/parser.h)
+FLEX_TARGET(MyScanner
+        src/frontend/lexer.l  ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
+
+ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
+
+add_library(Graph SHARED
+        src/interfaces/Logging.cpp
+        src/core/Node.cpp
+        src/core/SymbolTable.cpp
+        src/core/ErrorAnalyzer.cpp
+        src/interfaces/IBEXInterface.cpp
+        src/core/Graph.cpp
+        ${BISON_MyParser_OUTPUTS}
+        ${FLEX_MyScanner_OUTPUTS})
 
 option(ENABLE_LLVM_FRONTEND "Enable the LLVM frontend" OFF)
 
@@ -52,12 +75,11 @@ if(ENABLE_LLVM_FRONTEND)
     include_directories(SYSTEM ${LLVM_INCLUDE_DIRS})
 
     set(LLVM_UTIL_SRCS
-            "llvm_util/utils.cpp"
+            "src/utils/llvm_utils.cpp"
     )
 
     set(UTIL_SRCS
-            "util/llvm_frontend.cpp"
-            "util/validator_util.cpp"
+            "src/frontend/llvm_frontend.cpp"
     )
 
     add_library(llvm_util STATIC ${LLVM_UTIL_SRCS})
@@ -75,21 +97,21 @@ if(ENABLE_LLVM_FRONTEND)
     # 3. ADD THE TARGET
     #===============================================================================
     add_library(cire STATIC
-            src/cire.cpp
-            src/Cire.cpp
-            src/Results.cpp)
+            src/bin/cire_pass.cpp
+            src/core/Cire.cpp
+            src/core/Results.cpp)
     target_link_libraries(cire
                             PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
                             PRIVATE nlohmann_json::nlohmann_json llvm_util util)
 
-    add_llvm_executable(CIRE_LLVM src/CIRE_LLVM.cpp src/Cire.cpp src/Results.cpp)
+    add_llvm_executable(CIRE_LLVM src/bin/CIRE_LLVM.cpp src/core/Cire.cpp src/core/Results.cpp)
     llvm_map_components_to_libnames(llvm_libs support core irreader transformutils)
     target_link_libraries(CIRE_LLVM
             PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
             PRIVATE nlohmann_json::nlohmann_json llvm_util util ${llvm_libs})
 
     # Building VALIDATOR
-    add_executable(VALIDATOR src/VALIDATOR.cpp)
+    add_executable(VALIDATOR src/bin/VALIDATOR.cpp)
     target_link_libraries(VALIDATOR
                             PRIVATE llvm_util util ${llvm_libs})
 
@@ -102,13 +124,13 @@ if(ENABLE_LLVM_FRONTEND)
 ENDIF(ENABLE_LLVM_FRONTEND)
 
 # Building lib_tester
-add_executable(lib_tester src/lib_tester.cpp)
+add_executable(lib_tester src/bin/lib_tester.cpp)
 target_link_libraries(lib_tester
                         PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
                         PRIVATE nlohmann_json::nlohmann_json)
 
 # Building CIRE
-add_executable(CIRE src/CIRE.cpp src/Cire.cpp src/Results.cpp)
+add_executable(CIRE src/bin/CIRE.cpp src/core/Cire.cpp src/core/Results.cpp)
 target_link_libraries(CIRE
                         PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
                         PRIVATE nlohmann_json::nlohmann_json)
@@ -128,7 +150,3 @@ add_custom_target("check"
                    DEPENDS CIRE_LLVM
                    USES_TERMINAL
                  )
-
-add_executable(ibex_simplify_1 paper_tests/ibex_simplify/ibex_simplify_1.cpp)
-target_link_libraries(ibex_simplify_1
-                        PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa)
