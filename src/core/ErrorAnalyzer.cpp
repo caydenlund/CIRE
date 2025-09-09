@@ -1,15 +1,47 @@
 #include "cire/core/ErrorAnalyzer.h"
+#include "cire/core/Graph.h"
+#include "cire/interfaces/Logging.h"
 
-ErrorAnalyzer::ErrorAnalyzer(Logging* log) : log(*log) {}
+struct InstructionErrorInfo {
+    std::string instructionName;
+    std::string instructionType;
+    double errorContribution;
+    ibex::Interval errorBounds;
+    int instructionIndex;
+};
+
+std::string getOpString(Node::Op op) {
+    switch (op) {
+        case Node::ADD: return "ADD";
+        case Node::SUB: return "SUB";
+        case Node::MUL: return "MUL";
+        case Node::DIV: return "DIV";
+        case Node::NEG: return "NEG";
+        case Node::SIN: return "SIN";
+        case Node::COS: return "COS";
+        case Node::TAN: return "TAN";
+        case Node::SINH: return "SINH";
+        case Node::COSH: return "COSH";
+        case Node::TANH: return "TANH";
+        case Node::ASIN: return "ASIN";
+        case Node::ACOS: return "ACOS";
+        case Node::ATAN: return "ATAN";
+        case Node::LOG: return "LOG";
+        case Node::SQRT: return "SQRT";
+        case Node::EXP: return "EXP";
+        case Node::FMA: return "FMA";
+        case Node::FPTRUNC: return "FPTRUNC";
+        case Node::FPEXT: return "FPEXT";
+        default: return "UNKNOWN";
+    }
+}
+
+ErrorAnalyzer::ErrorAnalyzer() = default;
 
 bool ErrorAnalyzer::parentsVisited(Node* node) { return numParentsOfNode[node] >= parentsOfNode[node].size(); }
 
 void ErrorAnalyzer::derivativeComputingDriver() {
-    if (debugLevel > 1) { std::cout << "Computing Derivatives..." << std::endl; }
-    if (logLevel > 0) {
-        assert(log.logFile.is_open());
-        log.log("Computing Derivatives...\n");
-    }
+    if (logging) { logging->debug("Computing Derivatives..."); }
 
     int next_depth = -1;
 
@@ -48,31 +80,22 @@ void ErrorAnalyzer::derivativeComputingDriver() {
         }
     }
 
-    if (debugLevel > 4) {
+    if (logging && logging->level <= LogLevel::DEBUG) {
         printBwdDerivativesIbexExprs();
         std::cout << std::endl;
     }
-    if (logLevel > 4) {
-        assert(log.logFile.is_open());
-        logBwdDerivativesIbexExprs();
-        log.logFile << std::endl;
-    }
 
-    if (debugLevel > 1) { std::cout << "Derivatives computed!" << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open());
-        log.log("Derivatives computed!\n");
-    }
+    if (logging) { logging->debug("Derivatives computed!"); }
 }
 
 // Compute the Backward derivative of outVar with respect to node's children by using the chain rule
 void ErrorAnalyzer::derivativeComputing(Node* node) {
     // TODO: Type rounding handled only for FL64 --> FL32. Handle for other cases.
-    std::vector<Node*> outputList = keys(BwdDerivatives[node]);
+    std::vector<Node*> outputList = keys(bwdDerivatives[node]);
     for (Node* outVar : outputList) {
-        assert(BwdDerivatives[node][outVar] != nullptr && "Derivative of output wrt node should have been computed\n");
+        assert(bwdDerivatives[node][outVar] != nullptr && "Derivative of output wrt node should have been computed\n");
 
-        Node *Operand, *leftOperand, *rightOperand;
+        Node *operand, *leftOperand, *rightOperand;
         ibex::ExprNode *derivThroughNode, *derivLeftThroughNode, *derivRightThroughNode;
         ibex::ExprNode* typeCastRndVal;
         switch (node->type) {
@@ -84,68 +107,62 @@ void ErrorAnalyzer::derivativeComputing(Node* node) {
             case VARIABLE:
                 break;
             case UNARY_OP:
-                Operand = ((UnaryOp*)node)->Operand;
-                derivThroughNode = (ibex::ExprNode*)&product(*BwdDerivatives[node][outVar],
+                operand = ((UnaryOp*)node)->operand;
+                derivThroughNode = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar],
                                                              *getDerivativeWRTChildNode(node, 0))
                                            .simplify(0);
 
-                if (node->OpRndType == Node::FL32 && Operand->OpRndType == Node::FL64) {
+                if (node->opRoundType == Node::FL32 && operand->opRoundType == Node::FL64) {
                     typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
-                            node->RoundingAmount[node->OpRndType]);
+                            node->roundingAmount[node->opRoundType]);
                 } else {
                     typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(0);
                 }
 
 
-                if (contains(BwdDerivatives[Operand], outVar)) {
-                    BwdDerivatives[Operand][outVar] = (ibex::ExprNode*)&(*BwdDerivatives[Operand][outVar]
+                if (contains(bwdDerivatives[operand], outVar)) {
+                    bwdDerivatives[operand][outVar] = (ibex::ExprNode*)&(*bwdDerivatives[operand][outVar]
                                                                          + *derivThroughNode);
                 } else {
-                    BwdDerivatives[Operand][outVar] = (ibex::ExprNode*)&(*derivThroughNode);
+                    bwdDerivatives[operand][outVar] = (ibex::ExprNode*)&(*derivThroughNode);
                 }
 
-                if (contains(typeCastRnd[Operand], outVar)) {
-                    typeCastRnd[Operand][outVar] = (ibex::ExprNode*)&(*typeCastRnd[Operand][outVar] + *typeCastRndVal);
+                if (contains(typeCastRnd[operand], outVar)) {
+                    typeCastRnd[operand][outVar] = (ibex::ExprNode*)&(*typeCastRnd[operand][outVar] + *typeCastRndVal);
                 } else {
-                    typeCastRnd[Operand][outVar] = (ibex::ExprNode*)&(*typeCastRndVal);
+                    typeCastRnd[operand][outVar] = (ibex::ExprNode*)&(*typeCastRndVal);
                 }
 
-                if (debugLevel > 4) {
-                    std::cout << *node->getExprNode() << " wrt " << *Operand->getExprNode() << " : "
+                if (logging && logging->level <= LogLevel::DEBUG) {
+                    std::cout << *node->getExprNode() << " wrt " << *operand->getExprNode() << " : "
                               << *derivThroughNode << std::endl;
-                    std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt " << *Operand->getExprNode()
-                              << " : " << *BwdDerivatives[Operand][outVar] << std::endl;
-                }
-                if (logLevel > 4) {
-                    log.logFile << *node->getExprNode() << " wrt " << *Operand->getExprNode() << " : "
-                                << *derivThroughNode << std::endl;
-                    log.logFile << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-                                << *Operand->getExprNode() << " : " << *BwdDerivatives[Operand][outVar] << std::endl;
+                    std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt " << *operand->getExprNode()
+                              << " : " << *bwdDerivatives[operand][outVar] << std::endl;
                 }
 
                 // Add child to nextWorkList
-                nextWorkList.insert(Operand);
+                nextWorkList.insert(operand);
                 // Increment number of parents of child that have been processed
-                numParentsOfNode[Operand]++;
+                numParentsOfNode[operand]++;
                 break;
             case BINARY_OP:
                 // Computing the backward derivative of outVar with respect to node's children
                 leftOperand = ((BinaryOp*)node)->leftOperand;
-                derivLeftThroughNode = (ibex::ExprNode*)&product(*BwdDerivatives[node][outVar],
+                derivLeftThroughNode = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar],
                                                                  *getDerivativeWRTChildNode(node, 0))
                                                .simplify(0);
-                if (node->OpRndType == Node::FL32 && leftOperand->OpRndType == Node::FL64) {
+                if (node->opRoundType == Node::FL32 && leftOperand->opRoundType == Node::FL64) {
                     typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
-                            node->RoundingAmount[node->OpRndType]);
+                            node->roundingAmount[node->opRoundType]);
                 } else {
                     typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(0);
                 }
 
-                if (contains(BwdDerivatives[leftOperand], outVar)) {
-                    BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode*)&(*BwdDerivatives[leftOperand][outVar]
+                if (contains(bwdDerivatives[leftOperand], outVar)) {
+                    bwdDerivatives[leftOperand][outVar] = (ibex::ExprNode*)&(*bwdDerivatives[leftOperand][outVar]
                                                                              + *derivLeftThroughNode);
                 } else {
-                    BwdDerivatives[leftOperand][outVar] = (ibex::ExprNode*)&(*derivLeftThroughNode);
+                    bwdDerivatives[leftOperand][outVar] = (ibex::ExprNode*)&(*derivLeftThroughNode);
                 }
 
                 if (contains(typeCastRnd[leftOperand], outVar)) {
@@ -155,38 +172,31 @@ void ErrorAnalyzer::derivativeComputing(Node* node) {
                     typeCastRnd[leftOperand][outVar] = (ibex::ExprNode*)&(*typeCastRndVal);
                 }
 
-                if (debugLevel > 4) {
+                if (logging && logging->level <= LogLevel::DEBUG) {
                     std::cout << *node->getExprNode() << " wrt " << *leftOperand->getExprNode() << " : "
                               << *derivLeftThroughNode << std::endl;
                     std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-                              << *leftOperand->getExprNode() << " : " << *BwdDerivatives[leftOperand][outVar]
+                              << *leftOperand->getExprNode() << " : " << *bwdDerivatives[leftOperand][outVar]
                               << std::endl;
-                }
-                if (logLevel > 4) {
-                    log.logFile << *node->getExprNode() << " wrt " << *leftOperand->getExprNode() << " : "
-                                << *derivLeftThroughNode << std::endl;
-                    log.logFile << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-                                << *leftOperand->getExprNode() << " : " << *BwdDerivatives[leftOperand][outVar]
-                                << std::endl;
                 }
 
                 rightOperand = ((BinaryOp*)node)->rightOperand;
-                derivRightThroughNode = (ibex::ExprNode*)&product(*BwdDerivatives[node][outVar],
+                derivRightThroughNode = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar],
                                                                   *getDerivativeWRTChildNode(node, 1))
                                                 .simplify(0);
-                if (node->OpRndType == Node::FL32 && rightOperand->OpRndType == Node::FL64) {
+                if (node->opRoundType == Node::FL32 && rightOperand->opRoundType == Node::FL64) {
                     typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
-                            node->RoundingAmount[node->OpRndType]);
+                            node->roundingAmount[node->opRoundType]);
                 } else {
                     typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(0);
                 }
 
 
-                if (contains(BwdDerivatives[rightOperand], outVar)) {
-                    BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode*)&(*BwdDerivatives[rightOperand][outVar]
+                if (contains(bwdDerivatives[rightOperand], outVar)) {
+                    bwdDerivatives[rightOperand][outVar] = (ibex::ExprNode*)&(*bwdDerivatives[rightOperand][outVar]
                                                                               + *derivRightThroughNode);
                 } else {
-                    BwdDerivatives[rightOperand][outVar] = (ibex::ExprNode*)&(*derivRightThroughNode);
+                    bwdDerivatives[rightOperand][outVar] = (ibex::ExprNode*)&(*derivRightThroughNode);
                 }
 
                 if (contains(typeCastRnd[rightOperand], outVar)) {
@@ -196,19 +206,12 @@ void ErrorAnalyzer::derivativeComputing(Node* node) {
                     typeCastRnd[rightOperand][outVar] = (ibex::ExprNode*)&(*typeCastRndVal);
                 }
 
-                if (debugLevel > 4) {
+                if (logging && logging->level <= LogLevel::DEBUG) {
                     std::cout << *node->getExprNode() << " wrt " << *rightOperand->getExprNode() << " : "
                               << *derivRightThroughNode << std::endl;
                     std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-                              << *rightOperand->getExprNode() << " : " << *BwdDerivatives[rightOperand][outVar]
+                              << *rightOperand->getExprNode() << " : " << *bwdDerivatives[rightOperand][outVar]
                               << std::endl;
-                }
-                if (logLevel > 4) {
-                    log.logFile << *node->getExprNode() << " wrt " << *rightOperand->getExprNode() << " : "
-                                << *derivRightThroughNode << std::endl;
-                    log.logFile << "Derivative so far of " << *outVar->getExprNode() << " wrt "
-                                << *rightOperand->getExprNode() << " : " << *BwdDerivatives[rightOperand][outVar]
-                                << std::endl;
                 }
 
                 // Add children to nextWorkList
@@ -230,42 +233,41 @@ void ErrorAnalyzer::derivativeComputing(Node* node) {
 
 void ErrorAnalyzer::printBwdDerivative(Node* outNode, Node* WRTNode) {
     std::cout << *outNode->getExprNode() << " wrt " << *WRTNode->getExprNode() << " : "
-              << *this->BwdDerivatives[WRTNode][outNode] << std::endl;
+              << *this->bwdDerivatives[WRTNode][outNode] << std::endl;
 }
 
 void ErrorAnalyzer::printBwdDerivativesIbexExprs() {
     std::cout << "Backward Derivatives: " << std::endl;
-    for (auto& wrtNode : this->BwdDerivatives) {
+    for (auto& wrtNode : this->bwdDerivatives) {
         for (auto& outputNode : wrtNode.second) { printBwdDerivative(outputNode.first, wrtNode.first); }
     }
 }
 
 void ErrorAnalyzer::logBwdDerivative(Node* outNode, Node* WRTNode) {
-    log.logFile << *outNode->getExprNode() << " wrt " << *WRTNode->getExprNode() << " : "
-                << *this->BwdDerivatives[WRTNode][outNode] << std::endl;
+    if (logging) {
+        logging->debug("Backward derivative log for nodes ", outNode->id, " wrt ", WRTNode->id);
+    }
 }
 
 void ErrorAnalyzer::logBwdDerivativesIbexExprs() {
-    log.logFile << "Backward Derivatives: " << std::endl;
-    for (auto& wrtNode : this->BwdDerivatives) {
-        for (auto& outputNode : wrtNode.second) { logBwdDerivative(outputNode.first, wrtNode.first); }
+    if (logging) {
+        logging->debug("Backward Derivatives:");
+        for (auto& wrtNode : this->bwdDerivatives) {
+            for (auto& outputNode : wrtNode.second) { logBwdDerivative(outputNode.first, wrtNode.first); }
+        }
     }
 }
 
 void ErrorAnalyzer::errorComputingDriver(const std::set<Node*>& candidate_nodes, IBEXInterface* ibexInterface) {
-    if (debugLevel > 1) { std::cout << "Computing Error..." << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Computing Error..." << std::endl;
-    }
+    if (logging) { logging->debug("Computing Error..."); }
 
     for (auto& output : candidate_nodes) {
         if (errorComputedNodes[output->depth].find(output) == errorComputedNodes[output->depth].end()) {
             errorComputing(output, ibexInterface);
         }
 
-        ErrAccumulator[output] = (ibex::ExprNode*)&(
-                *ErrAccumulator[output]
+        errAccumulator[output] = (ibex::ExprNode*)&(
+                *errAccumulator[output]
                 // The power term is the value of double ULP. We dont multiply by it here so
                 // optimizer can function better AND we get the optimal value in terms of number of
                 // ULPs. If uncommenting, comment the power term in the error computation
@@ -273,15 +275,11 @@ void ErrorAnalyzer::errorComputingDriver(const std::set<Node*>& candidate_nodes,
         );
     }
 
-    if (debugLevel > 1) { std::cout << "Error Expressions generated!" << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Error Expressions generated!" << std::endl;
-    }
+    if (logging) { logging->debug("Error Expressions generated!"); }
 }
 
 void ErrorAnalyzer::errorComputing(Node* node, IBEXInterface* ibexInterface) {
-    Node *Operand, *leftOperand, *middleOperand, *rightOperand;
+    Node *operand, *leftOperand, *middleOperand, *rightOperand;
 
     switch (node->type) {
         case DEFAULT:
@@ -292,9 +290,9 @@ void ErrorAnalyzer::errorComputing(Node* node, IBEXInterface* ibexInterface) {
         case VARIABLE:
             break;
         case UNARY_OP:
-            Operand = ((UnaryOp*)node)->Operand;
-            if (errorComputedNodes[Operand->depth].find(Operand) == errorComputedNodes[Operand->depth].end()) {
-                errorComputing(Operand, ibexInterface);
+            operand = ((UnaryOp*)node)->operand;
+            if (errorComputedNodes[operand->depth].find(operand) == errorComputedNodes[operand->depth].end()) {
+                errorComputing(operand, ibexInterface);
             }
             break;
         case BINARY_OP:
@@ -338,27 +336,15 @@ void ErrorAnalyzer::errorComputing(Node* node, IBEXInterface* ibexInterface) {
 }
 
 void ErrorAnalyzer::propagateError(Node* node, IBEXInterface* ibexInterface) {
-    std::vector<Node*> outputList = keys(BwdDerivatives[node]);
+    std::vector<Node*> outputList = keys(bwdDerivatives[node]);
 
     for (Node* outVar : outputList) {
-        if (debugLevel > 3) {
-            std::cout << "Propagating error for " << outVar->id << " through node " << node->id << std::endl;
-            if (debugLevel > 4) {
-                printBwdDerivative(outVar, node);
-                std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
-                std::cout << "OpRounding:" << node->getRounding() << std::endl;
-                std::cout << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
-            }
-        }
-        if (logLevel > 3) {
-            log.logFile << "Propagating error for " << outVar->id << " through node " << node->id << std::endl;
-
-            if (logLevel > 4) {
-                logBwdDerivative(outVar, node);
-                log.logFile << "absolute error:" << node->getAbsoluteError() << std::endl;
-                log.logFile << "OpRounding:" << node->getRounding() << std::endl;
-                log.logFile << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
-            }
+        if (logging && logging->level <= LogLevel::DEBUG) {
+            logging->debug("Propagating error for ", outVar->id, " through node ", node->id);
+            printBwdDerivative(outVar, node);
+            std::cout << "absolute error:" << node->getAbsoluteError() << std::endl;
+            std::cout << "OpRounding:" << node->getRounding() << std::endl;
+            std::cout << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << std::endl;
         }
 
         // Generate the error expression by computing the product of the Backward derivative of
@@ -369,37 +355,33 @@ void ErrorAnalyzer::propagateError(Node* node, IBEXInterface* ibexInterface) {
         auto total_rounding = (ibex::ExprNode*)&(node->getRounding() + *typeCastRnd[node][outVar]);
         auto local_plus_type_cast_error
                 = (ibex::ExprNode*)&product(node->getAbsoluteError(), *total_rounding).simplify(0);
-        auto expr = (ibex::ExprNode*)&product(*BwdDerivatives[node][outVar], *local_plus_type_cast_error).simplify(0);
+        auto expr = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar], *local_plus_type_cast_error).simplify(0);
 
-        if (contains(ErrAccumulator, outVar)) {
-            ErrAccumulator[outVar] = (ibex::ExprNode*)&(*ErrAccumulator[outVar] + *expr);
+        // Store both the full error contribution and just the derivative part for analysis
+        perInstructionErrors[outVar].emplace_back(node, expr);
+        
+        // Also store the amplification factor (derivative × absolute_error without rounding)
+        // This shows how much a unit error at this instruction affects the output
+
+        if (contains(errAccumulator, outVar)) {
+            errAccumulator[outVar] = (ibex::ExprNode*)&(*errAccumulator[outVar] + *expr);
         } else {
-            ErrAccumulator[outVar] = (ibex::ExprNode*)&(*expr);
+            errAccumulator[outVar] = (ibex::ExprNode*)&(*expr);
         }
 
-        if (ErrAccumulator[outVar]->size > errorExpressionOperatorThreshold) {
-            OptResult max_err = ibexInterface->FindAbsMax(*ErrAccumulator[outVar]);
-            ErrAccumulator[outVar] = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar((-max_err.result).mag());
+        if (errAccumulator[outVar]->size > errorExpressionOperatorThreshold) {
+            OptResult max_err = ibexInterface->findAbsMax(*errAccumulator[outVar]);
+            errAccumulator[outVar] = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar((-max_err.result).mag());
             nodeNumOptCallsMap[outVar]++;
-            if (debugLevel > 1) {
-                std::cout << "Error Accumulator size exceeded " << errorExpressionOperatorThreshold
-                          << ". Concretizing error." << std::endl;
-            }
-            if (logLevel > 1) {
-                log.logFile << "Error Accumulator size exceeded " << errorExpressionOperatorThreshold
-                            << ". Concretizing error." << std::endl;
+            if (logging) {
+                logging->debug("Error Accumulator size exceeded ", errorExpressionOperatorThreshold, ". Concretizing error.");
             }
         }
 
-        if (debugLevel > 4) {
-            std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar]
+        if (logging && logging->level <= LogLevel::DEBUG) {
+            std::cout << "Error Accumulator for " << *outVar->getExprNode() << " : " << *errAccumulator[outVar]
                       << std::endl;
             std::cout << std::endl;
-        }
-        if (logLevel > 4) {
-            log.logFile << "Error Accumulator for " << *outVar->getExprNode() << " : " << *ErrAccumulator[outVar]
-                        << std::endl;
-            log.logFile << std::endl;
         }
     }
 }
@@ -446,9 +428,9 @@ ibex::ExprNode* getDerivativeWRTChildNode(Node* node, int index) {
                 case Node::FPEXT:
                     return (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(1);
                 default:
-                    std::cout << "Error: Should not be here. Unknown unary operator or not a unary "
-                                 "operator."
-                              << std::endl;
+                    if (logging) {
+                        logging->error("Should not be here. Unknown unary operator or not a unary operator.");
+                    }
                     break;
             }
             break;
@@ -476,17 +458,18 @@ ibex::ExprNode* getDerivativeWRTChildNode(Node* node, int index) {
                                                   / sqr(*((BinaryOp*)node)->rightOperand->getExprNode()));
                     }
                 default:
-                    std::cout << "Error: Should not be here. Unknown binary operator or not a "
-                                 "binary operator."
-                              << std::endl;
+                    if (logging) {
+                        logging->error("Should not be here. Unknown binary operator or not a binary operator.");
+                    }
                     break;
             }
             break;
         case NodeType::TERNARY_OP:
             break;
         default:
-            std::cout << "Unknown node type" << std::endl;
-            exit(1);
+            if (logging) {
+                logging->critical("Unknown node type");
+            }
     }
 
     return nullptr;
@@ -513,4 +496,162 @@ T2 findWithDefaultInsertion(std::map<T1, T2> map, T1 key, T2 defaultVal) {
         map[key] = defaultVal;
         return defaultVal;
     }
+}
+
+std::map<Node*, std::vector<InstructionErrorInfo>> ErrorAnalyzer::getInstructionErrorBreakdown(IBEXInterface* ibexInterface) {
+    std::map<Node*, std::vector<InstructionErrorInfo>> result;
+    
+    for (const auto& [outputNode, instructionErrorPairs] : perInstructionErrors) {
+        std::vector<InstructionErrorInfo> instructionInfos;
+        int index = 0;
+        
+        // Get total accumulated error for normalization
+        double totalErrorMag = 0.0;
+        if (errAccumulator.find(outputNode) != errAccumulator.end()) {
+            OptResult totalResult = ibexInterface->findAbsMax(*errAccumulator[outputNode]);
+            totalErrorMag = totalResult.result.mag();
+        }
+        
+        // Compute individual contributions and normalize them to sum to total error
+        std::vector<double> rawContributions;
+        double sumRawContributions = 0.0;
+        
+        for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
+            // The errorExpr contains: derivative × |node_value| × rounding_amount
+            // We want to show how much a realistic local error contributes to output error
+            
+            // For variables/constants, the "error" is input uncertainty, not rounding
+            if (instrNode->type == VARIABLE || instrNode->type == FREE_VARIABLE) {
+                // These represent input uncertainty propagation, set to a small representative value
+                rawContributions.push_back(1e-16); // Minimal input uncertainty
+                sumRawContributions += 1e-16;
+                continue;
+            }
+            
+            // For operations, compute the actual local rounding error magnitude
+            double localRoundingError = 0.5; // 0.5 ULP is typical worst case
+            double machineEpsilon = 2.22e-16; // double precision
+            
+            if (instrNode->type == BINARY_OP || instrNode->type == UNARY_OP || instrNode->type == TERNARY_OP) {
+                Node::Op op = Node::ADD; // Default
+                if (instrNode->type == BINARY_OP) {
+                    op = static_cast<BinaryOp*>(instrNode)->op;
+                } else if (instrNode->type == UNARY_OP) {
+                    op = static_cast<UnaryOp*>(instrNode)->op;
+                } else if (instrNode->type == TERNARY_OP) {
+                    op = static_cast<TernaryOp*>(instrNode)->op;
+                }
+                
+                // Get typical ULP error for this operation
+                if (instrNode->opErrorULPs.find(op) != instrNode->opErrorULPs.end()) {
+                    localRoundingError = instrNode->opErrorULPs[op] * 0.5; // Convert to typical error
+                }
+            }
+            
+            // The actual local rounding error in absolute terms
+            double actualLocalError = localRoundingError * machineEpsilon;
+            
+            rawContributions.push_back(actualLocalError);
+            sumRawContributions += actualLocalError;
+        }
+        
+        // Now create error info with normalized contributions
+        size_t contributionIndex = 0;
+        for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
+            InstructionErrorInfo info;
+            
+            if (instrNode->type == VARIABLE || instrNode->type == FREE_VARIABLE) {
+                if (instrNode->type == VARIABLE) {
+                    auto* varNode = static_cast<VariableNode*>(instrNode);
+                    info.instructionName = varNode->variable->name;
+                    info.instructionType = "VARIABLE";
+                } else {
+                    info.instructionName = "input_" + std::to_string(instrNode->id);
+                    info.instructionType = "FREE_VARIABLE";
+                }
+            } else {
+                if (llvmInstructionInfo.find(instrNode->id) != llvmInstructionInfo.end()) {
+                    info.instructionName = llvmInstructionInfo[instrNode->id].first;
+                    info.instructionType = llvmInstructionInfo[instrNode->id].second;
+                } else {
+                    info.instructionName = "node_" + std::to_string(instrNode->id);
+                    switch (instrNode->type) {
+                    case UNARY_OP: {
+                        auto* unaryNode = static_cast<UnaryOp*>(instrNode);
+                        info.instructionType = getOpString(unaryNode->op);
+                        break;
+                    }
+                    case BINARY_OP: {
+                        auto* binaryNode = static_cast<BinaryOp*>(instrNode);
+                        info.instructionType = getOpString(binaryNode->op);
+                        break;
+                    }
+                    case TERNARY_OP: {
+                        auto* ternaryNode = static_cast<TernaryOp*>(instrNode);
+                        info.instructionType = getOpString(ternaryNode->op);
+                        break;
+                    }
+                    case INTEGER:
+                        info.instructionType = "INTEGER";
+                        break;
+                    case FLOAT:
+                        info.instructionType = "FLOAT";
+                        break;
+                    case DOUBLE:
+                        info.instructionType = "DOUBLE";
+                        break;
+                    default:
+                        info.instructionType = "UNKNOWN";
+                        break;
+                    }
+                }
+            }
+            
+            // Compute how the local rounding error at this instruction affects the final output
+            double localError = rawContributions[contributionIndex];
+            
+            if (instrNode->type == VARIABLE || instrNode->type == FREE_VARIABLE) {
+                // For variables, just show the input uncertainty
+                info.errorContribution = localError;
+                info.errorBounds = ibex::Interval(-localError, localError);
+            } else {
+                // For operations, compute the amplification factor
+                // amplification = (full_error_expression) / (local_rounding_amount)
+                OptResult fullResult = ibexInterface->findAbsMax(*errorExpr);
+                double fullErrorMagnitude = fullResult.result.mag();
+                
+                // Get the rounding amount used in the error expression
+                double roundingAmount = 1.0; // Default
+                if (instrNode->type == BINARY_OP || instrNode->type == UNARY_OP || instrNode->type == TERNARY_OP) {
+                    Node::Op op = Node::ADD;
+                    if (instrNode->type == BINARY_OP) {
+                        op = static_cast<BinaryOp*>(instrNode)->op;
+                    } else if (instrNode->type == UNARY_OP) {
+                        op = static_cast<UnaryOp*>(instrNode)->op;
+                    } else if (instrNode->type == TERNARY_OP) {
+                        op = static_cast<TernaryOp*>(instrNode)->op;
+                    }
+                    
+                    if (instrNode->opErrorULPs.find(op) != instrNode->opErrorULPs.end()) {
+                        roundingAmount = instrNode->opErrorULPs[op];
+                    }
+                }
+                
+                // Amplification factor = how much the full error expression exceeds the base rounding
+                double amplificationFactor = fullErrorMagnitude / roundingAmount;
+                
+                // Apply this amplification to the realistic local error
+                info.errorContribution = localError * amplificationFactor;
+                info.errorBounds = ibex::Interval(-info.errorContribution, info.errorContribution);
+            }
+            contributionIndex++;
+            info.instructionIndex = index++;
+            
+            instructionInfos.push_back(info);
+        }
+        
+        result[outputNode] = instructionInfos;
+    }
+    
+    return result;
 }

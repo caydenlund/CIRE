@@ -1,11 +1,14 @@
-#include "ibex.h"
-#include <cmath>
-#include <map>
-
 #ifndef CIRE_NODE_H
 #define CIRE_NODE_H
 
-enum NodeType {
+#include "ibex_Expr.h"
+
+#include <cmath>
+#include <cstdint>
+#include <map>
+#include <set>
+
+enum NodeType : std::uint8_t {
     DEFAULT,        // Default node type
     INTEGER,        // Represents integers
     FLOAT,          // Represents single precision floating point numbers TODO: Remove FLOAT if not using
@@ -19,7 +22,7 @@ enum NodeType {
 
 class Node {
 public:
-    enum Op {
+    enum Op : std::uint8_t {
         ADD,
         SUB,
         MUL,
@@ -41,13 +44,15 @@ public:
         FPTRUNC,
         FPEXT,
     };
+
     // The amount of error on these operations
-    std::map<Op, double> OpErrorULPs = {
+    std::map<Op, double> opErrorULPs = {
             {ADD, 1.0},  {SUB, 1.0},  {MUL, 1.0},  {DIV, 2.0},     {SIN, 2.0},   {COS, 2.0},  {TAN, 2.0},
             {SINH, 2.0}, {COSH, 2.0}, {TANH, 2.0}, {ASIN, 2.0},    {ACOS, 2.0},  {ATAN, 2.0}, {LOG, 2.0},
             {SQRT, 1.0}, {EXP, 2.0},  {FMA, 2.0},  {FPTRUNC, 0.0}, {FPEXT, 0.0},
     };
-    enum RoundingType {
+
+    enum RoundingType : std::uint8_t {
         CONST,
         INT,
         FL16,
@@ -55,27 +60,25 @@ public:
         FL64,
     };
 
-protected:
-public:
     static int NEW_FREE_VARIABLE_COUNTER;
     static int NODE_COUNTER;
     int id = NODE_COUNTER++;
     int depth = 0;
     NodeType type = DEFAULT;
-    RoundingType OpRndType = INT;
+    RoundingType opRoundType = INT;
     // Epsilon value for rounding on applying the operator
-    double OpRounding = 1.0;  // RoundingAmount[INT] by default (no rounding)
+    double opRounding = 1.0;  // RoundingAmount[INT] by default (no rounding)
     const ibex::ExprNode* absoluteError = nullptr;
     std::set<Node*> parents;
 
     // Epsilon values for rounding to be applied for different types
-    std::map<RoundingType, double> RoundingAmount = {
+    std::map<RoundingType, double> roundingAmount = {
             {CONST, 0.0}, {INT, 1.0}, {FL16, pow(2, -11 + 53)}, {FL32, pow(2, -24 + 53)}, {FL64, 1.0},
     };
 
 
     Node() = default;
-    ~Node() = default;
+    virtual ~Node() = default;
 
     bool isInteger() const;
     bool isFloat() const;
@@ -88,10 +91,10 @@ public:
 
     void setRoundingType(RoundingType type);
     void setRoundingFromType(RoundingType type);
-    void setRounding(double OpRounding);
+    void setRounding(double opRounding);
     void setAbsoluteError(const ibex::ExprNode* absErr);
 
-    RoundingType getRoundingType();
+    RoundingType getRoundingType() const;
 
     virtual void write(std::ostream& os) const;
 
@@ -116,14 +119,13 @@ public:
 };
 
 class Integer : public Node {
-private:
 public:
     const ibex::ExprConstant* value = nullptr;
     const int val = 0;
     Integer() = default;
-    explicit Integer(const int);
+    explicit Integer(int);
     explicit Integer(const ibex::ExprConstant& value);
-    ~Integer() = default;
+    ~Integer() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;
@@ -138,14 +140,13 @@ public:
 };
 
 class Float : public Node {
-private:
 public:
     const ibex::ExprConstant* value = nullptr;
     const float val = 0.0;
     Float() = default;
-    explicit Float(const float);
+    explicit Float(float);
     explicit Float(const ibex::ExprConstant& value);
-    ~Float() = default;
+    ~Float() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;
@@ -161,14 +162,13 @@ public:
 };
 
 class Double : public Node {
-private:
 public:
     const ibex::ExprConstant* value = nullptr;
     const double val = 0.0;
     Double() = default;
-    explicit Double(const double);
+    explicit Double(double);
     explicit Double(const ibex::ExprConstant& value);
-    ~Double() = default;
+    ~Double() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;
@@ -185,13 +185,12 @@ public:
 
 // Represents Input Intervals
 class FreeVariable : public Node {
-private:
 public:
     const ibex::Interval* var = nullptr;
     FreeVariable();
     explicit FreeVariable(RoundingType rnd_typ);
     explicit FreeVariable(const ibex::Interval& var, RoundingType rnd_typ);
-    ~FreeVariable() = default;
+    ~FreeVariable() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;
@@ -207,14 +206,13 @@ public:
 
 // Represents interval assigned variables
 class VariableNode : public Node {
-private:
 public:
     const ibex::ExprSymbol* variable;
     VariableNode();
     explicit VariableNode(RoundingType rnd_typ);
     explicit VariableNode(const ibex::ExprSymbol& variable);
     explicit VariableNode(const Node& node);
-    ~VariableNode() = default;
+    ~VariableNode() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;
@@ -230,14 +228,13 @@ public:
 };
 
 class UnaryOp : public Node {
-private:
 public:
-    Node* Operand;
-    Op op;
-    const ibex::ExprUnaryOp* expr;
+    Node* operand {};
+    Op op {};
+    const ibex::ExprUnaryOp* expr {};
     UnaryOp() = default;
     UnaryOp(Node* Operand, Op op, RoundingType rnd_typ);
-    ~UnaryOp() = default;
+    ~UnaryOp() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;
@@ -254,16 +251,14 @@ public:
 
 class BinaryOp : public Node {
 public:
-    // private:
-    Node* leftOperand;
-    Node* rightOperand;
-    Op op;
-    const ibex::ExprBinaryOp* expr;
+    Node* leftOperand {};
+    Node* rightOperand {};
+    Op op {};
+    const ibex::ExprBinaryOp* expr {};
 
-public:
     BinaryOp() = default;
     BinaryOp(Node* leftOperand, Node* rightOperand, Op op);
-    ~BinaryOp() = default;
+    ~BinaryOp() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;
@@ -281,16 +276,16 @@ public:
 class TernaryOp : public Node {
 private:
 public:
-    Node* leftOperand;
-    Node* middleOperand;
-    Node* rightOperand;
-    Op op;
+    Node* leftOperand {};
+    Node* middleOperand {};
+    Node* rightOperand {};
+    Op op {};
     // IBEX does not have a Ternary Expr so we use a Binary Expr corresponding the last op in the
-    // Ternaary Op
-    const ibex::ExprBinaryOp* expr;
+    // Ternary Op
+    const ibex::ExprBinaryOp* expr {};
     TernaryOp() = default;
     TernaryOp(Node* leftOperand, Node* middleOperand, Node* rightOperand, Op op);
-    ~TernaryOp() = default;
+    ~TernaryOp() override = default;
 
     // Prints string representation of this node
     void write(std::ostream& os) const override;

@@ -1,75 +1,92 @@
 #include "cire/core/Results.h"
+#include "cire/interfaces/Logging.h"
 #include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <utility>
 
 Results::Results() {
     file = "results.json";
-    debugLevel = 0;
 }
 
 Results::Results(std::string _file) {
     file = std::move(_file);
-    debugLevel = 0;
 }
 
 Results::~Results() = default;
 
 void Results::setFile(std::string _file) { file = std::move(_file); }
 
-void Results::setStdoutOutput(bool enable) { stdout_output = enable; }
+void Results::setStdoutOutput(bool enable) { stdoutOutput = enable; }
 
 bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                            std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                            const std::string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
-                           const std::map<std::string, std::chrono::duration<double>>& time_map) {
-    if (debugLevel > 0) { std::cout << "Writing results to " << file << " ..." << std::endl; }
+                           const std::map<std::string, std::chrono::duration<double>>& time_map,
+                           const std::map<Node*, std::vector<InstructionErrorInfo>>& instructionErrors) {
+    if (logging) { logging->debug("Writing results to ", file, " ..."); }
 
     try {
         if (std::filesystem::exists(file)) {
             std::ifstream in(file);
-            in >> json_object;
+            in >> jsonObject;
         }
         std::filesystem::path file_path = input_file;
         std::string file_stem = file_path.stem().string();
         unsigned k = 0;
         for (auto const& [abs_count, metrics] : abstractionMetrics) {
-            json_object[file_stem]["Abstraction Metrics"][abs_count]["Window"] = {metrics.at("bound_min"),
+            jsonObject[file_stem]["Abstraction Metrics"][abs_count]["Window"] = {metrics.at("bound_min"),
                                                                                   metrics.at("bound_max")};
-            json_object[file_stem]["Abstraction Metrics"][abs_count]["Abstraction Depth"] = metrics.at(
+            jsonObject[file_stem]["Abstraction Metrics"][abs_count]["Abstraction Depth"] = metrics.at(
                     "abstraction_depth");
-            json_object[file_stem]["Abstraction Metrics"][abs_count]["#Candidates"] = metrics.at("num_candidate_nodes");
-            json_object[file_stem]["Abstraction Metrics"][abs_count]["#Op_Threshold"] = metrics.at(
+            jsonObject[file_stem]["Abstraction Metrics"][abs_count]["#Candidates"] = metrics.at("num_candidate_nodes");
+            jsonObject[file_stem]["Abstraction Metrics"][abs_count]["#Op_Threshold"] = metrics.at(
                     "max_operators_count");
-            json_object[file_stem]["Abstraction Metrics"][abs_count]["Highest Depth"] = metrics.at("max_depth");
+            jsonObject[file_stem]["Abstraction Metrics"][abs_count]["Highest Depth"] = metrics.at("max_depth");
         }
         for (auto const& [node, result] : results) {
-            json_object[file_stem]["Results"][outputs[k]]["Output"] = {result.outputExtrema.lb(),
+            jsonObject[file_stem]["Results"][outputs[k]]["Output"] = {result.outputExtrema.lb(),
                                                                        result.outputExtrema.ub()};
-            json_object[file_stem]["Results"][outputs[k]]["Error"] = {result.errorExtrema.lb(),
+            jsonObject[file_stem]["Results"][outputs[k]]["Error"] = {result.errorExtrema.lb(),
                                                                       result.errorExtrema.ub()};
-            json_object[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
-            json_object[file_stem]["Results"]["Height"] = heightDAG;
-            json_object[file_stem]["Results"]["Optimization Time"] = result.totalOptimizationTime;
-            json_object[file_stem]["Results"]["Number of Optimizer Calls"] = result.numOptimizationCalls;
+            jsonObject[file_stem]["Results"]["NumOperators"] = numOperatorsOutput;
+            jsonObject[file_stem]["Results"]["Height"] = heightDAG;
+            jsonObject[file_stem]["Results"]["Optimization Time"] = result.totalOptimizationTime;
+            jsonObject[file_stem]["Results"]["Number of Optimizer Calls"] = result.numOptimizationCalls;
             std::vector<std::pair<double, double>> optPoint;
-            for (int i = 0; i < result.OptPoint.size(); i++) {
-                optPoint.emplace_back(result.OptPoint[i].lb(), result.OptPoint[i].ub());
+            for (int i = 0; i < result.optPoint.size(); i++) {
+                optPoint.emplace_back(result.optPoint[i].lb(), result.optPoint[i].ub());
             }
-            json_object[file_stem]["Results"][outputs[k]]["Optima"] = optPoint;
+            jsonObject[file_stem]["Results"][outputs[k]]["Optima"] = optPoint;
+            
+            if (instructionErrors.find(node) != instructionErrors.end()) {
+                const auto& nodeInstrErrors = instructionErrors.at(node);
+                nlohmann::json instrErrorArray = nlohmann::json::array();
+                for (const auto& instrError : nodeInstrErrors) {
+                    nlohmann::json instrJson;
+                    instrJson["instruction_name"] = instrError.instructionName;
+                    instrJson["instruction_type"] = instrError.instructionType;
+                    instrJson["error_contribution"] = instrError.errorContribution;
+                    instrJson["error_bounds"] = {instrError.errorBounds.lb(), instrError.errorBounds.ub()};
+                    instrJson["instruction_index"] = instrError.instructionIndex;
+                    instrErrorArray.push_back(instrJson);
+                }
+                jsonObject[file_stem]["Results"][outputs[k]]["InstructionErrors"] = instrErrorArray;
+            }
+            
             k++;
         }
         // Parsing Time + Error Analysis Time = Total Time
-        json_object[file_stem]["Parsing Time"] = time_map.at("Parsing").count();
-        json_object[file_stem]["Error Analysis Time"] = time_map.at("Error_Analysis").count();
-        json_object[file_stem]["Total Time"] = time_map.at("Total").count();
+        jsonObject[file_stem]["Parsing Time"] = time_map.at("Parsing").count();
+        jsonObject[file_stem]["Error Analysis Time"] = time_map.at("Error_Analysis").count();
+        jsonObject[file_stem]["Total Time"] = time_map.at("Total").count();
     } catch (std::exception& e) {
-        std::cout << "[ERROR]: Failed to write results to JSON file." << std::endl;
-        std::cout << e.what() << std::endl;
+        if (logging) { logging->error("Failed to write results to JSON file."); }
+        if (logging) { logging->error(e.what()); }
         return false;
     }
 
-    if (stdout_output) {
+    if (stdoutOutput) {
         // Print non-nested format to stdout for compiler explorer
         std::filesystem::path file_path = input_file;
         std::string file_stem = file_path.stem().string();
@@ -84,13 +101,24 @@ bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOpe
             std::cout << "Parsing Time: " << time_map.at("Parsing").count() << std::endl;
             std::cout << "Error Analysis Time: " << time_map.at("Error_Analysis").count() << std::endl;
             std::cout << "Total Time: " << time_map.at("Total").count() << std::endl;
+            
+            if (instructionErrors.find(node) != instructionErrors.end()) {
+                const auto& nodeInstrErrors = instructionErrors.at(node);
+                std::cout << "Instruction Errors:" << std::endl;
+                for (const auto& instrError : nodeInstrErrors) {
+                    std::cout << "  " << instrError.instructionName << " (" << instrError.instructionType 
+                              << "): " << instrError.errorContribution << " [" 
+                              << instrError.errorBounds.lb() << ", " << instrError.errorBounds.ub() << "]" << std::endl;
+                }
+            }
+            
             break; // Only output first result for stdout
         }
     } else {
         std::ofstream out(file);
-        out << std::setw(4) << json_object;
+        out << std::setw(4) << jsonObject;
         
-        if (debugLevel > 0) { std::cout << "Results written to " << file << "!" << std::endl; }
+        if (logging) { logging->debug("Results written to ", file, "!"); }
     }
 
     return true;
@@ -102,52 +130,53 @@ bool Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int 
                                  unsigned int heightDAG,
                                  std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                                  const string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
-                                 const std::map<std::string, std::chrono::duration<double>>& time_map) {
-    if (debugLevel > 0) { std::cout << "Writing results to " << file << " ..." << std::endl; }
+                                 const std::map<std::string, std::chrono::duration<double>>& time_map,
+                                 const std::map<Node*, std::vector<InstructionErrorInfo>>& instructionErrors) {
+    if (logging) { logging->debug("Writing results to ", file, " ..."); }
 
     try {
         if (std::filesystem::exists(file)) {
             std::ifstream in(file);
-            in >> json_object;
+            in >> jsonObject;
         }
         std::filesystem::path file_path = input_file;
         std::string file_stem = file_path.stem().string();
         for (auto const& [abs_count, metrics] : abstractionMetrics) {
-            json_object[file_stem]["Window"] = {metrics.at("bound_min"), metrics.at("bound_max")};
-            json_object[file_stem]["Abstraction Depth"] = metrics.at("abstraction_depth");
-            json_object[file_stem]["#Candidates"] = metrics.at("num_candidate_nodes");
-            json_object[file_stem]["#Op_Threshold"] = metrics.at("max_operators_count");
-            json_object[file_stem]["Highest Depth"] = metrics.at("max_depth");
+            jsonObject[file_stem]["Window"] = {metrics.at("bound_min"), metrics.at("bound_max")};
+            jsonObject[file_stem]["Abstraction Depth"] = metrics.at("abstraction_depth");
+            jsonObject[file_stem]["#Candidates"] = metrics.at("num_candidate_nodes");
+            jsonObject[file_stem]["#Op_Threshold"] = metrics.at("max_operators_count");
+            jsonObject[file_stem]["Highest Depth"] = metrics.at("max_depth");
             break;
         }
         for (auto const& [node, result] : results) {
-            json_object[file_stem]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
-            json_object[file_stem]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
-            json_object[file_stem]["NumOperators"] = numOperatorsOutput;
-            json_object[file_stem]["Height"] = heightDAG;
-            json_object[file_stem]["Optimization Time"] = result.totalOptimizationTime;
-            json_object[file_stem]["Number of Optimizer Calls"] = result.numOptimizationCalls;
+            jsonObject[file_stem]["Output"] = {result.outputExtrema.lb(), result.outputExtrema.ub()};
+            jsonObject[file_stem]["Error"] = {result.errorExtrema.lb(), result.errorExtrema.ub()};
+            jsonObject[file_stem]["NumOperators"] = numOperatorsOutput;
+            jsonObject[file_stem]["Height"] = heightDAG;
+            jsonObject[file_stem]["Optimization Time"] = result.totalOptimizationTime;
+            jsonObject[file_stem]["Number of Optimizer Calls"] = result.numOptimizationCalls;
             std::vector<std::pair<double, double>> optPoint;
-            for (int i = 0; i < result.OptPoint.size(); i++) {
-                optPoint.emplace_back(result.OptPoint[i].lb(), result.OptPoint[i].ub());
+            for (int i = 0; i < result.optPoint.size(); i++) {
+                optPoint.emplace_back(result.optPoint[i].lb(), result.optPoint[i].ub());
             }
             // Fields written to JSON file in lexigraphical order so name the fields accordingly to
             // maintain order of importance. eg: Fields with varied number of values should be
             // placed last in a record.
-            json_object[file_stem]["zOptima"] = optPoint;
+            jsonObject[file_stem]["zOptima"] = optPoint;
             break;
         }
         // Parsing Time + Error Analysis Time = Total Time
-        json_object[file_stem]["Parsing Time"] = time_map.at("Parsing").count();
-        json_object[file_stem]["Error Analysis Time"] = time_map.at("Error_Analysis").count();
-        json_object[file_stem]["Total Time"] = time_map.at("Total").count();
+        jsonObject[file_stem]["Parsing Time"] = time_map.at("Parsing").count();
+        jsonObject[file_stem]["Error Analysis Time"] = time_map.at("Error_Analysis").count();
+        jsonObject[file_stem]["Total Time"] = time_map.at("Total").count();
     } catch (std::exception& e) {
-        std::cout << "[ERROR]: Failed to write results to JSON file." << std::endl;
-        std::cout << e.what() << std::endl;
+        if (logging) { logging->error("Failed to write results to JSON file."); }
+        if (logging) { logging->error(e.what()); }
         return false;
     }
 
-    if (stdout_output) {
+    if (stdoutOutput) {
         // Print non-nested format to stdout for compiler explorer
         std::filesystem::path file_path = input_file;
         std::string file_stem = file_path.stem().string();
@@ -162,13 +191,24 @@ bool Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int 
             std::cout << "Parsing Time: " << time_map.at("Parsing").count() << std::endl;
             std::cout << "Error Analysis Time: " << time_map.at("Error_Analysis").count() << std::endl;
             std::cout << "Total Time: " << time_map.at("Total").count() << std::endl;
+            
+            if (instructionErrors.find(node) != instructionErrors.end()) {
+                const auto& nodeInstrErrors = instructionErrors.at(node);
+                std::cout << "Instruction Errors:" << std::endl;
+                for (const auto& instrError : nodeInstrErrors) {
+                    std::cout << "  " << instrError.instructionName << " (" << instrError.instructionType 
+                              << "): " << instrError.errorContribution << " [" 
+                              << instrError.errorBounds.lb() << ", " << instrError.errorBounds.ub() << "]" << std::endl;
+                }
+            }
+            
             break; // Only output first result for stdout
         }
     } else {
         std::ofstream out(file);
-        out << std::setw(4) << json_object;
+        out << std::setw(4) << jsonObject;
         
-        if (debugLevel > 0) { std::cout << "Results written to " << file << "!" << std::endl; }
+        if (logging) { logging->debug("Results written to ", file, "!"); }
     }
 
     return true;

@@ -3,16 +3,26 @@
 
 #include "cire/core/Graph.h"
 #include "cire/core/Node.h"
+
 #include <nlohmann/json.hpp>
 #include <string>
+#include <map>
+#include <vector>
+
+struct InstructionErrorInfo {
+    std::string instructionName;
+    std::string instructionType;
+    double errorContribution;
+    ibex::Interval errorBounds;
+    int instructionIndex;
+};
 
 class Results {
 public:
     // The name of the output file
     std::string file;
-    nlohmann::json json_object;
-    unsigned int debugLevel = 0;
-    bool stdout_output = false;
+    nlohmann::json jsonObject;
+    bool stdoutOutput = false;
     Results();
     explicit Results(std::string file);
     ~Results();
@@ -23,12 +33,14 @@ public:
     bool writeResults(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                       std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                       const std::string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
-                      const std::map<std::string, std::chrono::duration<double>>& time_map);
+                      const std::map<std::string, std::chrono::duration<double>>& time_map,
+                      const std::map<Node*, std::vector<InstructionErrorInfo>>& instructionErrors = {});
 
     bool writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                             std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                             const std::string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
-                            const std::map<std::string, std::chrono::duration<double>>& time_map);
+                            const std::map<std::string, std::chrono::duration<double>>& time_map,
+                            const std::map<Node*, std::vector<InstructionErrorInfo>>& instructionErrors = {});
 };
 
 

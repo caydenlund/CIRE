@@ -1,6 +1,7 @@
 Checks: '
     *,
     -*-avoid-c-arrays,
+    -*-magic-numbers,
     -*-braces-around-statements,
     -*-non-private-member-variables-in-classes,
     -*-statically-constructed-objects,
@@ -29,6 +30,7 @@ Checks: '
     -modernize-use-trailing-return-type,
     -performance-no-automatic-move,
     -readability-function-cognitive-complexity,
+    -readability-identifier-length,
     -readability-named-parameter,
     '
 
@@ -42,7 +44,7 @@ CheckOptions:
     readability-identifier-naming.FunctionCase: "camelBack"
     readability-identifier-naming.MemberCase: "camelBack"
     readability-identifier-naming.MethodCase: "camelBack"
-    readability-identifier-naming.NamespaceCase: "CamelCase"
+    readability-identifier-naming.NamespaceCase: "snake_case"
     readability-identifier-naming.ParameterCase: "snake_case"
     readability-identifier-naming.PrivateMemberPrefix: "_"
     readability-identifier-naming.PrivateMethodPrefix: "_"

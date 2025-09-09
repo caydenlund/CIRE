@@ -14,7 +14,7 @@ public:
 
     void insert(const string& symbol, Node* node);
     Node* lookup(const string& symbol, Node* node = new VariableNode(Node::RoundingType::INT));
-    string ReverseLookup(const Node* node);
+    string reverseLookup(const Node* node);
 };
 
 

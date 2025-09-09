@@ -1,15 +1,15 @@
 #include "cire/core/Graph.h"
-
+#include "interfaces/Logging.h"
 #include "parser.h"
+
+#include <algorithm>
 #include <utility>
 
 int SymbolTable::SCOPE_COUNTER = 0;
 
-Graph::Graph(string logFile) { log.setFile(std::move(logFile)); }
-
 Graph::~Graph() {
-    for (auto& symbolTable : symbolTables) { delete symbolTable.second; }
-    for (auto& node : nodes) { delete node; }
+    for (const auto& symbolTable : symbolTables) delete symbolTable.second;
+    for (const auto& node : nodes) delete node;
     delete errorAnalyzer;
     delete ibexInterface;
 }
@@ -21,25 +21,25 @@ std::ostream& operator<<(std::ostream& os, const Graph& graph) {
     return os;
 }
 
-void Graph::write(std::ostream& os) const {
-    os << "Graph:" << std::endl;
-    os << "Inputs:" << std::endl;
-    for (auto& input : inputs) { os << "\t" << input.first << " : " << *input.second << std::endl; }
-    os << "Outputs:" << std::endl;
-    for (auto& output : outputs) { os << "\t" << output << std::endl; }
-    os << "Variables:" << std::endl;
-    for (auto& variable : symbolTables.find(currentScope)->second->table) {
-        os << "\t" << variable.first << " : " << *variable.second << std::endl;
+void Graph::write(std::ostream& out) const {
+    out << "Graph:\n";
+    out << "Inputs:\n";
+    for (const auto& input : inputs) { out << "    " << input.first << " : " << *input.second; }
+    out << "Outputs:\n";
+    for (const auto& output : outputs) { out << "    " << output; }
+    out << "Variables:\n";
+    for (const auto& variable : symbolTables.find(currentScope)->second->table) {
+        out << "\t" << variable.first << " : " << *variable.second;
     }
 
-    os << "Nodes:" << std::endl;
-    for (auto& node : nodes) { os << "\t" << *node << std::endl; }
+    out << "Nodes:\n";
+    for (const auto& node : nodes) { out << "    " << *node << "\n"; }
 
-    os << "Depth Table:" << std::endl;
-    for (auto& depth : depthTable) {
-        os << "\t" << depth.first << " : ";
-        for (auto& node : depth.second) { os << *node << " "; }
-        os << std::endl;
+    out << "Depth Table:";
+    for (const auto& depth : depthTable) {
+        out << "    " << depth.first << " : ";
+        for (const auto& node : depth.second) { out << *node << " "; }
+        out << "\n";
     }
 }
 
@@ -49,30 +49,35 @@ void Graph::createNewSymbolTable() {
 }
 
 void Graph::generateIbexSymbols() {
-    for (auto& input : inputs) {
+    for (const auto& input : inputs) {
         assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
-        ((VariableNode*)symbolTables[currentScope]->table[input.first])->variable = &(
+        (dynamic_cast<VariableNode*>(symbolTables[currentScope]->table[input.first]))->variable = &(
                 ibex::ExprSymbol::new_(input.first.c_str()));
         symbolTables[currentScope]->table[input.first]->setAbsoluteError(
                 &ibex::ExprConstant::new_scalar(input.second->var->ub() * pow(2, -53)));
     }
 
 
-    for (auto& node : nodes) {
+    for (const auto& node : nodes) {
         switch (node->type) {
             case NodeType::INTEGER: {
-                ((Integer*)node)->value = &(ibex::ExprConstant::new_scalar(((Integer*)node)->val));
+                (dynamic_cast<Integer*>(node))->value = &(
+                        ibex::ExprConstant::new_scalar((dynamic_cast<Integer*>(node))->val));
                 node->setAbsoluteError(&ibex::ExprConstant::new_scalar(0.0));
                 break;
             }
             case NodeType::FLOAT: {
-                ((Float*)node)->value = &(ibex::ExprConstant::new_scalar(((Float*)node)->val));
-                node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((Float*)node)->val * pow(2, -24)));
+                (dynamic_cast<Float*>(node))->value = &(
+                        ibex::ExprConstant::new_scalar((dynamic_cast<Float*>(node))->val));
+                node->setAbsoluteError(
+                        &ibex::ExprConstant::new_scalar((dynamic_cast<Float*>(node))->val * pow(2, -24)));
                 break;
             }
             case NodeType::DOUBLE: {
-                ((Double*)node)->value = &(ibex::ExprConstant::new_scalar(((Double*)node)->val));
-                node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((Double*)node)->val * pow(2, -53)));
+                (dynamic_cast<Double*>(node))->value = &(
+                        ibex::ExprConstant::new_scalar((dynamic_cast<Double*>(node))->val));
+                node->setAbsoluteError(
+                        &ibex::ExprConstant::new_scalar((dynamic_cast<Double*>(node))->val * pow(2, -53)));
                 break;
             }
             case NodeType::FREE_VARIABLE: {
@@ -111,31 +116,29 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
     // Set up output
     // Get the max depth of the candidate_nodes
     unsigned int max_depth = 0;
-    for (auto& node : candidate_nodes) {
-        if (node->depth > max_depth) { max_depth = node->depth; }
-    }
+    for (const auto& node : candidate_nodes) { max_depth = std::max<unsigned int>(node->depth, max_depth); }
 
     errorAnalyzer->derivativeComputedNodes.clear();
     errorAnalyzer->errorComputedNodes.clear();
     errorAnalyzer->numParentsOfNode.clear();
     errorAnalyzer->parentsOfNode.clear();
-    errorAnalyzer->BwdDerivatives.clear();
+    errorAnalyzer->bwdDerivatives.clear();
     errorAnalyzer->typeCastRnd.clear();
-    errorAnalyzer->ErrAccumulator.clear();
+    errorAnalyzer->errAccumulator.clear();
 
     // Insert candidate_nodes with max depth into worklist
-    for (auto& node : candidate_nodes) {
+    for (const auto& node : candidate_nodes) {
         if (node->depth == max_depth) { errorAnalyzer->workList.insert(node); }
     }
 
     // Set BwdDerivatives of each candidate_node (output node) with respect to itself to 1
-    for (auto& node : candidate_nodes) {
-        errorAnalyzer->BwdDerivatives[node][node] = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(1);
+    for (const auto& node : candidate_nodes) {
+        errorAnalyzer->bwdDerivatives[node][node] = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(1);
         errorAnalyzer->typeCastRnd[node][node] = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(0);
     }
 
     // Set numParentsOfNode of each node to the number of parents it has
-    for (auto& node : candidate_nodes) { errorAnalyzer->numParentsOfNode[node] = node->parents.size(); }
+    for (const auto& node : candidate_nodes) { errorAnalyzer->numParentsOfNode[node] = node->parents.size(); }
 }
 
 // Generates Expressions corresponding to all candidate_nodes bottom up
@@ -149,65 +152,38 @@ void Graph::generateExprDriver(const std::set<Node*>& candidate_nodes) {
     // This keeps track of nodes that have the same expression and can be replaced by a single node
     std::map<ibex::ExprNode*, std::set<Node*>> cseTable;
 
-    if (debugLevel > 1) { std::cout << "Generating Expressions..." << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Generating Expressions..." << std::endl;
-    }
+    logging->info("Generating expressions...");
 
-    for (auto& node : candidate_nodes) {
-        if (debugLevel > 3) { std::cout << "Processing Node " << node->id << std::endl; }
-        if (logLevel > 3) { log.logFile << "Processing Node " << node->id << std::endl; }
+    for (const auto& node : candidate_nodes) {
+        logging->debug("Processing node '", node->id, "'");
         if (generatedExprsAtDepth[node->depth].find(node) == generatedExprsAtDepth[node->depth].end()) {
             generateExpr(node, generatedExprsAtDepth, cseTable);
         }
-        if (debugLevel > 3) { std::cout << "Node " << node->id << " processed." << std::endl; }
-        if (logLevel > 3) { log.logFile << "Node " << node->id << " processed." << std::endl; }
+        logging->debug("Processed node '", node->id, "'");
     }
 
-    if (debugLevel > 1) { std::cout << "Expressions Generated!" << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Expressions Generated!" << std::endl;
-    }
+    logging->info("Done generating expressions");
 }
 
 void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedExprsAtDepth,
                          std::map<ibex::ExprNode*, std::set<Node*>>& cseTable) {
     switch (node->type) {
         case NodeType::INTEGER:
-            // Already has an expression
-            break;
         case NodeType::FLOAT:
-            // Already has an expression
-            break;
         case NodeType::DOUBLE:
-            // Already has an expression
-            break;
         case NodeType::FREE_VARIABLE:
-            // Does not have an associated Ibex Expression. Instead has interval
-            break;
         case NodeType::VARIABLE:
-            // Already has an expression
+            // Already has an expression or interval
             break;
         case NodeType::UNARY_OP:
-            if (generatedExprsAtDepth[((UnaryOp*)node)->Operand->depth].find(((UnaryOp*)node)->Operand)
-                == generatedExprsAtDepth[((UnaryOp*)node)->Operand->depth].end()) {
-                generateExpr(((UnaryOp*)node)->Operand, generatedExprsAtDepth, cseTable);
+            if (generatedExprsAtDepth[((UnaryOp*)node)->operand->depth].find(((UnaryOp*)node)->operand)
+                == generatedExprsAtDepth[((UnaryOp*)node)->operand->depth].end()) {
+                generateExpr(((UnaryOp*)node)->operand, generatedExprsAtDepth, cseTable);
             }
             ((UnaryOp*)node)->expr = (ibex::ExprUnaryOp*)&node->generateSymExpr();
-            errorAnalyzer->parentsOfNode[((UnaryOp*)node)->Operand].insert(node);
-            if (debugLevel > 3) {
-                std::cout << "Node " << node->id << " processed." << std::endl;
-                if (debugLevel > 4) { std::cout << "UnaryOp: " << *((UnaryOp*)node)->expr << std::endl; }
-            }
-            if (logLevel > 3) {
-                log.logFile << "Node " << node->id << " processed." << std::endl;
-                if (logLevel > 4) {
-                    assert(log.logFile.is_open() && "Log file not open");
-                    log.logFile << "UnaryOp: " << *((UnaryOp*)node)->expr << std::endl;
-                }
-            }
+            errorAnalyzer->parentsOfNode[((UnaryOp*)node)->operand].insert(node);
+            logging->debug("Node '", node->id, "' processed");
+            logging->debug("    UnaryOp processed");
             break;
         case NodeType::BINARY_OP:
             if (generatedExprsAtDepth[((BinaryOp*)node)->leftOperand->depth].find(((BinaryOp*)node)->leftOperand)
@@ -221,17 +197,8 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
             ((BinaryOp*)node)->expr = (ibex::ExprBinaryOp*)&node->generateSymExpr();
             errorAnalyzer->parentsOfNode[((BinaryOp*)node)->leftOperand].insert(node);
             errorAnalyzer->parentsOfNode[((BinaryOp*)node)->rightOperand].insert(node);
-            if (debugLevel > 3) {
-                std::cout << "Node " << node->id << " processed." << std::endl;
-                if (debugLevel > 4) { std::cout << "BinaryOp: " << *((BinaryOp*)node)->expr << std::endl; }
-            }
-            if (logLevel > 3) {
-                log.logFile << "Node " << node->id << " processed." << std::endl;
-                if (logLevel > 4) {
-                    assert(log.logFile.is_open() && "Log file not open");
-                    log.logFile << "BinaryOp: " << *((BinaryOp*)node)->expr << std::endl;
-                }
-            }
+            logging->debug("Node '", node->id, "' processed");
+            logging->debug("    BinaryOp processed");
             break;
         case NodeType::TERNARY_OP:
             if (generatedExprsAtDepth[((TernaryOp*)node)->leftOperand->depth].find(((TernaryOp*)node)->leftOperand)
@@ -251,21 +218,11 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
             errorAnalyzer->parentsOfNode[((TernaryOp*)node)->leftOperand].insert(node);
             errorAnalyzer->parentsOfNode[((TernaryOp*)node)->middleOperand].insert(node);
             errorAnalyzer->parentsOfNode[((TernaryOp*)node)->rightOperand].insert(node);
-            if (debugLevel > 3) {
-                std::cout << "Node " << node->id << " processed." << std::endl;
-                if (debugLevel > 4) { std::cout << "TernaryOp: " << *((TernaryOp*)node)->expr << std::endl; }
-            }
-            if (logLevel > 3) {
-                log.logFile << "Node " << node->id << " processed." << std::endl;
-                if (logLevel > 4) {
-                    assert(log.logFile.is_open() && "Log file not open");
-                    log.logFile << "TernaryOp: " << *((TernaryOp*)node)->expr << std::endl;
-                }
-            }
+            logging->debug("Node '", node->id, "' processed");
+            logging->debug("    TernaryOp processed");
             break;
         default:
-            std::cout << "Unknown node type" << std::endl;
-            exit(1);
+            logging->critical("Unknown node type");
     }
 
     // Update the map tracking processed nodes
@@ -274,7 +231,7 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
     // Common sub expression elimination phase
     // 1) Find all subexpressions similar to the current node
     std::vector<Node*> nodes_to_merge;
-    for (auto& n : cseTable[node->getExprNode()]) {
+    for (const auto& n : cseTable[node->getExprNode()]) {
         // Ensuring n and node are not the same nodes
         if (n != node) {
             // Check if all children of n and node are the same
@@ -295,7 +252,7 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
                     if (node->isVariable()) nodes_to_merge.push_back(n);
                     break;
                 case NodeType::UNARY_OP:
-                    if (node->isUnaryOp() && ((UnaryOp*)n)->Operand == ((UnaryOp*)node)->Operand) {
+                    if (node->isUnaryOp() && ((UnaryOp*)n)->operand == ((UnaryOp*)node)->operand) {
                         nodes_to_merge.push_back(n);
                     }
                     break;
@@ -313,8 +270,7 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
                     }
                     break;
                 default:
-                    std::cout << "Unknown node type" << std::endl;
-                    exit(1);
+                    logging->critical("Unknown node type");
             }
         }
     }
@@ -323,10 +279,8 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
     if (nodes_to_merge.empty()) {
         cseTable[node->getExprNode()].insert(node);
     } else {
-        if (debugLevel > 2) {
-            std::cout << "Found " << nodes_to_merge.size() << " nodes to merge with node " << node->id << std::endl;
-        }
-        for (auto& n : nodes_to_merge) {
+        logging->debug("Found ", nodes_to_merge.size(), " nodes to merge with node '", node->id, "'");
+        for (const auto& n : nodes_to_merge) {
             // TODO: if n in not in the output set, merge n into node
             node = mergeNodes(n, node, errorAnalyzer->parentsOfNode);
             cseTable[node->getExprNode()].erase(n);
@@ -349,7 +303,7 @@ Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*
                    parentsOfNode[node2].end(), std::inserter(new_parents, new_parents.end()));
 
     // Update the children of the new_parents set to point to node2 of they point to node1
-    for (auto& par : new_parents) {
+    for (const auto& par : new_parents) {
         switch (par->type) {
             case NodeType::INTEGER:
             case NodeType::FLOAT:
@@ -358,7 +312,7 @@ Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*
             case NodeType::VARIABLE:
                 break;
             case NodeType::UNARY_OP:
-                if (((UnaryOp*)par)->Operand == node1) { ((UnaryOp*)par)->Operand = node2; }
+                if (((UnaryOp*)par)->operand == node1) { ((UnaryOp*)par)->operand = node2; }
                 break;
             case NodeType::BINARY_OP:
                 if (((BinaryOp*)par)->leftOperand == node1) { ((BinaryOp*)par)->leftOperand = node2; }
@@ -370,8 +324,7 @@ Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*
                 if (((TernaryOp*)par)->rightOperand == node1) { ((TernaryOp*)par)->rightOperand = node2; }
                 break;
             default:
-                std::cout << "Unknown node type" << std::endl;
-                exit(1);
+                logging->critical("Unknown node type");
         }
     }
 
@@ -398,9 +351,10 @@ Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*
         case NodeType::DOUBLE:
         case NodeType::FREE_VARIABLE:
         case NodeType::VARIABLE:
+        case NodeType::DEFAULT:
             break;
         case NodeType::UNARY_OP:
-            parentsOfNode[((UnaryOp*)node2)->Operand].erase(node1);
+            parentsOfNode[((UnaryOp*)node2)->operand].erase(node1);
             break;
         case NodeType::BINARY_OP:
             parentsOfNode[((BinaryOp*)node2)->leftOperand].erase(node1);
@@ -420,28 +374,25 @@ Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*
 }
 
 void Graph::concretizeErrorComponents() {
-    int totalNodesInBwdDerivatives = errorAnalyzer->BwdDerivatives.size();
+    int totalNodesInBwdDerivatives = errorAnalyzer->bwdDerivatives.size();
     int processedNodes = 0;
 
     // Iterate through the bwdDerivative map
-    for (auto& node_bwd_derivatives : errorAnalyzer->BwdDerivatives) {
+    for (const auto& node_bwd_derivatives : errorAnalyzer->bwdDerivatives) {
         Node* node = node_bwd_derivatives.first;
 
         node_bwd_derivatives.second.size();
 
-        if (debugLevel > 2) {
-            std::cout << "Processing Node " << node->id << ". Processed " << processedNodes << "/"
-                      << totalNodesInBwdDerivatives << std::endl;
-        }
+        logging->debug("Processing Node '", node->id, "'. Processed ", processedNodes, "/", totalNodesInBwdDerivatives);
 
         // Iterate through the nodeBwdDerivatives map
-        for (auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
+        for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
             Node* output_node = node_output_bwd_derivative.first;
-            OptResult max_bwd = ibexInterface->FindAbsMax(*node_output_bwd_derivative.second);
-            OptResult max_local_err = ibexInterface->FindAbsMax(
+            OptResult max_bwd = ibexInterface->findAbsMax(*node_output_bwd_derivative.second);
+            OptResult max_local_err = ibexInterface->findAbsMax(
                     const_cast<ibex::ExprNode&>(product(node->getAbsoluteError(), node->getRounding())));
 
-            errorAnalyzer->BwdDerivatives[node][output_node] = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
+            errorAnalyzer->bwdDerivatives[node][output_node] = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
                     (-max_bwd.result).mag());
             node->setAbsoluteError((ibex::ExprNode*)&ibex::ExprConstant::new_scalar((-max_local_err.result).mag()));
         }
@@ -457,13 +408,13 @@ void Graph::examineBwdDerivativeAndLocalError() {
     std::map<Node*, std::map<Node*, std::pair<double, double>>> evaluatedBwdDerivatives;
 
     // Iterate through the bwdDerivative map
-    for (auto& node_bwd_derivatives : errorAnalyzer->BwdDerivatives) {
+    for (const auto& node_bwd_derivatives : errorAnalyzer->bwdDerivatives) {
         Node* node = node_bwd_derivatives.first;
         // Iterate through the nodeBwdDerivatives map
-        for (auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
+        for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
             Node* output_node = node_output_bwd_derivative.first;
-            OptResult max_bwd = ibexInterface->FindAbsMax(*node_output_bwd_derivative.second);
-            OptResult max_local_err = ibexInterface->FindAbsMax(
+            OptResult max_bwd = ibexInterface->findAbsMax(*node_output_bwd_derivative.second);
+            OptResult max_local_err = ibexInterface->findAbsMax(
                     const_cast<ibex::ExprNode&>(product(node->getAbsoluteError(), node->getRounding())));
 
             evaluatedBwdDerivatives[node][output_node] = std::make_pair((-max_bwd.result).mag(),
@@ -472,28 +423,28 @@ void Graph::examineBwdDerivativeAndLocalError() {
     }
 
     // print the evaluatedBwdDerivatives
-    for (auto& node_bwd_derivatives : evaluatedBwdDerivatives) {
+    for (const auto& node_bwd_derivatives : evaluatedBwdDerivatives) {
         Node* node = node_bwd_derivatives.first;
-        for (auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
+        for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
             Node* output_node = node_output_bwd_derivative.first;
             std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
-            std::cout << "(Output Id, Depth): " << output_node->id << ", " << output_node->depth
-                      << " (Node Id, Depth): " << node->id << ", " << node->depth << " Bwd: " << bwd_local_err.first
-                      << " Local Error: " << bwd_local_err.second << std::endl;
+            logging->debug("(Output Id, Depth): ", output_node->id, ", ", output_node->depth,
+                           " (Node Id, Depth): ", node->id, ", ", node->depth, " Bwd: ", bwd_local_err.first,
+                           " Local Error: ", bwd_local_err.second);
         }
     }
 
     // Store the evaluatedBwdDerivatives in a file
     std::ofstream bwd_derivatives_file("bwd_derivatives.csv");
     // Output format: Node Id, Depth, Bwd, Local Error
-    bwd_derivatives_file << "Node Id,Depth,Bwd,Local Error" << std::endl;
-    for (auto& node_bwd_derivatives : evaluatedBwdDerivatives) {
+    bwd_derivatives_file << "Node Id,Depth,Bwd,Local Error";
+    for (const auto& node_bwd_derivatives : evaluatedBwdDerivatives) {
         Node* node = node_bwd_derivatives.first;
-        for (auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
+        for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
             Node* output_node = node_output_bwd_derivative.first;
             std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
             bwd_derivatives_file << node->id << "," << node->depth << "," << bwd_local_err.first << ","
-                                 << bwd_local_err.second << std::endl;
+                                 << bwd_local_err.second;
         }
     }
     bwd_derivatives_file.close();
@@ -543,8 +494,7 @@ bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
             case ibex::ExprNode::NumExprExp:
                 return compareDAGs(((ibex::ExprExp*)&expr1)->expr, ((ibex::ExprExp*)&expr2)->expr);
             default:
-                std::cout << "Unknown node type" << std::endl;
-                exit(1);
+                logging->critical("Unknown node type");
         }
     }
 
@@ -560,7 +510,7 @@ bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
  *
  * @return A set of nodes that are flattened subDAGs
  */
-std::set<Node*> Graph::FlattenSubDAGS(Node* node, unsigned int min_depth, unsigned int max_depth) {
+std::set<Node*> Graph::flattenSubDags(Node* node, unsigned int min_depth, unsigned int max_depth) {
     assert(min_depth <= max_depth && "Invalid bounds for flattening");
 
     std::set<Node*> nodes_to_flatten;
@@ -578,13 +528,13 @@ std::set<Node*> Graph::FlattenSubDAGS(Node* node, unsigned int min_depth, unsign
         case NodeType::VARIABLE:
             break;
         case NodeType::UNARY_OP:
-            if (((UnaryOp*)node)->Operand->depth >= min_depth && ((UnaryOp*)node)->Operand->depth <= max_depth) {
-                nodes_to_flatten.insert(((UnaryOp*)node)->Operand);
+            if (((UnaryOp*)node)->operand->depth >= min_depth && ((UnaryOp*)node)->operand->depth <= max_depth) {
+                nodes_to_flatten.insert(((UnaryOp*)node)->operand);
             }
-            if (((UnaryOp*)node)->Operand->depth > min_depth) {
+            if (((UnaryOp*)node)->operand->depth > min_depth) {
                 std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               FlattenSubDAGS(((UnaryOp*)node)->Operand, min_depth, max_depth).begin(),
-                               FlattenSubDAGS(((UnaryOp*)node)->Operand, min_depth, max_depth).end(),
+                               flattenSubDags(((UnaryOp*)node)->operand, min_depth, max_depth).begin(),
+                               flattenSubDags(((UnaryOp*)node)->operand, min_depth, max_depth).end(),
                                std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             break;
@@ -599,14 +549,14 @@ std::set<Node*> Graph::FlattenSubDAGS(Node* node, unsigned int min_depth, unsign
             }
             if (((BinaryOp*)node)->leftOperand->depth > min_depth) {
                 std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               FlattenSubDAGS(((BinaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
-                               FlattenSubDAGS(((BinaryOp*)node)->leftOperand, min_depth, max_depth).end(),
+                               flattenSubDags(((BinaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
+                               flattenSubDags(((BinaryOp*)node)->leftOperand, min_depth, max_depth).end(),
                                std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             if (((BinaryOp*)node)->rightOperand->depth > min_depth) {
                 std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               FlattenSubDAGS(((BinaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
-                               FlattenSubDAGS(((BinaryOp*)node)->rightOperand, min_depth, max_depth).end(),
+                               flattenSubDags(((BinaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
+                               flattenSubDags(((BinaryOp*)node)->rightOperand, min_depth, max_depth).end(),
                                std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             break;
@@ -625,26 +575,25 @@ std::set<Node*> Graph::FlattenSubDAGS(Node* node, unsigned int min_depth, unsign
             }
             if (((TernaryOp*)node)->leftOperand->depth > min_depth) {
                 std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               FlattenSubDAGS(((TernaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
-                               FlattenSubDAGS(((TernaryOp*)node)->leftOperand, min_depth, max_depth).end(),
+                               flattenSubDags(((TernaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
+                               flattenSubDags(((TernaryOp*)node)->leftOperand, min_depth, max_depth).end(),
                                std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             if (((TernaryOp*)node)->middleOperand->depth > min_depth) {
                 std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               FlattenSubDAGS(((TernaryOp*)node)->middleOperand, min_depth, max_depth).begin(),
-                               FlattenSubDAGS(((TernaryOp*)node)->middleOperand, min_depth, max_depth).end(),
+                               flattenSubDags(((TernaryOp*)node)->middleOperand, min_depth, max_depth).begin(),
+                               flattenSubDags(((TernaryOp*)node)->middleOperand, min_depth, max_depth).end(),
                                std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             if (((TernaryOp*)node)->rightOperand->depth > min_depth) {
                 std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               FlattenSubDAGS(((TernaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
-                               FlattenSubDAGS(((TernaryOp*)node)->rightOperand, min_depth, max_depth).end(),
+                               flattenSubDags(((TernaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
+                               flattenSubDags(((TernaryOp*)node)->rightOperand, min_depth, max_depth).end(),
                                std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             break;
         default:
-            std::cout << "Unknown node type" << std::endl;
-            exit(1);
+            logging->critical("Unknown node type");
     }
 
     return {};
@@ -659,7 +608,7 @@ std::set<Node*> Graph::FlattenSubDAGS(Node* node, unsigned int min_depth, unsign
  *
  * @return A set of nodes that are common to all nodes in node's children
  */
-std::set<Node*> Graph::FindCommonNodes(Node* node, unsigned int min_depth, unsigned int max_depth) {
+std::set<Node*> Graph::findCommonNodes(Node* node, unsigned int min_depth, unsigned int max_depth) {
     std::set<Node*> common_nodes;
 
     // Create a list of flattened subDAGs of children of node
@@ -676,33 +625,25 @@ std::set<Node*> Graph::FindCommonNodes(Node* node, unsigned int min_depth, unsig
         case NodeType::VARIABLE:
             break;
         case NodeType::UNARY_OP:
-            flattened_subDAGs.push_back(FlattenSubDAGS(((UnaryOp*)node)->Operand, min_depth, max_depth));
+            flattened_subDAGs.push_back(flattenSubDags(((UnaryOp*)node)->operand, min_depth, max_depth));
             break;
         case NodeType::BINARY_OP:
-            flattened_subDAGs.push_back(FlattenSubDAGS(((BinaryOp*)node)->leftOperand, min_depth, max_depth));
-            flattened_subDAGs.push_back(FlattenSubDAGS(((BinaryOp*)node)->rightOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(flattenSubDags(((BinaryOp*)node)->leftOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(flattenSubDags(((BinaryOp*)node)->rightOperand, min_depth, max_depth));
             break;
         case NodeType::TERNARY_OP:
-            flattened_subDAGs.push_back(FlattenSubDAGS(((TernaryOp*)node)->leftOperand, min_depth, max_depth));
-            flattened_subDAGs.push_back(FlattenSubDAGS(((TernaryOp*)node)->middleOperand, min_depth, max_depth));
-            flattened_subDAGs.push_back(FlattenSubDAGS(((TernaryOp*)node)->rightOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(flattenSubDags(((TernaryOp*)node)->leftOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(flattenSubDags(((TernaryOp*)node)->middleOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(flattenSubDags(((TernaryOp*)node)->rightOperand, min_depth, max_depth));
             break;
         default:
-            std::cout << "Unknown node type" << std::endl;
-            exit(1);
+            logging->critical("Unknown node type");
     }
 
     flattened_subDAGs.push_back(std::set<Node*>({node}));
 
-    //  std::cout << "Flattened SubDAGs:" << std::endl;
-    //  for (auto &flattened_subDAG : flattened_subDAGs) {
-    //    for (auto &node : flattened_subDAG) {
-    //      std::cout << "\t" << *node << std::endl;
-    //    }
-    //  }
-
     // Find common nodes
-    for (auto& flattened_subDAG : flattened_subDAGs) {
+    for (const auto& flattened_subDAG : flattened_subDAGs) {
         if (common_nodes.empty()) {
             common_nodes = flattened_subDAG;
         } else {
@@ -725,24 +666,24 @@ std::set<Node*> Graph::FindCommonNodes(Node* node, unsigned int min_depth, unsig
  *
  * @return A set of nodes that are common to all nodes in nodes
  */
-std::map<Node*, std::set<Node*>> Graph::FindCommonDependencies(std::set<Node*> nodes, unsigned int min_depth,
+std::map<Node*, std::set<Node*>> Graph::findCommonDependencies(std::set<Node*> nodes, unsigned int min_depth,
                                                                unsigned int max_depth) {
     std::map<Node*, std::set<Node*>> common_dependencies;
 
     // Populate common_dependencies with common_nodes from each node's common node list
-    for (auto& node : nodes) {
-        std::set<Node*> initial_dependence_list = FindCommonNodes(node, min_depth, max_depth);
+    for (const auto& node : nodes) {
+        std::set<Node*> initial_dependence_list = findCommonNodes(node, min_depth, max_depth);
         std::vector<std::set<Node*>> common_nodes_list;
 
         // Populate common_nodes_list with common_nodes from each node's common node list
-        for (auto& node : initial_dependence_list) {
-            common_nodes_list.push_back(FindCommonNodes(node, min_depth, max_depth));
+        for (const auto& node : initial_dependence_list) {
+            common_nodes_list.push_back(findCommonNodes(node, min_depth, max_depth));
         }
 
         std::set<Node*> redundant_nodes;
 
         // Unionize common_nodes_list into redundant_nodes
-        for (auto& common_nodes : common_nodes_list) {
+        for (const auto& common_nodes : common_nodes_list) {
             std::set_union(redundant_nodes.begin(), redundant_nodes.end(), common_nodes.begin(), common_nodes.end(),
                            std::inserter(redundant_nodes, redundant_nodes.end()));
         }
@@ -769,7 +710,7 @@ std::map<Node*, std::set<Node*>> Graph::FindCommonDependencies(std::set<Node*> n
  *
  * @return A vector of op operation nodes within max_depth
  */
-std::set<Node*> Graph::FilterNodesWithOperationWithinDepth(Node::Op op, unsigned int max_depth) {
+std::set<Node*> Graph::filterNodesWithOperationWithinDepth(Node::Op op, unsigned int max_depth) {
     std::set<Node*> nodes_with_op;
 
     std::copy_if(nodes.begin(), nodes.end(), std::inserter(nodes_with_op, nodes_with_op.end()),
@@ -791,63 +732,40 @@ std::set<Node*> Graph::FilterNodesWithOperationWithinDepth(Node::Op op, unsigned
  *
  * @return A vector of nodes that are candidates for abstraction
  */
-std::set<Node*> Graph::FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound,
+std::set<Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound,
                                                       unsigned int upper_bound) {
     assert(lower_bound <= upper_bound && upper_bound <= max_depth && "Invalid bounds for abstraction");
 
-    std::set<Node*> nodes_with_op = FilterNodesWithOperationWithinDepth(Node::Op::DIV, max_depth);
+    std::set<Node*> nodes_with_op = filterNodesWithOperationWithinDepth(Node::Op::DIV, max_depth);
 
     // Print nodes with op
-    if (debugLevel > 4) {
-        std::cout << "Nodes with op:" << std::endl;
-        for (auto& node : nodes_with_op) { std::cout << "\t" << *node << std::endl; }
-    }
-    if (logLevel > 4) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Nodes with op:" << std::endl;
-        for (auto& node : nodes_with_op) { log.logFile << "\t" << *node << std::endl; }
-    }
+    logging->debug("Nodes with op:");
+    for (const auto& node : nodes_with_op) { logging->debug("    ", *node); }
 
-    std::map<Node*, std::set<Node*>> common_dependencies = FindCommonDependencies(nodes_with_op, lower_bound,
+    std::map<Node*, std::set<Node*>> common_dependencies = findCommonDependencies(nodes_with_op, lower_bound,
                                                                                   upper_bound);
 
     // Print common dependencies
-    if (debugLevel > 4) {
-        std::cout << "Common dependencies:" << std::endl;
-        for (auto& common_dependency : common_dependencies) {
-            std::cout << "\t" << *common_dependency.first << " : ";
-            for (auto& node : common_dependency.second) { std::cout << *node << " "; }
-            std::cout << std::endl;
-        }
-    }
-    if (logLevel > 4) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Common dependencies:" << std::endl;
-        for (auto& common_dependency : common_dependencies) {
-            log.logFile << "\t" << *common_dependency.first << " : ";
-            for (auto& node : common_dependency.second) { log.logFile << *node << " "; }
-            log.logFile << std::endl;
-        }
+    logging->debug("Common dependencies:");
+    for (const auto& common_dependency : common_dependencies) {
+        logging->debug("    ", *common_dependency.first, ":");
+        for (const auto& node : common_dependency.second) { logging->debug("        ", *node); }
     }
 
     // Unionize the node set from common_dependencies
     std::set<Node*> common_dependencies_set;
-    for (auto& common_dependency : common_dependencies) {
+    for (const auto& common_dependency : common_dependencies) {
         std::set_union(common_dependencies_set.begin(), common_dependencies_set.end(), common_dependency.second.begin(),
                        common_dependency.second.end(),
                        std::inserter(common_dependencies_set, common_dependencies_set.end()));
     }
 
     if (common_dependencies_set.empty()) {
-        if (debugLevel > 4) { std::cout << "Empty dependence set! Generating candidates!" << std::endl; }
-        if (logLevel > 4) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Empty dependence set! Generating candidates!" << std::endl;
-        }
+        logging->debug("Empty dependence set! Generating candidates!");
 
         // Get all nodes from depthTable within the depth window with node type UnaryOp, BinaryOp,
         // or TernaryOp
-        for (auto& depth_table : depthTable) {
+        for (const auto& depth_table : depthTable) {
             if (depth_table.first >= lower_bound && depth_table.first <= upper_bound) {
                 std::set_union(common_dependencies_set.begin(), common_dependencies_set.end(),
                                depth_table.second.begin(), depth_table.second.end(),
@@ -857,27 +775,20 @@ std::set<Node*> Graph::FilterCandidatesForAbstraction(unsigned int max_depth, un
     } else {
         unsigned int local_max_depth = -1;
         // Get the greatest depth from nodes in common_dependencies_set
-        for (auto& node : common_dependencies_set) {
+        for (const auto& node : common_dependencies_set) {
             if (node->depth > local_max_depth) { local_max_depth = node->depth; }
         }
 
         // Get nodes from common_dependencies_set with depth equal to local_max_depth
         std::set<Node*> common_dependencies_set;
-        for (auto& node : common_dependencies_set) {
+        for (const auto& node : common_dependencies_set) {
             if (node->depth == local_max_depth) { common_dependencies_set.insert(node); }
         }
     }
 
     // Print common dependencies set
-    if (debugLevel > 4) {
-        std::cout << "Common dependencies set:" << std::endl;
-        for (auto& node : common_dependencies_set) { std::cout << "\t" << *node << std::endl; }
-    }
-    if (logLevel > 4) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Common dependencies set:" << std::endl;
-        for (auto& node : common_dependencies_set) { log.logFile << "\t" << *node << std::endl; }
-    }
+    logging->debug("Common dependencies set:");
+    for (const auto& node : common_dependencies_set) logging->debug("    ", *node);
 
     return common_dependencies_set;
 }
@@ -887,18 +798,14 @@ Graph::selectNodesForAbstraction(unsigned int max_depth, unsigned int bound_min_
     assert(bound_min_depth <= bound_max_depth && bound_max_depth <= max_depth && "Invalid bounds for abstraction");
     std::set<Node*> nodes_to_abstract;
 
-    if (debugLevel > 2) { std::cout << "Selecting nodes for abstraction..." << std::endl; }
-    if (logLevel > 2) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Selecting nodes for abstraction..." << std::endl;
-    }
+    logging->debug("Selecting nodes for abstraction...");
 
     // Abstraction window is just 1 level wide
     if (bound_min_depth == bound_max_depth && bound_max_depth <= max_depth) {
         return std::make_pair(bound_min_depth, depthTable[bound_min_depth]);
     }
 
-    std::set<Node*> initialCandidateList = FilterCandidatesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
+    std::set<Node*> initialCandidateList = filterCandidatesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
 
     unsigned int local_max_depth = bound_max_depth;
 
@@ -906,20 +813,16 @@ Graph::selectNodesForAbstraction(unsigned int max_depth, unsigned int bound_min_
     // Keep increasing local_max_depth until initialCandidateList is not empty
     while (initialCandidateList.empty() && local_max_depth <= max_depth) {
         local_max_depth += 5;
-        initialCandidateList = FilterCandidatesForAbstraction(max_depth, bound_min_depth, local_max_depth);
+        initialCandidateList = filterCandidatesForAbstraction(max_depth, bound_min_depth, local_max_depth);
     }
 
     if (initialCandidateList.empty()) {
-        if (debugLevel > 2) { std::cout << "No candidates found!" << std::endl; }
-        if (logLevel > 2) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "No candidates found!" << std::endl;
-        }
+        logging->debug("No candidates found!");
         return std::make_pair(-1, std::set<Node*>());
     } else {
         local_max_depth = 0;
         // Set local_max_depth to the greatest depth of nodes in initialCandidateList
-        for (auto& node : initialCandidateList) {
+        for (const auto& node : initialCandidateList) {
             if (node->depth > local_max_depth) { local_max_depth = node->depth; }
         }
 
@@ -931,31 +834,20 @@ Graph::selectNodesForAbstraction(unsigned int max_depth, unsigned int bound_min_
         std::map<Node*, double> cost_dict;
 
         // Compute g(x, f(x)) for each node in initialCandidateList
-        for (auto& node : initialCandidateList) { cost_dict[node] = g(node, f(node)); }
+        for (const auto& node : initialCandidateList) { cost_dict[node] = g(node, f(node)); }
 
         // Sum cost of all nodes with same depth
         std::map<int, double> cost_sum_dict;
-        for (auto& node : initialCandidateList) { cost_sum_dict[node->depth] += cost_dict[node]; }
+        for (const auto& node : initialCandidateList) { cost_sum_dict[node->depth] += cost_dict[node]; }
 
         // Print cost_sum_dict
-        if (debugLevel > 3) {
-            std::cout << "Cost Sum Dict:" << std::endl;
-            for (auto& cost_sum : cost_sum_dict) {
-                std::cout << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
-            }
-        }
-        if (logLevel > 3) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Cost Sum Dict:" << std::endl;
-            for (auto& cost_sum : cost_sum_dict) {
-                log.logFile << "\t" << cost_sum.first << " : " << cost_sum.second << std::endl;
-            }
-        }
+        logging->debug("Cost Sum Dict:");
+        for (const auto& cost_sum : cost_sum_dict) { logging->debug("\t", cost_sum.first, " : ", cost_sum.second); }
 
         // Get the depth with the greatest cost
         int abstraction_depth = -1;
         double greatest_cost = -1;
-        for (auto& cost_sum : cost_sum_dict) {
+        for (const auto& cost_sum : cost_sum_dict) {
             if (cost_sum.second > greatest_cost) {
                 greatest_cost = cost_sum.second;
                 abstraction_depth = cost_sum.first;
@@ -966,15 +858,8 @@ Graph::selectNodesForAbstraction(unsigned int max_depth, unsigned int bound_min_
         auto candidate_nodes = depthTable[abstraction_depth];
 
         // Print max depth and abstraction depth
-        if (debugLevel > 2) {
-            std::cout << "Max Depth: " << max_depth << std::endl;
-            std::cout << "Abstraction Depth: " << abstraction_depth << std::endl;
-        }
-        if (logLevel > 2) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Max Depth: " << max_depth << std::endl;
-            log.logFile << "Abstraction Depth: " << abstraction_depth << std::endl;
-        }
+        logging->debug("Max Depth: ", max_depth);
+        logging->debug("Abstraction Depth: ", abstraction_depth);
 
         return std::make_pair(abstraction_depth, candidate_nodes);
     }
@@ -986,37 +871,21 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
     unsigned int max_depth = depthTable.rbegin()->first;
 
     unsigned int abstraction_count = 1;
-    if (debugLevel > 0) {
-        std::cout << "Performing abstraction with window [" << bound_min_depth << ", " << bound_max_depth << "]"
-                  << std::endl;
-    }
-    if (logLevel > 0) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Performing abstraction with window [" << bound_min_depth << ", " << bound_max_depth << "]"
-                    << std::endl;
-    }
+
+    logging->debug("Performing abstraction with window [", bound_min_depth, ", ", bound_max_depth, "]");
+
 
     while (max_depth >= bound_max_depth && max_depth >= bound_min_depth) {
         auto [abstraction_depth, candidate_nodes] = selectNodesForAbstraction(max_depth, bound_min_depth,
                                                                               bound_max_depth);
 
-        if (debugLevel > 1) {
-            std::cout << "Abstraction count: " << abstraction_count << std::endl;
+        logging->debug("Abstraction count: ", abstraction_count);
 
-            if (debugLevel > 4 && !candidate_nodes.empty()) {
-                // Print candidate nodes
-                std::cout << "Candidate Nodes:" << std::endl;
-                for (auto& node : candidate_nodes) { std::cout << "\t" << *node << std::endl; }
-            }
-        }
-        if (logLevel > 1) {
-            log.logFile << "Abstraction count: " << abstraction_count << std::endl;
-
-            if (logLevel > 3 && !candidate_nodes.empty()) {
-                // Print candidate nodes
-                log.logFile << "Candidate Nodes:" << std::endl;
-                for (auto& node : candidate_nodes) { log.logFile << "\t" << *node << std::endl; }
-            }
+        if (!candidate_nodes.empty()) {
+            // Print candidate nodes
+            logging->debug("Abstraction count: ", abstraction_count);
+            logging->debug("Candidate Nodes:");
+            for (const auto& node : candidate_nodes) { logging->debug("    ", *node); }
         }
 
         if (!candidate_nodes.empty()) {
@@ -1027,14 +896,14 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
             abstractionMetrics[abstraction_count]["num_candidate_nodes"] = candidate_nodes.size();
 
             // Modify the AST
-            SimplifyWithAbstraction(candidate_nodes, max_depth);
+            simplifyWithAbstraction(candidate_nodes, max_depth);
 
             max_depth = depthTable.rbegin()->first;
 
             // The expressions have been built to this point, so we can query the IBEX expression
             // for op counts
             unsigned int max_operators_count = 1000;
-            for (auto& node : candidate_nodes) {
+            for (const auto& node : candidate_nodes) {
                 unsigned int op_count = node->getExprNode()->size;
                 if (op_count < max_operators_count) { max_operators_count = op_count; }
             }
@@ -1056,229 +925,118 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
                 assert(bound_max_depth >= bound_min_depth);
             }
         } else {
-            if (debugLevel > 2) { std::cout << "No candidates found!" << std::endl; }
-            if (logLevel > 2) {
-                assert(log.logFile.is_open() && "Log file not open");
-                log.logFile << "No candidates found!" << std::endl;
-            }
+            logging->debug("No candidates found!");
         }
     }
 
-    if (debugLevel > 0) { std::cout << "Abstraction complete!" << std::endl; }
-    if (logLevel > 0) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Abstraction complete!" << std::endl;
-    }
+    logging->debug("Abstraction complete!");
 }
 
-void Graph::FindOutputExtrema(const std::set<Node*>& candidate_nodes) {
-    if (debugLevel > 1) {
-        std::cout << "Finding output extremas...";
-        if (debugLevel > 2) { std::cout << " for " << candidate_nodes.size() << " nodes" << std::endl; }
-        std::cout << std::endl;
-    }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Finding output extremas...";
-        if (logLevel > 2) { log.logFile << " for " << candidate_nodes.size() << " nodes" << std::endl; }
-        log.logFile << std::endl;
-    }
+void Graph::findOutputExtrema(const std::set<Node*>& candidate_nodes) {
+    logging->debug("Finding output extremas for ", candidate_nodes.size(), " nodes");
 
-    //  if(debugLevel > 4) {
-    //    for (auto &node: candidate_nodes) {
-    //      std::cout << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
-    //    }
-    //  }
-    //  if(logLevel > 4) {
-    //    for (auto &node: candidate_nodes) {
-    //      assert(log.logFile.is_open() && "Log file not open");
-    //      log.logFile << ibexInterface->dumpFunction(node->getExprNode()) << std::endl;
-    //    }
-    //  }
 
     std::map<Node*, OptResult> max;
-    for (auto& node : candidate_nodes) {
-        if (debugLevel > 3) {
-            std::cout << "Finding max for: " << node->id << std::endl;
-            if (debugLevel > 4) { std::cout << "Output Expression: " << *node->getExprNode() << std::endl; }
-        }
-        if (logLevel > 3) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Finding max for: " << node->id << std::endl;
-            if (logLevel > 4) { log.logFile << "Output Expression: " << *node->getExprNode() << std::endl; }
-        }
-        max[node] = ibexInterface->FindAbsMax(*node->getExprNode());
+    for (const auto& node : candidate_nodes) {
+        logging->debug("Finding max for '", node->id, "'");
+        logging->debug("Output Expression computed for node ", node->id);
+        max[node] = ibexInterface->findAbsMax(*node->getExprNode());
 
         // print the output interval - Max have to be flipped since we find the min of the negative
         // of the function
-        if (debugLevel > 3) { std::cout << "Max Interval: " << -max[node].result << std::endl; }
-        if (logLevel > 3) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Max Interval: " << -max[node].result << std::endl;
-        }
+        logging->debug("Max Interval: ", -max[node].result);
     }
 
-    for (auto& node : candidate_nodes) {
-        if (debugLevel > 4) { std::cout << "Output Extrema for: " << *node->getExprNode() << std::endl; }
-        if (logLevel > 4) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Output Extrema for: " << *node->getExprNode() << std::endl;
-        }
+    for (const auto& node : candidate_nodes) {
+        logging->debug("Output Extrema computed for node ", node->id);
+
         errorAnalysisResults[node].outputExtrema = -max[node].result;
         errorAnalysisResults[node].numOptimizationCalls += 1 + errorAnalyzer->nodeNumOptCallsMap[node];
 
-        if (debugLevel > 4) {
-            std::cout << "Output Extrema: " << errorAnalysisResults[node].outputExtrema << std::endl;
-        }
-        if (logLevel > 4) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Output Extrema: " << errorAnalysisResults[node].outputExtrema << std::endl;
-        }
+
+        logging->debug("Output Extrema: ", errorAnalysisResults[node].outputExtrema);
     }
 
-    if (debugLevel > 1) { std::cout << "Output extremas found!" << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Output extremas found!" << std::endl;
-    }
+    logging->debug("Output extremas found!");
 }
 
-void Graph::FindErrorExtrema(const std::set<Node*>& candidate_nodes) {
-    if (debugLevel > 1) { std::cout << "Finding error extrema..." << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Finding error extremas..." << std::endl;
-    }
+void Graph::findErrorExtrema(const std::set<Node*>& candidate_nodes) {
+    logging->debug("Finding error extrema...");
 
     setupDerivativeComputation(candidate_nodes);
 
     errorAnalyzer->derivativeComputingDriver();
 
-    if (concretize_error_components) { concretizeErrorComponents(); }
+    if (concretizeErrorComps) { concretizeErrorComponents(); }
 
     errorAnalyzer->errorComputingDriver(candidate_nodes, ibexInterface);
 
-    if (collect_error_component_data) { examineBwdDerivativeAndLocalError(); }
+    if (collectErrorCompData) { examineBwdDerivativeAndLocalError(); }
 
-    //  if(!validationFile.empty()) {
-    //    std::cout << "Comparing Error expression with validation file: " << validationFile <<
-    //    std::endl; try {
-    //      ibex::Function f = ibexInterface->parseIbexFunctionFromFile(validationFile.c_str());
-    //      std::cout << "Function: " << f << std::endl;
-    ////      compareDAGs(f.expr(), ibexInterface->getSystem()->goal->expr());
-    //    } catch(ibex::SyntaxError& e) {
-    //      std::cout << e << std::endl;
-    //    }
-    //  }
-
-    if (debugLevel > 2) { std::cout << "Solving for " << candidate_nodes.size() << " nodes" << std::endl; }
-
-    if (logLevel > 2) { log.logFile << "Solving for " << candidate_nodes.size() << " nodes" << std::endl; }
+    logging->debug("Solving for ", candidate_nodes.size(), " nodes");
 
 
     std::map<Node*, OptResult> max;
-    for (auto& node : candidate_nodes) {
-        if (debugLevel > 3) {
-            std::cout << "Finding max for: " << node->id << std::endl;
-            if (debugLevel > 4) {
-                std::cout << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
-            }
-        }
-        if (logLevel > 3) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Finding max for: " << node->id << std::endl;
-            if (logLevel > 4) {
-                log.logFile << "Error Expression: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
-            }
-        }
-        max[node] = ibexInterface->FindAbsMax(*errorAnalyzer->ErrAccumulator[node]);
+    for (const auto& node : candidate_nodes) {
+        logging->debug("Finding max for: ", node->id);
+
+        logging->debug("Error Expression computed for node ", node->id);
+
+        max[node] = ibexInterface->findAbsMax(*errorAnalyzer->errAccumulator[node]);
 
         // print the error interval - Max have to be flipped since we find the min of the negative
         // of the function
-        if (debugLevel > 3) { std::cout << "Max Interval: " << -max[node].result << std::endl; }
-        if (logLevel > 3) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Max Interval: " << -max[node].result << std::endl;
-        }
+        logging->debug("Max Interval: ", -max[node].result);
     }
 
-    for (auto& node : candidate_nodes) {
-        if (debugLevel > 4) { std::cout << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl; }
-        if (logLevel > 4) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Error Extrema for: " << *errorAnalyzer->ErrAccumulator[node] << std::endl;
-        }
+    for (const auto& node : candidate_nodes) {
+        logging->debug("Error Extrema computed for node ", node->id);
+
         errorAnalysisResults[node].errorExtrema = ibex::Interval(-(max[node].result) * pow(2, -53));
 
-        errorAnalysisResults[node].OptPoint = max[node].optimumPoint;
+        errorAnalysisResults[node].optPoint = max[node].optimumPoint;
         errorAnalysisResults[node].totalOptimizationTime += max[node].optimizationTime;
         errorAnalysisResults[node].numOptimizationCalls += 1;
 
-        if (debugLevel > 4) {
-            std::cout << "Error Extrema: " << errorAnalysisResults[node].errorExtrema << " at "
-                      << errorAnalysisResults[node].OptPoint << std::endl;
-        }
-        if (logLevel > 4) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Error Extrema: " << errorAnalysisResults[node].errorExtrema << " at "
-                        << errorAnalysisResults[node].OptPoint << std::endl;
-        }
+
+        logging->debug("Error Extrema: ", errorAnalysisResults[node].errorExtrema, " at ",
+                       errorAnalysisResults[node].optPoint);
     }
 
-    if (debugLevel > 1) { std::cout << "Error extremas found!" << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Error extremas found!" << std::endl;
-    }
+    logging->debug("Error extremas found!");
 }
 
-std::map<Node*, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::set<Node*>& candidate_nodes,
+std::map<Node*, ErrorAnalysisResult> Graph::simplifyWithAbstraction(const std::set<Node*>& candidate_nodes,
                                                                     unsigned int max_depth, bool isFinal) {
-    if (debugLevel > 0 && isFinal) { std::cout << "Final computation..." << std::endl; }
-    if (logLevel > 0 && isFinal) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Final computation..." << std::endl;
-    }
+    logging->debug("Final computation...");
+
 
     ibexInterface->setInputIntervals(inputs);
     generateIbexSymbols();
     ibexInterface->setVariables(inputs, symbolTables[currentScope]->table);
     generateExprDriver(candidate_nodes);
 
-    FindErrorExtrema(candidate_nodes);
-    FindOutputExtrema(candidate_nodes);
+    findErrorExtrema(candidate_nodes);
+    findOutputExtrema(candidate_nodes);
 
     if (isFinal) {
-        if (debugLevel > 0) { std::cout << "Final Computation complete!" << std::endl; }
-        if (logLevel > 0) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Final Computation complete!" << std::endl;
-        }
+        logging->debug("Final Computation complete!");
+
         return errorAnalysisResults;
     }
 
-    if (debugLevel > 1) {
-        std::cout << "Abstracting nodes ";
-        for (auto& node : candidate_nodes) { std::cout << node->id << ", "; }
-        std::cout << std::endl;
-    }
-
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Abstracting nodes ";
-        for (auto& node : candidate_nodes) { log.logFile << node->id << ", "; }
-        log.logFile << std::endl;
-    }
+    logging->debug("Abstracting nodes");
+    for (const auto& node : candidate_nodes) { logging->debug("    ", node->id); }
 
     std::map<Node*, std::vector<ibex::Interval>> results;
 
-    for (auto& node : candidate_nodes) {
+    for (const auto& node : candidate_nodes) {
         results[node].push_back(errorAnalysisResults[node].outputExtrema);
         results[node].push_back(errorAnalysisResults[node].errorExtrema * pow(2, +53));
     }
 
-    AbstractNodes(results);
-    RebuildAST();
+    abstractNodes(results);
+    rebuildAst();
 
     return errorAnalysisResults;
 }
@@ -1290,11 +1048,11 @@ std::map<Node*, ErrorAnalysisResult> Graph::SimplifyWithAbstraction(const std::s
  *
  * @return A list of nodes that are common to all nodes in the probe list
  */
-std::vector<Node*> Graph::ModProbeList() {
+std::vector<Node*> Graph::modProbeList() {
     std::vector<Node*> probe_list;
 
     // Get nodes from symbol table corresponding to the output variables
-    for (auto& output : outputs) { probe_list.push_back(symbolTables[currentScope]->table[output]); }
+    for (const auto& output : outputs) { probe_list.push_back(symbolTables[currentScope]->table[output]); }
 
     return probe_list;
 }
@@ -1304,16 +1062,13 @@ std::vector<Node*> Graph::ModProbeList() {
  *
  * @param results A map of nodes to their corresponding intervals
  */
-void Graph::AbstractNodes(std::map<Node*, std::vector<ibex::Interval>> results) {
-    if (debugLevel > 1) { std::cout << "Abstracting nodes..." << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Abstracting nodes..." << std::endl;
-    }
+void Graph::abstractNodes(std::map<Node*, std::vector<ibex::Interval>> results) {
+    logging->debug("Abstracting nodes...");
+
 
     // Turn node in results into VariableNodes and create corresponding FreeVariable nodes
-    for (auto& singleResult : results) {
-        auto node = singleResult.first;
+    for (const auto& singleResult : results) {
+        auto* node = singleResult.first;
 
         VariableNode* converted_node;
 
@@ -1334,97 +1089,59 @@ void Graph::AbstractNodes(std::map<Node*, std::vector<ibex::Interval>> results) 
         free_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(singleResult.second[1].ub()));
         free_node->setRounding(converted_node->getRounding());
 
-        if (debugLevel > 1) {
-            std::cout << "Converted Node " << node->id << " --> " << *converted_node->variable << " ("
-                      << converted_node->id << ")" << std::endl;
-            if (debugLevel > 2) {
-                std::cout << *singleResult.first << " : "
-                          << "\n\tOutput: " << singleResult.second[0] << ","
-                          << "\n\tError: " << singleResult.second[1] << ","
-                          << "\n\tNumber of Optimizer Calls: " << errorAnalysisResults[node].numOptimizationCalls
-                          << std::endl;
-            }
-        }
-        if (logLevel > 1) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Converted Node " << node->id << " --> " << *converted_node->variable << " ("
-                        << converted_node->id << ")" << std::endl;
-            if (logLevel > 2) {
-                log.logFile << *singleResult.first << " : "
-                            << "\n\tOutput: " << singleResult.second[0] << ","
-                            << "\n\tError: " << singleResult.second[1] << ","
-                            << "\n\tNumber of Optimizer Calls: " << errorAnalysisResults[node].numOptimizationCalls
-                            << std::endl;
-            }
-        }
+
+        logging->debug("Converted Node ", node->id, " --> variable (", converted_node->id, ")");
+
+        logging->debug("Result for node ", node->id, " : Output: ", singleResult.second[0], ", Error: ", singleResult.second[1], ", Optimizer Calls: ", errorAnalysisResults[node].numOptimizationCalls);
     }
 
-    if (debugLevel > 1) { std::cout << "Nodes abstracted!" << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Nodes abstracted!" << std::endl;
-    }
+    logging->debug("Nodes abstracted!");
 }
 
 /*
  * Rebuilds the AST post abstraction
  */
-void Graph::RebuildAST() {
-    if (debugLevel > 1) { std::cout << "Rebuilding AST..." << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Rebuilding AST..." << std::endl;
-    }
+void Graph::rebuildAst() {
+    logging->debug("Rebuilding AST...");
 
-    std::vector<Node*> probe_list = ModProbeList();
+
+    std::vector<Node*> probe_list = modProbeList();
 
     std::map<Node*, unsigned int> completed;
 
     // Recursively call RebuildASTNode on nodes in probe_list if not already completed
-    for (auto& node : probe_list) {
-        if (completed.find(node) == completed.end()) { RebuildASTNode(node, completed); }
+    for (const auto& node : probe_list) {
+        if (completed.find(node) == completed.end()) rebuildAstNode(node, completed);
     }
 
     // Get max depth among nodes in probe_list
     int max_depth = -1;
-    for (auto& node : probe_list) {
-        if (node->depth > max_depth) { max_depth = node->depth; }
-    }
+    for (const auto& node : probe_list) max_depth = std::max(node->depth, max_depth);
 
     // Get total number of nodes before
     unsigned int num_nodes = 0;
-    for (auto& depth_table : depthTable) { num_nodes += depth_table.second.size(); }
+    for (const auto& depth_table : depthTable) { num_nodes += depth_table.second.size(); }
 
     // Print num_nodes before
-    if (debugLevel > 2) { std::cout << "Num nodes before: " << num_nodes << std::endl; }
-    if (logLevel > 2) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Num nodes before: " << num_nodes << std::endl;
-    }
+    logging->debug("Num nodes before: ", num_nodes);
+
 
     // Modify depthTable using the completed map
     depthTable.clear();
-    for (auto& node : completed) { depthTable[node.second].insert(node.first); }
+    for (const auto& node : completed) { depthTable[node.second].insert(node.first); }
 
     // Get total number of nodes after
     num_nodes = 0;
-    for (auto& depth_table : depthTable) { num_nodes += depth_table.second.size(); }
+    for (const auto& depth_table : depthTable) { num_nodes += depth_table.second.size(); }
 
     // Print num_nodes after
-    if (debugLevel > 2) { std::cout << "Num nodes after: " << num_nodes << std::endl; }
-    if (logLevel > 2) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "Num nodes after: " << num_nodes << std::endl;
-    }
+    logging->debug("Num nodes after: ", num_nodes);
 
-    if (debugLevel > 1) { std::cout << "AST rebuilt!" << std::endl; }
-    if (logLevel > 1) {
-        assert(log.logFile.is_open() && "Log file not open");
-        log.logFile << "AST rebuilt!" << std::endl;
-    }
+
+    logging->debug("AST rebuilt!");
 }
 
-void Graph::RebuildASTNode(Node* node, std::map<Node*, unsigned int>& completed) {
+void Graph::rebuildAstNode(Node* node, std::map<Node*, unsigned int>& completed) {
     // Recursively call RebuildASTNode on children of node if not already completed
     switch (node->type) {
         case NodeType::INTEGER:
@@ -1436,42 +1153,41 @@ void Graph::RebuildASTNode(Node* node, std::map<Node*, unsigned int>& completed)
             break;
         case NodeType::UNARY_OP:
             if (((UnaryOp*)node)->op != Node::Op::NEG) {
-                if (completed.find(((UnaryOp*)node)->Operand) == completed.end()) {
-                    RebuildASTNode(((UnaryOp*)node)->Operand, completed);
+                if (completed.find(((UnaryOp*)node)->operand) == completed.end()) {
+                    rebuildAstNode(((UnaryOp*)node)->operand, completed);
                 }
 
-                node->depth = ((UnaryOp*)node)->Operand->depth + 1;
+                node->depth = ((UnaryOp*)node)->operand->depth + 1;
                 completed[node] = node->depth;
             }
             break;
         case NodeType::BINARY_OP:
             if (completed.find(((BinaryOp*)node)->leftOperand) == completed.end()) {
-                RebuildASTNode(((BinaryOp*)node)->leftOperand, completed);
+                rebuildAstNode(((BinaryOp*)node)->leftOperand, completed);
             }
             if (completed.find(((BinaryOp*)node)->rightOperand) == completed.end()) {
-                RebuildASTNode(((BinaryOp*)node)->rightOperand, completed);
+                rebuildAstNode(((BinaryOp*)node)->rightOperand, completed);
             }
             node->depth = std::max(((BinaryOp*)node)->leftOperand->depth, ((BinaryOp*)node)->rightOperand->depth) + 1;
             completed[node] = node->depth;
             break;
         case NodeType::TERNARY_OP:
             if (completed.find(((TernaryOp*)node)->leftOperand) == completed.end()) {
-                RebuildASTNode(((TernaryOp*)node)->leftOperand, completed);
+                rebuildAstNode(((TernaryOp*)node)->leftOperand, completed);
             }
             if (completed.find(((TernaryOp*)node)->middleOperand) == completed.end()) {
-                RebuildASTNode(((TernaryOp*)node)->middleOperand, completed);
+                rebuildAstNode(((TernaryOp*)node)->middleOperand, completed);
             }
             if (completed.find(((TernaryOp*)node)->rightOperand) == completed.end()) {
-                RebuildASTNode(((TernaryOp*)node)->rightOperand, completed);
+                rebuildAstNode(((TernaryOp*)node)->rightOperand, completed);
             }
-            node->depth = std::max(std::max(((TernaryOp*)node)->leftOperand->depth,
-                                            ((TernaryOp*)node)->middleOperand->depth),
-                                   ((TernaryOp*)node)->rightOperand->depth)
+            node->depth = std::max({((TernaryOp*)node)->leftOperand->depth, ((TernaryOp*)node)->middleOperand->depth,
+                                    ((TernaryOp*)node)->rightOperand->depth})
                         + 1;
             completed[node] = node->depth;
             break;
         default:
-            std::cout << "Unknown node type" << std::endl;
+            logging->debug("Unknown node type");
             break;
     }
 
@@ -1486,31 +1202,22 @@ void Graph::RebuildASTNode(Node* node, std::map<Node*, unsigned int>& completed)
 int Graph::parse(const char& f) {
     yydebug = 0;
     yyin = fopen(&f, "r");
-    if (!yyin) {
-        std::cout << "Bad Input. Non-existant file" << std::endl;
+    if (yyin == nullptr) {
+        logging->debug("Bad Input. Non-existant file");
         return -1;
     }
 
     do {
-        if (debugLevel > 0) { std::cout << "Parsing..." << std::endl; }
-        if (logLevel > 0) {
-            assert(log.logFile.is_open() && "Log file not open");
-            log.logFile << "Parsing..." << std::endl;
-        }
-        createNewSymbolTable();
-        if (yyparse(this)) {
-            std::cout << "Parsing failed" << std::endl;
-            return 1;
-        } else {
-            if (debugLevel > 0) { std::cout << "Parsing successful!" << std::endl; }
-            if (logLevel > 0) {
-                assert(log.logFile.is_open() && "Log file not open");
-                log.logFile << "Parsing successful!" << std::endl;
-            }
-        }
-    } while (!feof(yyin));
+        logging->debug("Parsing...");
 
-    //  std::cout << *graph << std::endl;
+        createNewSymbolTable();
+        if (yyparse(this) != 0) {
+            logging->debug("Parsing failed");
+            return 1;
+        }
+        logging->debug("Parsing successful!");
+
+    } while (feof(yyin) == 0);
 
     return 0;
 }

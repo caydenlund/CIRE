@@ -7,6 +7,7 @@
 #include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/SourceMgr.h>
@@ -15,102 +16,105 @@
 
 #include <cmath>
 #include <iostream>
-#include <llvm/IRReader/IRReader.h>
+#include "cire/interfaces/Logging.h"
 
-// Function to create higher precision shadow instructions from a function to another function
-void createShadowFunction(llvm::Function* srcFunction, llvm::Function* destFunction) {
-    llvm::LLVMContext& context = srcFunction->getContext();
-    llvm::IRBuilder<> builder(context);
+namespace {
+    // Function to create higher precision shadow instructions from a function to another function
+    void createShadowFunction(llvm::Function* srcFunction, llvm::Function* destFunction) {
+        llvm::LLVMContext& context = srcFunction->getContext();
+        llvm::IRBuilder<> builder(context);
 
-    // Create a mapping of arguments from the source function to the destination function
-    llvm::ValueToValueMapTy VMap;
-    for (auto& arg : srcFunction->args()) {
-        llvm::Argument* newArg = &*destFunction->arg_begin() + arg.getArgNo();
-        VMap[&arg] = newArg;
-    }
+        // Create a mapping of arguments from the source function to the destination function
+        llvm::ValueToValueMapTy VMap;
+        for (auto& arg : srcFunction->args()) {
+            llvm::Argument* newArg = &*destFunction->arg_begin() + arg.getArgNo();
+            VMap[&arg] = newArg;
+        }
 
-    // Clone the basic blocks of the source function to the destination function
-    for (auto& srcBlock : *srcFunction) {
-        llvm::BasicBlock* destBlock = llvm::BasicBlock::Create(context, srcBlock.getName(), destFunction);
-        VMap[&srcBlock] = destBlock;
+        // Clone the basic blocks of the source function to the destination function
+        for (auto& srcBlock : *srcFunction) {
+            llvm::BasicBlock* destBlock = llvm::BasicBlock::Create(context, srcBlock.getName(), destFunction);
+            VMap[&srcBlock] = destBlock;
 
 
-        // Clone the instructions of the source basic block to the destination basic block
-        for (auto& srcInst : srcBlock) {
-            llvm::Value* clonedInst;
-            switch (srcInst.getOpcode()) {
-                case llvm::Instruction::FAdd:
-                case llvm::Instruction::FSub:
-                case llvm::Instruction::FMul:
-                case llvm::Instruction::FDiv:
-                case llvm::Instruction::FRem: {
-                    clonedInst = llvm::BinaryOperator::Create(
-                            static_cast<llvm::Instruction::BinaryOps>(srcInst.getOpcode()), VMap[srcInst.getOperand(0)],
-                            VMap[srcInst.getOperand(1)], "", destBlock);
-                } break;
-                case llvm::Instruction::FPExt: {
-                    if (srcInst.getType() == builder.getHalfTy()) {
-                        clonedInst = builder.CreateFPExt(VMap[srcInst.getOperand(0)], builder.getFloatTy());
-                    } else if (srcInst.getType() == builder.getFloatTy()) {
-                        clonedInst = builder.CreateFPExt(VMap[srcInst.getOperand(0)], builder.getDoubleTy());
-                    } else {
-                        std::cerr << "Unsupported type for FPExt instruction!" << std::endl;
-                        srcInst.dump();
-                        exit(1);
-                    }
-                    break;
-                }
-                case llvm::Instruction::FPTrunc: {
-                    if (srcInst.getType() == builder.getDoubleTy()) {
-                        clonedInst = builder.CreateFPTrunc(VMap[srcInst.getOperand(0)], builder.getFloatTy());
-                    } else if (srcInst.getType() == builder.getFloatTy()) {
-                        clonedInst = builder.CreateFPTrunc(VMap[srcInst.getOperand(0)], builder.getHalfTy());
-                    } else {
-                        std::cerr << "Unsupported type for FPTrunc instruction!" << std::endl;
-                        srcInst.dump();
-                        exit(1);
-                    }
-                    break;
-                }
-                case llvm::Instruction::Call: {
-                    auto CalledFunction = llvm::cast<llvm::CallInst>(&srcInst)->getCalledFunction();
-                    std::vector<llvm::Value*> args;
-                    for (unsigned i = 0; i < llvm::cast<llvm::CallInst>(&srcInst)->arg_size(); i++) {
-                        args.push_back(VMap[llvm::cast<llvm::CallInst>(&srcInst)->getArgOperand(i)]);
-                    }
-
-                    if (CalledFunction->isIntrinsic()) {
-                        if (CalledFunction->getName().contains("f32")) {
-                            std::string intrinsicName = CalledFunction->getName().str();
-                            intrinsicName.replace(intrinsicName.find("f32"), 3, "f64");
-                            llvm::Function* intrinsicFunc = destFunction->getParent()->getFunction(intrinsicName);
-                            clonedInst = builder.CreateCall(intrinsicFunc, args);
+            // Clone the instructions of the source basic block to the destination basic block
+            for (auto& srcInst : srcBlock) {
+                llvm::Value* clonedInst;
+                switch (srcInst.getOpcode()) {
+                    case llvm::Instruction::FAdd:
+                    case llvm::Instruction::FSub:
+                    case llvm::Instruction::FMul:
+                    case llvm::Instruction::FDiv:
+                    case llvm::Instruction::FRem: {
+                        clonedInst = llvm::BinaryOperator::Create(
+                                static_cast<llvm::Instruction::BinaryOps>(srcInst.getOpcode()),
+                                VMap[srcInst.getOperand(0)], VMap[srcInst.getOperand(1)], "", destBlock);
+                    } break;
+                    case llvm::Instruction::FPExt: {
+                        if (srcInst.getType() == builder.getHalfTy()) {
+                            clonedInst = builder.CreateFPExt(VMap[srcInst.getOperand(0)], builder.getFloatTy());
+                        } else if (srcInst.getType() == builder.getFloatTy()) {
+                            clonedInst = builder.CreateFPExt(VMap[srcInst.getOperand(0)], builder.getDoubleTy());
                         } else {
-                            std::cerr << "Unsupported intrinsic function!" << std::endl;
+                            std::cerr << "Unsupported type for FPExt instruction!\n";
+                            srcInst.dump();
+                            exit(1);  // NOLINT
                         }
-                    } else {
-                        std::cerr << "Unsupported call instruction!" << std::endl;
-                        srcInst.dump();
-                        exit(1);
+                        break;
                     }
+                    case llvm::Instruction::FPTrunc: {
+                        if (srcInst.getType() == builder.getDoubleTy()) {
+                            clonedInst = builder.CreateFPTrunc(VMap[srcInst.getOperand(0)], builder.getFloatTy());
+                        } else if (srcInst.getType() == builder.getFloatTy()) {
+                            clonedInst = builder.CreateFPTrunc(VMap[srcInst.getOperand(0)], builder.getHalfTy());
+                        } else {
+                            std::cerr << "Unsupported type for FPTrunc instruction!\n";
+                            srcInst.dump();
+                            exit(1);  // NOLINT
+                        }
+                        break;
+                    }
+                    case llvm::Instruction::Call: {
+                        auto* CalledFunction = llvm::cast<llvm::CallInst>(&srcInst)->getCalledFunction();
+                        std::vector<llvm::Value*> args;
+                        args.reserve(llvm::cast<llvm::CallInst>(&srcInst)->arg_size());
+                        for (unsigned i = 0; i < llvm::cast<llvm::CallInst>(&srcInst)->arg_size(); i++) {
+                            args.push_back(VMap[llvm::cast<llvm::CallInst>(&srcInst)->getArgOperand(i)]);
+                        }
+
+                        if (CalledFunction->isIntrinsic()) {
+                            if (CalledFunction->getName().contains("f32")) {
+                                std::string intrinsicName = CalledFunction->getName().str();
+                                intrinsicName.replace(intrinsicName.find("f32"), 3, "f64");
+                                llvm::Function* intrinsicFunc = destFunction->getParent()->getFunction(intrinsicName);
+                                clonedInst = builder.CreateCall(intrinsicFunc, args);
+                            } else {
+                                std::cerr << "Unsupported intrinsic function!\n";
+                            }
+                        } else {
+                            std::cerr << "Unsupported call instruction!\n";
+                            srcInst.dump();
+                            exit(1);  // NOLINT
+                        }
+                    }
+                    case llvm::Instruction::Ret: {
+                        clonedInst = llvm::ReturnInst::Create(
+                                context, VMap[llvm::cast<llvm::ReturnInst>(&srcInst)->getReturnValue()], destBlock);
+                        break;
+                    }
+                    default:
+                        break;
                 }
-                case llvm::Instruction::Ret: {
-                    clonedInst = llvm::ReturnInst::Create(
-                            context, VMap[llvm::cast<llvm::ReturnInst>(&srcInst)->getReturnValue()], destBlock);
-                    break;
-                }
-                default:
-                    break;
+                builder.Insert(clonedInst);
+                VMap[&srcInst] = clonedInst;
             }
-            builder.Insert(clonedInst);
-            VMap[&srcInst] = clonedInst;
         }
     }
-}
+}  // namespace
 
 int main(int argc, char** argv) {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <input LLVM IR file>" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <input LLVM IR file>\n";
         return 1;
     }
 
@@ -121,7 +125,7 @@ int main(int argc, char** argv) {
     // Parse the input LLVM IR file
     std::unique_ptr<llvm::Module> inputModule = llvm::parseIRFile(argv[1], err, context);
     if (!inputModule) {
-        std::cerr << "Error reading IR file: " << argv[1] << std::endl;
+        std::cerr << "Error reading IR file: " << argv[1] << "\n";
         err.print(argv[0], llvm::errs());
         return 1;
     }
@@ -135,8 +139,8 @@ int main(int argc, char** argv) {
         }
     }
 
-    if (!firstFunction) {
-        std::cerr << "No non-declaration functions found in the input module!" << std::endl;
+    if (firstFunction == nullptr) {
+        std::cerr << "No non-declaration functions found in the input module!\n";
         return 1;
     }
 
@@ -160,8 +164,8 @@ int main(int argc, char** argv) {
     llvm::BasicBlock* loopEnd = llvm::BasicBlock::Create(context, "loop.end", mainFunc);
 
     // Define the start, end, and step values
-    llvm::Value* start = llvm::ConstantFP::get(context, llvm::APFloat(1.0f));  // Example: 1.0
-    llvm::Value* end = llvm::ConstantFP::get(context, llvm::APFloat(2.0f));    // Example: 2.0
+    llvm::Value* start = llvm::ConstantFP::get(context, llvm::APFloat(1.0F));  // Example: 1.0
+    llvm::Value* end = llvm::ConstantFP::get(context, llvm::APFloat(2.0F));    // Example: 2.0
 
     // Declare external nextafterf function
     llvm::FunctionType* nextafterFuncType = llvm::FunctionType::get(
@@ -195,7 +199,7 @@ int main(int argc, char** argv) {
     } else {
         std::cerr << "Unsupported return type ";
         firstFunction->getReturnType()->print(llvm::errs());
-        std::cerr << " for Validator!" << std::endl;
+        std::cerr << " for Validator!\n";
         return 1;
     }
 
@@ -206,7 +210,7 @@ int main(int argc, char** argv) {
         } else if (arg.getType()->isFloatTy()) {
             argTypes.push_back(builder.getDoubleTy());
         } else {
-            std::cerr << "Unsupported argument type " << arg.getType() << " for Validator!" << std::endl;
+            std::cerr << "Unsupported argument type " << arg.getType() << " for Validator!\n";
             return 1;
         }
     }
@@ -230,11 +234,11 @@ int main(int argc, char** argv) {
         if (arg.getType()->isIntegerTy()) {
             args.push_back(builder.getInt32(0));  // Example: pass 0 for integer arguments
         } else if (arg.getType()->isFloatTy()) {
-            args.push_back(llvm::ConstantFP::get(context, llvm::APFloat(1.1f)));  // Example: pass 0.0 for float
+            args.push_back(llvm::ConstantFP::get(context, llvm::APFloat(1.1F)));  // Example: pass 0.0 for float
         } else if (arg.getType()->isDoubleTy()) {
             args.push_back(llvm::ConstantFP::get(context, llvm::APFloat(1.1)));  // Example: pass 0.0 for double
         } else {
-            std::cerr << "Unsupported argument type!" << std::endl;
+            std::cerr << "Unsupported argument type!\n";
             return 1;
         }
     }
@@ -244,11 +248,11 @@ int main(int argc, char** argv) {
         if (arg.getType()->isIntegerTy()) {
             shadowArgs.push_back(builder.getInt32(0));  // Example: pass 0 for integer arguments
         } else if (arg.getType()->isFloatTy()) {
-            shadowArgs.push_back(llvm::ConstantFP::get(context, llvm::APFloat(1.1f)));  // Example: pass 0.0 for float
+            shadowArgs.push_back(llvm::ConstantFP::get(context, llvm::APFloat(1.1F)));  // Example: pass 0.0 for float
         } else if (arg.getType()->isDoubleTy()) {
             shadowArgs.push_back(llvm::ConstantFP::get(context, llvm::APFloat(1.1)));  // Example: pass 0.0 for double
         } else {
-            std::cerr << "Unsupported argument type!" << std::endl;
+            std::cerr << "Unsupported argument type!\n";
             return 1;
         }
     }
@@ -290,11 +294,11 @@ int main(int argc, char** argv) {
 
     // Verify the main function and new module
     if (llvm::verifyFunction(*mainFunc, &llvm::errs())) {
-        std::cerr << "Function verification failed!" << std::endl;
+        std::cerr << "Function verification failed!\n";
         return 1;
     }
     if (llvm::verifyModule(*newModule, &llvm::errs())) {
-        std::cerr << "Module verification failed!" << std::endl;
+        std::cerr << "Module verification failed!\n";
         return 1;
     }
 
@@ -307,6 +311,6 @@ int main(int argc, char** argv) {
     }
     newModule->print(dest, nullptr);
 
-    std::cout << "Successfully created output.ll with main function calling the cloned function." << std::endl;
+    std::cout << "Successfully created output.ll with main function calling the cloned function.\n";
     return 0;
 }

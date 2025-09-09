@@ -8,20 +8,15 @@ class ErrorAnalysisResult {
 public:
     ibex::Interval outputExtrema;
     ibex::Interval errorExtrema;
-    ibex::IntervalVector OptPoint;
+    ibex::IntervalVector optPoint;
     double totalOptimizationTime;
     unsigned int numOptimizationCalls;
 };
 
 class Graph {
-private:
 public:
-    Logging log;
-    unsigned int debugLevel = 0;
-    unsigned int logLevel = 0;
-
-    bool concretize_error_components = false;
-    bool collect_error_component_data = false;
+    bool concretizeErrorComps = false;
+    bool collectErrorCompData = false;
     std::map<int, SymbolTable*> symbolTables;
     int currentScope = 0;
     // Connects a variable name to a FreeVariable representing an interval
@@ -34,7 +29,7 @@ public:
     std::map<int, std::set<Node*>> depthTable;
     unsigned int numOperatorsOutput = 0;
 
-    ErrorAnalyzer* errorAnalyzer = new ErrorAnalyzer(&log);
+    ErrorAnalyzer* errorAnalyzer = new ErrorAnalyzer();
     std::map<Node*, ErrorAnalysisResult> errorAnalysisResults;
     IBEXInterface* ibexInterface = new IBEXInterface();
 
@@ -43,12 +38,11 @@ public:
     std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics;
 
     Graph() = default;
-    explicit Graph(string logFile);
-    ~Graph();
+    virtual ~Graph();
 
     void setValidationFile(std::string _validationFile);
 
-    virtual void write(std::ostream& os) const;
+    virtual void write(std::ostream& out) const;
 
     // Prints string representation of this node
     friend std::ostream& operator<<(std::ostream& os, const Graph& graph);
@@ -77,27 +71,27 @@ public:
     bool compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2);
 
     // Abstraction related functions
-    std::set<Node*> FlattenSubDAGS(Node* node, unsigned int min_depth, unsigned int max_depth);
-    std::set<Node*> FindCommonNodes(Node* node, unsigned int min_depth, unsigned int max_depth);
-    std::map<Node*, std::set<Node*>> FindCommonDependencies(std::set<Node*> node, unsigned int min_depth,
+    std::set<Node*> flattenSubDags(Node* node, unsigned int min_depth, unsigned int max_depth);
+    std::set<Node*> findCommonNodes(Node* node, unsigned int min_depth, unsigned int max_depth);
+    std::map<Node*, std::set<Node*>> findCommonDependencies(std::set<Node*> node, unsigned int min_depth,
                                                             unsigned int max_depth);
-    std::set<Node*> FilterNodesWithOperationWithinDepth(Node::Op op, unsigned int max_depth);
-    std::set<Node*> FilterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound,
+    std::set<Node*> filterNodesWithOperationWithinDepth(Node::Op op, unsigned int max_depth);
+    std::set<Node*> filterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound,
                                                    unsigned int upper_bound);
     std::pair<unsigned int, std::set<Node*>>
     selectNodesForAbstraction(unsigned int max_depth, unsigned int bound_min_depth, unsigned int bound_max_depth);
     void performAbstraction(unsigned int bound_min_depth, unsigned int bound_max_depth);
 
-    void FindOutputExtrema(const std::set<Node*>& candidate_nodes);
-    void FindErrorExtrema(const std::set<Node*>& candidate_nodes);
+    void findOutputExtrema(const std::set<Node*>& candidate_nodes);
+    void findErrorExtrema(const std::set<Node*>& candidate_nodes);
 
-    std::map<Node*, ErrorAnalysisResult> SimplifyWithAbstraction(const std::set<Node*>& candidate_nodes,
+    std::map<Node*, ErrorAnalysisResult> simplifyWithAbstraction(const std::set<Node*>& candidate_nodes,
                                                                  unsigned max_depth, bool isFinal = false);
 
-    std::vector<Node*> ModProbeList();
-    void AbstractNodes(std::map<Node*, std::vector<ibex::Interval>> results);
-    void RebuildAST();
-    void RebuildASTNode(Node* node, std::map<Node*, unsigned int>& completed);
+    std::vector<Node*> modProbeList();
+    void abstractNodes(std::map<Node*, std::vector<ibex::Interval>> results);
+    void rebuildAst();
+    void rebuildAstNode(Node* node, std::map<Node*, unsigned int>& completed);
 
     // Run the parser on file F.  Return 0 on success.
     int parse(const char& f);

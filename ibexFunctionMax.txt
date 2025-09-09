@@ -1,0 +1,11 @@
+variables
+x in [-oo,+oo];
+
+function _f_4(x)
+  return (-abs(((4*x)/((x/1.11001)+1))));
+end
+
+minimize
+ _f_4(x);
+
+end

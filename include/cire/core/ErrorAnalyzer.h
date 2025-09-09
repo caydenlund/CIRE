@@ -1,16 +1,15 @@
 #ifndef CIRE_ERRORANALYZER_H
 #define CIRE_ERRORANALYZER_H
 
-#include "cire/interfaces/IBEXInterface.h"
-#include "cire/interfaces/Logging.h"
 #include "cire/core/Node.h"
+#include "cire/interfaces/IBEXInterface.h"
+
+struct InstructionErrorInfo;
+class ErrorAnalysisResult;
 
 class ErrorAnalyzer {
 public:
-    unsigned int debugLevel = 0;
-    unsigned int logLevel = 0;
     unsigned int errorExpressionOperatorThreshold = 10000;
-    Logging& log;
     std::map<Node*, unsigned> nodeNumOptCallsMap;
 
     // Data structures for derivative computation
@@ -24,7 +23,7 @@ public:
     // Map with derivative information (Contains maps of derivatives of expression corresponding to
     // the node corresponding key in the inner map with respect to node corresponding key in outer
     // map)
-    std::map<Node*, std::map<Node*, ibex::ExprNode*>> BwdDerivatives;
+    std::map<Node*, std::map<Node*, ibex::ExprNode*>> bwdDerivatives;
     // Map with type cast rounding information (Contains maps of type cast amount to operation
     // corresponding the node corresponding key in the outer map)
     std::map<Node*, std::map<Node*, ibex::ExprNode*>> typeCastRnd;
@@ -35,9 +34,13 @@ public:
     // Map of node from parents of node
     std::map<Node*, std::set<Node*>> parentsOfNode;
 
-    std::map<Node*, ibex::ExprNode*> ErrAccumulator;
+    std::map<Node*, ibex::ExprNode*> errAccumulator;
+    
+    std::map<Node*, std::vector<std::pair<Node*, ibex::ExprNode*>>> perInstructionErrors;
+    
+    std::map<int, std::pair<std::string, std::string>> llvmInstructionInfo;
 
-    ErrorAnalyzer(Logging* log);
+    ErrorAnalyzer();
 
     bool parentsVisited(Node* node);
 
@@ -54,17 +57,19 @@ public:
 
     void logBwdDerivative(Node* outNode, Node* WRTNode);
     void logBwdDerivativesIbexExprs();
+    
+    std::map<Node*, std::vector<InstructionErrorInfo>> getInstructionErrorBreakdown(IBEXInterface* ibexInterface);
 };
 
 ibex::ExprNode* getDerivativeWRTChildNode(Node* node, int index);
 
-template<class T1, class T2>
-std::vector<T1> keys(std::map<T1, T2> map);
+template<class KeyType, class ValType>
+std::vector<KeyType> keys(std::map<KeyType, ValType> map);
 
-template<class T1, class T2>
-bool contains(std::map<T1, T2> map, T1 key);
+template<class KeyType, class ValType>
+bool contains(std::map<KeyType, ValType> map, KeyType key);
 
-template<class T1, class T2>
-T2 findWithDefaultInsertion(std::map<T1, T2> map, T1 key, T2 defaultVal);
+template<class KeyType, class ValType>
+ValType findWithDefaultInsertion(std::map<KeyType, ValType> map, KeyType key, ValType defaultVal);
 
 #endif  // CIRE_ERRORANALYZER_H

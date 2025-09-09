@@ -1,16 +1,21 @@
-#include "ibex.h"
+#include "ibex_Expr.h"
+#include "ibex_Interval.h"
+#include "cire/interfaces/Logging.h"
+
 #include <iostream>
 
-using namespace std;
-using namespace ibex;
+using ibex::ExprNode;
+using ibex::ExprSymbol;
+using ibex::Interval;
+using ibex::IntervalVector;
 
 int main(int argc, char* argv[]) {
     Interval x(0, 1.0), y(0, 1.0);
     //  auto a = Variable("x");
     //  auto b = Variable("y");
-    string x_str = "x";
-    string y_str = "y";
-    string z_str = "z";
+    std::string x_str = "x";
+    std::string y_str = "y";
+    std::string z_str = "z";
     const ExprNode* a = &ExprSymbol::new_(x_str.c_str());
     const ExprNode* b = &ExprSymbol::new_(x_str.c_str());
     const ExprNode* c = &ExprSymbol::new_(z_str.c_str());
@@ -19,9 +24,15 @@ int main(int argc, char* argv[]) {
     m.resize(m.size() + 1);
     m[m.size() - 1] = y;
 
-    cout << (*a * *a).simplify(3) << endl;
-    cout << "x+y = " << x + y << endl;
-    cout << "m = " << m << endl;
+    if (logging) {
+        logging->info("(*a * *a).simplify(3) = ", (*a * *a).simplify(3));
+        logging->info("x+y = ", x + y);
+        logging->info("m = ", m);
+    } else {
+        std::cout << (*a * *a).simplify(3) << "\n";
+        std::cout << "x+y = " << x + y << "\n";
+        std::cout << "m = " << m << "\n";
+    }
 
     //  for(int i = 0; i < 2; i++) {
     ////    Array<const ExprSymbol> symbols = Array<const ExprSymbol>();

@@ -1,6 +1,9 @@
-// Project files
-#include "cire/frontend/llvm_frontend.h"
+#include <memory>
+#include <fstream>
+
 #include "cire/core/Cire.h"
+#include "cire/frontend/llvm_frontend.h"
+#include "cire/interfaces/Logging.h"
 #include "cire/utils/utils.h"
 
 #include "llvm/IR/Module.h"
@@ -12,67 +15,67 @@ using namespace std;
 using namespace llvm;
 using namespace llvm_util;
 
-namespace {
-    cl::opt<string> File(cl::desc("Name of the file containing the bitcode"),
-                         cl::value_desc("Gets the LLVM Module from this file"), cl::Positional, cl::Required);
+struct CliOpts {
+    cl::opt<string> file {cl::desc("Name of the file containing the bitcode"),
+                          cl::value_desc("Gets the LLVM Module from this file"), cl::Positional, cl::Required};
 
-    cl::opt<string> Func("function", cl::desc("Function to analyze"),
-                         cl::value_desc("Used for matching the function name"), cl::init(""));
+    cl::opt<string> func {"function", cl::desc("Function to analyze"),
+                          cl::value_desc("Used for matching the function name"), cl::init("")};
 
-    cl::opt<string> Input("input", cl::desc("Input file for CIRE containing INPUTS and OUTPUTS"),
-                          cl::value_desc("Looks for the input file in the current directory"), cl::init(""));
+    cl::opt<string> input {"input", cl::desc("Input file for CIRE containing INPUTS and OUTPUTS"),
+                           cl::value_desc("Looks for the input file in the current directory"), cl::init("")};
 
-    cl::opt<bool> Abstraction("abstraction", cl::desc("Enable abstraction"), cl::init(false));
+    cl::opt<bool> abstraction {"abstraction", cl::desc("Enable abstraction"), cl::init(false)};
 
-    cl::opt<unsigned> MinDepth("min-depth", cl::desc("Minimum depth for abstraction"), cl::init(5));
+    cl::opt<unsigned> minDepth {"min-depth", cl::desc("Minimum depth for abstraction"), cl::init(5)};
 
-    cl::opt<unsigned> MaxDepth("max-depth", cl::desc("Maximum depth for abstraction"), cl::init(10));
+    cl::opt<unsigned> maxDepth {"max-depth", cl::desc("Maximum depth for abstraction"), cl::init(10)};
 
-    cl::opt<unsigned> DebugLevel("debug-level", cl::desc("Set the debug level"), cl::init(0));
+    cl::opt<unsigned> logLevel {"log-level", cl::desc("Set the log level"), cl::init(2)};
 
-    cl::opt<unsigned> LogLevel("log-level", cl::desc("Set the log level"), cl::init(0));
+    cl::opt<string> logOutput {"log-output", cl::desc("Set the log output file"),
+                               cl::value_desc("Sets the log output file"), cl::init("")};
 
-    cl::opt<string> LogOutput("log-output", cl::desc("Set the log output file"),
-                              cl::value_desc("Sets the log output file"), cl::init("default.log"));
+    cl::opt<bool> csvFriendly {"csv-friendly", cl::desc("Enable output to JSON file in a CSV friendly manner"),
+                               cl::init(false)};
 
-    cl::opt<bool> CSVFriendly("csv-friendly", cl::desc("Enable output to JSON file in a CSV friendly manner"),
-                              cl::init(false));
+    cl::opt<string> output {"output", cl::desc("Set the output file"),
+                            cl::value_desc("Sets the output file for the results"), cl::init("results.json")};
 
-    cl::opt<string> Output("output", cl::desc("Set the output file"),
-                           cl::value_desc("Sets the output file for the results"), cl::init("results.json"));
+    cl::opt<unsigned> optimizerTimeout {"global-opt-timeout",
+                                        cl::desc("Timeout for the optimizer. Default: 20 seconds"), cl::init(UINT_MAX)};
 
-    cl::opt<unsigned> OptimizerTimeOut("global-opt-timeout", cl::desc("Timeout for the optimizer. Default: 20 seconds"),
-                                       cl::init(UINT_MAX));
+    cl::opt<unsigned int> operatorThreshold {
+            "operator-threshold", cl::desc("Set the threshold on number of operators on the error expression"),
+            cl::init(10000)};
 
-    cl::opt<unsigned int>
-            OperatorThreshold("operator-threshold",
-                              cl::desc("Set the threshold on number of operators on the error expression"),
-                              cl::init(10000));
+    cl::opt<bool> concretizeErrorComponents {"concretize-error-components", cl::desc("Concretize error components"),
+                                             cl::init(false)};
 
-    cl::opt<bool> ConcretizeErrorComponents("concretize-error-components", cl::desc("Concretize error components"),
-                                            cl::init(false));
+    cl::opt<bool> collectErrorComponentData {"collect-error-component-data",
+                                             cl::desc("Enable collection of backward derivatives and local errors"),
+                                             cl::init(false)};
 
-    cl::opt<bool> CollectErrorComponentData("collect-error-component-data",
-                                            cl::desc("Enable collection of backward derivatives and local errors"),
-                                            cl::init(false));
-
-    cl::opt<bool> StdoutOutput("stdout", cl::desc("Print output to stdout in non-nested format for compiler explorer"),
-                               cl::init(false));
-}  // namespace
+    cl::opt<bool> stdoutOutput {"stdout", cl::desc("Print output to stdout in non-nested format for compiler explorer"),
+                                cl::init(false)};
+};
 
 
 int main(int argc, char** argv) {
+    CliOpts opts {};
+
+    string usage = "CIRE stand-alone worst-case floating-point round-off error estimator\n";
+    cl::ParseCommandLineOptions(argc, argv, usage);
+
+    logging = std::make_unique<Logging>(std::cout, LogLevel(opts.logLevel.getValue()));
     const auto start = std::chrono::high_resolution_clock::now();
 
     sys::PrintStackTraceOnErrorSignal(argv[0]);
     EnableDebugBuffering = true;
-    LLVMContext Context;
+    LLVMContext context;
 
-    string Usage = "CIRE stand-alone worst-case floating-point round-off error estimator\n";
-    cl::ParseCommandLineOptions(argc, argv, Usage);
-
-    auto M = openInputFile(Context, File);
-    if (!M) {
+    auto llvmModule = openInputFile(context, opts.file);
+    if (!llvmModule) {
         errs() << "Error: Unable to open input file\n";
         return 1;
     }
@@ -84,58 +87,48 @@ int main(int argc, char** argv) {
     //  Programs with vectors as inputs or outputs can be left for later - Cant analyze
 
     Cire cire;
-    cire.setFile(File);
+    cire.setFile(opts.file.getValue());
 
-    if (Abstraction) {
+    if (opts.abstraction) {
         cire.setAbstraction(true);
-        cire.setAbstractionWindow(std::make_pair(MinDepth.getValue(), MaxDepth.getValue()));
-    }
-    if (DebugLevel > 0) {
-        cire.setDebugLevel(DebugLevel);
-        cire.graph->debugLevel = DebugLevel;
-        cire.graph->errorAnalyzer->debugLevel = DebugLevel;
-        cire.graph->ibexInterface->debugLevel = DebugLevel;
-        cire.results->debugLevel = DebugLevel;
-    }
-    if (OptimizerTimeOut > 0) { cire.graph->ibexInterface->optimizerTimeOut = OptimizerTimeOut; }
-    if (OperatorThreshold > 0) { cire.graph->errorAnalyzer->errorExpressionOperatorThreshold = OperatorThreshold; }
-    if (LogLevel > 0) {
-        cire.setLogLevel(LogLevel);
-        cire.graph->logLevel = LogLevel;
-        cire.graph->errorAnalyzer->logLevel = LogLevel;
+        cire.setAbstractionWindow(std::make_pair(opts.minDepth.getValue(), opts.maxDepth.getValue()));
     }
 
-    if (!Output.empty()) cire.results->setFile(Output);
+    if (opts.optimizerTimeout > 0) cire.graph->ibexInterface->optimizerTimeOut = opts.optimizerTimeout;
+    if (opts.operatorThreshold > 0)
+        cire.graph->errorAnalyzer->errorExpressionOperatorThreshold = opts.operatorThreshold;
 
-    if (cire.debugLevel > 0) std::cout << "Parsing LLVM IR...\n";
-    if (cire.logLevel > 0) std::cout << "Parsing LLVM IR...\n";
+    if (!opts.output.empty()) cire.results->setFile(opts.output.getValue());
 
-    if (!LogOutput.empty()) cire.graph->log.setFile(LogOutput);
+    logging->debug("Parsing LLVM IR...");
 
-    if (ConcretizeErrorComponents) cire.graph->concretize_error_components = true;
+    std::unique_ptr<std::ofstream> logFile;
+    if (!opts.logOutput.empty()) {
+        logFile = std::make_unique<std::ofstream>(opts.logOutput.getValue());
+        logging = std::make_unique<Logging>(*logFile, LogLevel(opts.logLevel.getValue()));
+    }
 
-    if (CollectErrorComponentData) cire.setCollectErrorComponentData(true);
+    if (opts.concretizeErrorComponents) cire.graph->concretizeErrorComps = true;
 
-    if (StdoutOutput) cire.results->setStdoutOutput(true);
+    if (opts.collectErrorComponentData) cire.setCollectErrorComponentData(true);
 
-    cire.graph->log.openFile();
+    if (opts.stdoutOutput) cire.results->setStdoutOutput(true);
 
-    if (!Func.empty()) {
-        auto* F = findFunction(*M, Func);
-        if (F == nullptr) {
-            errs() << "Error: Unable to find function " << Func << " in the input file\n";
-            return 1;
+    if (!opts.func.empty()) {
+        auto* func = findFunction(*llvmModule, opts.func);
+        if (func == nullptr) {
+            logging->critical("Unable to find function '" + opts.func.getValue() + "' in the input file");
         }
 
-        if (!Input.empty()) {
-            cire.graph->parse(*Input.c_str());
+        if (!opts.input.empty()) {
+            cire.graph->parse(*opts.input.c_str());
         } else {
-            parseInputsInLLVM(*cire.graph, *F);
+            parseInputsInLLVM(*cire.graph, *func);
         }
 
         // map the LLVM function arguments to the CIRE inputs
         // Iterate the function arguments
-        for (auto& arg : F->args()) {
+        for (auto& arg : func->args()) {
             if (arg.getType()->isFloatingPointTy()) {
                 llvmToCireNodeMap[&arg]
                         = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand().c_str()];
@@ -145,20 +138,20 @@ int main(int argc, char** argv) {
             }
         }
 
-        parseExprsInLLVM(*cire.graph, *F);
+        parseExprsInLLVM(*cire.graph, *func);
     } else {
-        for (auto& srcFn : *M) {
-            if (srcFn.isDeclaration()) { continue; }
+        for (auto& func : *llvmModule) {
+            if (func.isDeclaration()) continue;
 
-            if (!Input.empty()) {
-                cire.graph->parse(*Input.c_str());
+            if (!opts.input.empty()) {
+                cire.graph->parse(*opts.input.c_str());
             } else {
-                parseInputsInLLVM(*cire.graph, srcFn);
+                parseInputsInLLVM(*cire.graph, func);
             }
 
             // map the LLVM function arguments to the CIRE inputs
             // Iterate the function arguments
-            for (auto& arg : srcFn.args()) {
+            for (auto& arg : func.args()) {
                 if (arg.getType()->isFloatingPointTy()) {
                     llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]
                                                       ->table[arg.getNameOrAsOperand().c_str()];
@@ -168,79 +161,63 @@ int main(int argc, char** argv) {
                 }
             }
 
-            parseExprsInLLVM(*cire.graph, srcFn);
+            parseExprsInLLVM(*cire.graph, func);
             break;
         }
     }
-    const auto parse_end = std::chrono::high_resolution_clock::now();
 
-    if (cire.debugLevel > 0) std::cout << "Parsing complete\n";
-    if (cire.logLevel > 0) std::cout << "Parsing complete\n";
+    const auto parseEnd = std::chrono::high_resolution_clock::now();
+
+    logging->debug("Parsing complete");
+    logging->info("Performing error analysis");
 
     std::map<Node*, ErrorAnalysisResult> answer = cire.performErrorAnalysis();
 
-    const auto error_analysis_end = std::chrono::high_resolution_clock::now();
+    const auto errorAnalysisEnd = std::chrono::high_resolution_clock::now();
 
-    if (cire.debugLevel > 0) {
-        // print the result of nodes corresponding nodes in the output list
-        for (string& output : cire.graph->outputs) {
-            Node* node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
-            assert(answer.find(node) != answer.end());
+    // print the result of nodes corresponding nodes in the output list
+    for (string& output : cire.graph->outputs) {
+        Node* node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
+        assert(answer.find(node) != answer.end());
 
-            std::cout << "\nOutput Variable: " << output << "";
-            if (cire.debugLevel > 2) { std::cout << *node; }
-            std::cout << ": \tOutput: " << answer[node].outputExtrema << ","
-                      << "  \tError: " << answer[node].errorExtrema << ","
-                      << "  \n\tNum Optimizer Calls: " << answer[node].numOptimizationCalls << "\n";
-        }
-    }
+        logging->debug("Output variable: '" + output + "'");
 
-    if (cire.logLevel > 0) {
-        // print the result of nodes corresponding nodes in the output list
-        for (string& output : cire.graph->outputs) {
-            Node* node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
-            assert(answer.find(node) != answer.end());
+        std::stringstream outputExtrema;
+        outputExtrema << answer[node].outputExtrema;
+        logging->debug("    Output: " + outputExtrema.str());
 
-            cire.graph->log.logFile << "\nOutput Variable: " << output << "";
-            if (cire.debugLevel > 2) { cire.graph->log.logFile << *node; }
-            cire.graph->log.logFile << ": \tOutput: " << answer[node].outputExtrema << ","
-                                    << "  \tError: " << answer[node].errorExtrema << ","
-                                    << "  \n\tNum Optimizer Calls: " << answer[node].numOptimizationCalls << "\n";
-        }
+        std::stringstream errorExtrema;
+        errorExtrema << answer[node].errorExtrema;
+        logging->debug("    Error:  " + errorExtrema.str());
+
+        std::stringstream numOptCalls;
+        numOptCalls << answer[node].numOptimizationCalls;
+        logging->debug("    Optimizer Call Count:  " + numOptCalls.str());
     }
 
     const auto end = std::chrono::high_resolution_clock::now();
-    cire.time_map["Parsing"] = parse_end - start;
-    cire.time_map["Error_Analysis"] = error_analysis_end - parse_end;
-    cire.time_map["Total"] = end - start;
+    cire.timeMap["Parsing"] = parseEnd - start;
+    cire.timeMap["Error_Analysis"] = errorAnalysisEnd - parseEnd;
+    cire.timeMap["Total"] = end - start;
 
-    if (cire.debugLevel > 0) {
-        std::cout << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds\n";
-        std::cout << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count() << " seconds\n";
-        std::cout << "Total Time taken: " << cire.time_map["Total"].count() << " seconds\n";
-    }
-    if (cire.logLevel > 0) {
-        cire.graph->log.logFile << "Parsing Time taken: " << cire.time_map["Parsing"].count() << " seconds\n";
-        cire.graph->log.logFile << "Error Analysis Time taken: " << cire.time_map["Error Analysis"].count()
-                                << " seconds"
-                                << "\n";
-        cire.graph->log.logFile << "Total Time taken: " << cire.time_map["Total"].count() << " seconds\n";
-        cire.graph->log.log("Writing results to " + cire.results->file + " ...");
-    }
+    logging->info("Parsing Time taken: " + std::to_string(cire.timeMap["Parsing"].count()) + " seconds");
+    logging->info("Error Analysis Time taken: " + std::to_string(cire.timeMap["Error Analysis"].count()) + " seconds");
+    logging->info("Total Time taken: " + std::to_string(cire.timeMap["Total"].count()) + " seconds");
 
 
-    if (CSVFriendly) {
+    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface);
+    
+    if (opts.csvFriendly) {
         cire.results->writeResultsForCSV(cire.graph->outputs, cire.graph->numOperatorsOutput,
                                          cire.graph->depthTable.rbegin()->first, cire.graph->abstractionMetrics,
-                                         cire.file, answer, cire.time_map);
+                                         cire.file, answer, cire.timeMap, instructionErrors);
     } else {
         cire.results->writeResults(cire.graph->outputs, cire.graph->numOperatorsOutput,
                                    cire.graph->depthTable.rbegin()->first, cire.graph->abstractionMetrics, cire.file,
-                                   answer, cire.time_map);
+                                   answer, cire.timeMap, instructionErrors);
     }
 
-
-    if (cire.logLevel > 0) { cire.graph->log.log("Results written to " + cire.results->file + "!"); }
+    logging->info("Results written to '" + cire.results->file + "'");
 
     return 0;
 }

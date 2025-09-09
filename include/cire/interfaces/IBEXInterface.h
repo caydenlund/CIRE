@@ -2,7 +2,8 @@
 #define CIRE_IBEXINTERFACE_H
 
 #include "cire/core/Node.h"
-#include "ibex.h"
+#include "ibex_System.h"
+
 #include <map>
 
 class OptResult {
@@ -14,18 +15,17 @@ public:
 
 class IBEXInterface {
     ibex::IntervalVector _inputIntervals;
-    ibex::Array<const ibex::ExprSymbol>* _variables;
-    ibex::Function* _function;
-    ibex::System* _system;
+    ibex::Array<const ibex::ExprSymbol>* _variables {};
+    ibex::Function* _function {};
+    ibex::System* _system {};
 
 public:
-    unsigned int debugLevel = 0;
     unsigned int optimizerTimeOut = 0;
     OptResult optResult;
 
     IBEXInterface() = default;
-    IBEXInterface(unsigned int debugLevel, ibex::IntervalVector InputIntervals,
-                  ibex::Array<const ibex::ExprSymbol> Variables, ibex::Function* Function, ibex::System* System);
+    IBEXInterface(ibex::IntervalVector InputIntervals, ibex::Array<const ibex::ExprSymbol> Variables,
+                  ibex::Function* Function, ibex::System* System);
 
 
     void setInputIntervals(ibex::IntervalVector& InputIntervals);
@@ -48,9 +48,9 @@ public:
     // IBEX Operations
     ibex::Interval eval();
     ibex::Interval eval(ibex::Function& Function);
-    OptResult FindMin(ibex::ExprNode& Expression);
-    OptResult FindMax(ibex::ExprNode& Expression);
-    OptResult FindAbsMax(ibex::ExprNode& Expression);
+    OptResult findMin(ibex::ExprNode& Expression);
+    OptResult findMax(ibex::ExprNode& Expression);
+    OptResult findAbsMax(ibex::ExprNode& Expression);
 
     // File IO
     void dumpIbexSystemToFile(std::string filename, ibex::System& System);

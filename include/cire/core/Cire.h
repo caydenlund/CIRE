@@ -3,6 +3,7 @@
 
 #include "cire/core/Graph.h"
 #include "cire/core/Results.h"
+
 #include <map>
 #include <string>
 
@@ -14,24 +15,20 @@ public:
     // The name of the file being parsed.
     std::string file;
     bool abstraction = false;
-    unsigned debugLevel = 0;
-    unsigned logLevel = 0;
     std::pair<unsigned int, unsigned int> abstractionWindow = std::make_pair(10, 40);
     // Map of the time taken by each phase of the program.
-    std::map<std::string, std::chrono::duration<double>> time_map;
+    std::map<std::string, std::chrono::duration<double>> timeMap;
 
-    explicit Cire(std::string logFile = "default.log", std::string resultFile = "results.json");
+    explicit Cire(std::string resultFile = "results.json");
     ~Cire();
 
     void setFile(std::string file);
     void setAbstraction(bool value);
-    void setDebugLevel(unsigned int level);
-    void setLogLevel(unsigned int level);
     void setAbstractionWindow(std::pair<unsigned int, unsigned int> window);
     void setMinDepth(unsigned int depth);
     void setMaxDepth(unsigned int depth);
-    void setCollectErrorComponentData(bool value);
-    std::map<Node*, ErrorAnalysisResult> performErrorAnalysis();
+    void setCollectErrorComponentData(bool value) const;
+    std::map<Node*, ErrorAnalysisResult> performErrorAnalysis() const;
 };
 
 #endif  // CIRE_CIRE_H

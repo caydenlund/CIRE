@@ -13,7 +13,7 @@ Node* SymbolTable::lookup(const string& symbol, Node* node) {
 }
 
 /* Finds the symbol associated with the given node */
-string SymbolTable::ReverseLookup(const Node* node) {
+string SymbolTable::reverseLookup(const Node* node) {
     for (auto& it : table) {
         if (it.second == node) { return it.first; }
     }

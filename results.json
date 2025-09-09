@@ -1,0 +1,29 @@
+{
+    "verhulst-O3.c": {
+        "Error Analysis Time": 0.0031397950000000003,
+        "Parsing Time": 0.00028158800000000004,
+        "Results": {
+            "Height": 3,
+            "NumOperators": 4,
+            "Number of Optimizer Calls": 2,
+            "Optimization Time": 7.900000000000008e-05,
+            "div1": {
+                "Error": [
+                    9.044005214153068e-14,
+                    9.053058272425492e-14
+                ],
+                "Optima": [
+                    [
+                        -1.0,
+                        -1.0
+                    ]
+                ],
+                "Output": [
+                    40.36363636363632,
+                    40.40404040404035
+                ]
+            }
+        },
+        "Total Time": 0.0034344880000000003
+    }
+}

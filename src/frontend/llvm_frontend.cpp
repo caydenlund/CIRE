@@ -29,6 +29,13 @@ void addDataForCreatedNode(Instruction& instr, Graph& graph, Node* node) {
         node->setRoundingType(Node::RoundingType::FL64);
         node->setRoundingFromType(Node::RoundingType::FL64);
     }
+    
+    std::string instrName = instr.getName().str();
+    if (instrName.empty()) {
+        instrName = std::string(instr.getOpcodeName()) + "_" + std::to_string(node->id);
+    }
+    graph.errorAnalyzer->llvmInstructionInfo[node->id] = {instrName, instr.getOpcodeName()};
+    
     graph.nodes.insert(node);
     graph.depthTable[node->depth].insert(node);
     graph.numOperatorsOutput++;
