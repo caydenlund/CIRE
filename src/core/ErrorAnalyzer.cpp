@@ -357,11 +357,7 @@ void ErrorAnalyzer::propagateError(Node* node, IBEXInterface* ibexInterface) {
                 = (ibex::ExprNode*)&product(node->getAbsoluteError(), *total_rounding).simplify(0);
         auto expr = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar], *local_plus_type_cast_error).simplify(0);
 
-        // Store both the full error contribution and just the derivative part for analysis
         perInstructionErrors[outVar].emplace_back(node, expr);
-        
-        // Also store the amplification factor (derivative × absolute_error without rounding)
-        // This shows how much a unit error at this instruction affects the output
 
         if (contains(errAccumulator, outVar)) {
             errAccumulator[outVar] = (ibex::ExprNode*)&(*errAccumulator[outVar] + *expr);
@@ -505,58 +501,6 @@ std::map<Node*, std::vector<InstructionErrorInfo>> ErrorAnalyzer::getInstruction
         std::vector<InstructionErrorInfo> instructionInfos;
         int index = 0;
         
-        // Get total accumulated error for normalization
-        double totalErrorMag = 0.0;
-        if (errAccumulator.find(outputNode) != errAccumulator.end()) {
-            OptResult totalResult = ibexInterface->findAbsMax(*errAccumulator[outputNode]);
-            totalErrorMag = totalResult.result.mag();
-        }
-        
-        // Compute individual contributions and normalize them to sum to total error
-        std::vector<double> rawContributions;
-        double sumRawContributions = 0.0;
-        
-        for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
-            // The errorExpr contains: derivative × |node_value| × rounding_amount
-            // We want to show how much a realistic local error contributes to output error
-            
-            // For variables/constants, the "error" is input uncertainty, not rounding
-            if (instrNode->type == VARIABLE || instrNode->type == FREE_VARIABLE) {
-                // These represent input uncertainty propagation, set to a small representative value
-                rawContributions.push_back(1e-16); // Minimal input uncertainty
-                sumRawContributions += 1e-16;
-                continue;
-            }
-            
-            // For operations, compute the actual local rounding error magnitude
-            double localRoundingError = 0.5; // 0.5 ULP is typical worst case
-            double machineEpsilon = 2.22e-16; // double precision
-            
-            if (instrNode->type == BINARY_OP || instrNode->type == UNARY_OP || instrNode->type == TERNARY_OP) {
-                Node::Op op = Node::ADD; // Default
-                if (instrNode->type == BINARY_OP) {
-                    op = static_cast<BinaryOp*>(instrNode)->op;
-                } else if (instrNode->type == UNARY_OP) {
-                    op = static_cast<UnaryOp*>(instrNode)->op;
-                } else if (instrNode->type == TERNARY_OP) {
-                    op = static_cast<TernaryOp*>(instrNode)->op;
-                }
-                
-                // Get typical ULP error for this operation
-                if (instrNode->opErrorULPs.find(op) != instrNode->opErrorULPs.end()) {
-                    localRoundingError = instrNode->opErrorULPs[op] * 0.5; // Convert to typical error
-                }
-            }
-            
-            // The actual local rounding error in absolute terms
-            double actualLocalError = localRoundingError * machineEpsilon;
-            
-            rawContributions.push_back(actualLocalError);
-            sumRawContributions += actualLocalError;
-        }
-        
-        // Now create error info with normalized contributions
-        size_t contributionIndex = 0;
         for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
             InstructionErrorInfo info;
             
@@ -607,44 +551,9 @@ std::map<Node*, std::vector<InstructionErrorInfo>> ErrorAnalyzer::getInstruction
                 }
             }
             
-            // Compute how the local rounding error at this instruction affects the final output
-            double localError = rawContributions[contributionIndex];
-            
-            if (instrNode->type == VARIABLE || instrNode->type == FREE_VARIABLE) {
-                // For variables, just show the input uncertainty
-                info.errorContribution = localError;
-                info.errorBounds = ibex::Interval(-localError, localError);
-            } else {
-                // For operations, compute the amplification factor
-                // amplification = (full_error_expression) / (local_rounding_amount)
-                OptResult fullResult = ibexInterface->findAbsMax(*errorExpr);
-                double fullErrorMagnitude = fullResult.result.mag();
-                
-                // Get the rounding amount used in the error expression
-                double roundingAmount = 1.0; // Default
-                if (instrNode->type == BINARY_OP || instrNode->type == UNARY_OP || instrNode->type == TERNARY_OP) {
-                    Node::Op op = Node::ADD;
-                    if (instrNode->type == BINARY_OP) {
-                        op = static_cast<BinaryOp*>(instrNode)->op;
-                    } else if (instrNode->type == UNARY_OP) {
-                        op = static_cast<UnaryOp*>(instrNode)->op;
-                    } else if (instrNode->type == TERNARY_OP) {
-                        op = static_cast<TernaryOp*>(instrNode)->op;
-                    }
-                    
-                    if (instrNode->opErrorULPs.find(op) != instrNode->opErrorULPs.end()) {
-                        roundingAmount = instrNode->opErrorULPs[op];
-                    }
-                }
-                
-                // Amplification factor = how much the full error expression exceeds the base rounding
-                double amplificationFactor = fullErrorMagnitude / roundingAmount;
-                
-                // Apply this amplification to the realistic local error
-                info.errorContribution = localError * amplificationFactor;
-                info.errorBounds = ibex::Interval(-info.errorContribution, info.errorContribution);
-            }
-            contributionIndex++;
+            OptResult maxErr = ibexInterface->findAbsMax(*errorExpr);
+            info.errorContribution = maxErr.result.mag();
+            info.errorBounds = maxErr.result;
             info.instructionIndex = index++;
             
             instructionInfos.push_back(info);
