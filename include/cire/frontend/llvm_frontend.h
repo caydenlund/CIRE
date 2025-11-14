@@ -14,14 +14,6 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 
-/// Mapping from LLVM nodes to Cire nodes.
-// NOLINTNEXTLINE(*-avoid-non-const-global-variables)
-extern std::map<llvm::Value*, Node*> llvmToCireNodeMap;
-
-/// Mapping from CIRE nodes to LLVM nodes.
-// NOLINTNEXTLINE(*-avoid-non-const-global-variables)
-extern std::map<Node*, llvm::Value*> cireToLLVMNodeMap;
-
 /**
  * @brief Adds metadata and mappings for a newly created CIRE node from an LLVM instruction.
  *

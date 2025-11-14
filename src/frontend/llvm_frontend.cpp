@@ -14,10 +14,6 @@
 using namespace llvm;
 using namespace std;
 
-// Define the global maps declared as extern in the header
-std::map<llvm::Value*, Node*> llvmToCireNodeMap;
-std::map<Node*, llvm::Value*> cireToLLVMNodeMap;
-
 void addDataForCreatedNode(Instruction& instr, Graph& graph, Node* node) {
     if (instr.getType()->isHalfTy()) {
         node->setRoundingType(Node::RoundingType::FL16);
@@ -30,42 +26,64 @@ void addDataForCreatedNode(Instruction& instr, Graph& graph, Node* node) {
         node->setRoundingFromType(Node::RoundingType::FL64);
     }
     
-    std::string instrName = instr.getName().str();
-    if (instrName.empty()) {
-        instrName = std::string(instr.getOpcodeName()) + "_" + std::to_string(node->id);
+    // Create instruction metadata using SourceMapper
+    auto metadata = graph.sourceMapper->createMetadata(&instr, instr.getFunction()->getName().str());
+
+    // Ensure the instruction has a name for the metadata
+    if (metadata->instructionName.empty()) {
+        metadata->instructionName = std::string(instr.getOpcodeName()) + "_" + std::to_string(node->id);
     }
-    graph.errorAnalyzer->llvmInstructionInfo[node->id] = {instrName, instr.getOpcodeName()};
-    
+
+    // Attach metadata to the node
+    node->setMetadata(std::move(metadata));
+
+    // Register node in graph structures
     graph.nodes.insert(node);
     graph.depthTable[node->depth].insert(node);
     graph.numOperatorsOutput++;
 
-    llvmToCireNodeMap[&instr] = node;
-    cireToLLVMNodeMap[node] = &instr;
-    graph.symbolTables[graph.currentScope]->insert(instr.getName().str(), node);
+    // Register LLVM value to node mappings
+    graph.registerLLVMNode(&instr, node);
+
+    // Index by instruction type for fast queries
+    graph.indexNodeByInstructionType(node, instr.getOpcodeName());
+
+    // Add to symbol table if instruction has a name
+    if (!instr.getName().empty()) {
+        graph.symbolTables[graph.currentScope]->insert(instr.getName().str(), node);
+    }
 }
 
 Node* getNodeFromLLVMValue(Value* val, Graph& graph) {
+    // Check if node already exists in the graph
+    Node* existingNode = graph.getNodeByLLVMValue(val);
+    if (existingNode) {
+        return existingNode;
+    }
+
+    // Create new node for constants
     if (isa<ConstantData>(val)) {
+        Node* new_node = nullptr;
+
         if (val->getType()->isFloatingPointTy()) {
             auto* CD = dyn_cast<ConstantFP>(val);
-            auto* new_node = new Double(CD->getValueAPF().convertToDouble());
-
-            graph.nodes.insert(new_node);
-            llvmToCireNodeMap[val] = new_node;
-            cireToLLVMNodeMap[new_node] = val;
-            return new_node;
+            new_node = new Double(CD->getValueAPF().convertToDouble());
         } else if (val->getType()->isIntegerTy()) {
             auto* CI = dyn_cast<ConstantInt>(val);
-            auto* new_node = new Integer(CI->getSExtValue());
+            new_node = new Integer(CI->getSExtValue());
+        }
 
+        if (new_node) {
+            // Create synthetic metadata for constant
+            auto metadata = graph.sourceMapper->createMetadata(val);
+            new_node->setMetadata(std::move(metadata));
+
+            // Register in graph
             graph.nodes.insert(new_node);
-            llvmToCireNodeMap[val] = new_node;
-            cireToLLVMNodeMap[new_node] = val;
+            graph.registerLLVMNode(val, new_node);
+
             return new_node;
         }
-    } else {
-        return llvmToCireNodeMap[val];
     }
 
     return nullptr;
@@ -104,10 +122,25 @@ void parseInputsInLLVM(Graph& graph, Function& func) {
         }
 
         auto* new_variable = new VariableNode(rounding_type);
+
+        // Create metadata for the variable node
+        auto varMetadata = graph.sourceMapper->createMetadata(&arg, func.getName().str());
+        new_variable->setMetadata(std::move(varMetadata));
+
         graph.nodes.insert(new_variable);
         graph.symbolTables[graph.currentScope]->insert(arg.getNameOrAsOperand().c_str(), new_variable);
-        graph.inputs[arg.getNameOrAsOperand().c_str()] = new FreeVariable(rounding_type);
-        graph.nodes.insert(graph.inputs[arg.getNameOrAsOperand().c_str()]);
+
+        // Register the argument mapping
+        graph.registerLLVMNode(&arg, new_variable);
+
+        // Create corresponding free variable for input
+        auto* free_var = new FreeVariable(rounding_type);
+        auto freeVarMetadata = graph.sourceMapper->createSyntheticMetadata(
+            "input_" + arg.getNameOrAsOperand(), "FREE_VARIABLE");
+        free_var->setMetadata(std::move(freeVarMetadata));
+
+        graph.inputs[arg.getNameOrAsOperand().c_str()] = free_var;
+        graph.nodes.insert(free_var);
     }
 }
 

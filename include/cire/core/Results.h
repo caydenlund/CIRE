@@ -1,13 +1,18 @@
 #ifndef CIRE_RESULTS_H
 #define CIRE_RESULTS_H
 
-#include "cire/core/Graph.h"
-#include "cire/core/Node.h"
+#include "cire/core/InstructionMetadata.h"
+#include "ibex_Interval.h"
 
 #include <nlohmann/json.hpp>
 #include <string>
 #include <map>
 #include <vector>
+#include <chrono>
+
+// Forward declarations
+class Node;
+class ErrorAnalysisResult;
 
 struct InstructionErrorInfo {
     std::string instructionName;
@@ -15,6 +20,18 @@ struct InstructionErrorInfo {
     double errorContribution;
     ibex::Interval errorBounds;
     int instructionIndex;
+
+    // Enhanced fields for richer reporting
+    double percentageContribution = 0.0;  // Percentage of total error
+    double cumulativeError = 0.0;          // Cumulative error up to this instruction
+    SourceLocation sourceLocation;         // Source code location
+    std::string irRepresentation;          // LLVM IR string
+    int nodeId = -1;                       // CIRE node ID
+
+    // Sort comparator by error contribution (descending)
+    bool operator<(const InstructionErrorInfo& other) const {
+        return errorContribution > other.errorContribution;
+    }
 };
 
 class Results {

@@ -16,6 +16,34 @@ Graph::~Graph() {
 
 void Graph::setValidationFile(std::string _validationFile) { validationFile = std::move(_validationFile); }
 
+void Graph::registerLLVMNode(llvm::Value* llvmValue, Node* node) {
+    if (llvmValue && node) {
+        llvmValueToNode[llvmValue] = node;
+        nodeToLLVMValue[node] = llvmValue;
+    }
+}
+
+Node* Graph::getNodeByLLVMValue(llvm::Value* llvmValue) const {
+    auto it = llvmValueToNode.find(llvmValue);
+    return (it != llvmValueToNode.end()) ? it->second : nullptr;
+}
+
+llvm::Value* Graph::getLLVMValueByNode(Node* node) const {
+    auto it = nodeToLLVMValue.find(node);
+    return (it != nodeToLLVMValue.end()) ? it->second : nullptr;
+}
+
+std::vector<Node*> Graph::getNodesByInstructionType(const std::string& type) const {
+    auto it = instructionTypeIndex.find(type);
+    return (it != instructionTypeIndex.end()) ? it->second : std::vector<Node*>();
+}
+
+void Graph::indexNodeByInstructionType(Node* node, const std::string& type) {
+    if (node) {
+        instructionTypeIndex[type].push_back(node);
+    }
+}
+
 std::ostream& operator<<(std::ostream& os, const Graph& graph) {
     graph.write(os);
     return os;
@@ -740,7 +768,7 @@ std::set<Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, un
 
     // Print nodes with op
     logging->debug("Nodes with op:");
-    for (const auto& node : nodes_with_op) { logging->debug("    ", *node); }
+    for (const auto& node : nodes_with_op) { logging->debug("    Node ID: ", node->id); }
 
     std::map<Node*, std::set<Node*>> common_dependencies = findCommonDependencies(nodes_with_op, lower_bound,
                                                                                   upper_bound);
@@ -748,8 +776,8 @@ std::set<Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, un
     // Print common dependencies
     logging->debug("Common dependencies:");
     for (const auto& common_dependency : common_dependencies) {
-        logging->debug("    ", *common_dependency.first, ":");
-        for (const auto& node : common_dependency.second) { logging->debug("        ", *node); }
+        logging->debug("    Node ID: ", common_dependency.first->id, ":");
+        for (const auto& node : common_dependency.second) { logging->debug("        Node ID: ", node->id); }
     }
 
     // Unionize the node set from common_dependencies
@@ -788,7 +816,7 @@ std::set<Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, un
 
     // Print common dependencies set
     logging->debug("Common dependencies set:");
-    for (const auto& node : common_dependencies_set) logging->debug("    ", *node);
+    for (const auto& node : common_dependencies_set) logging->debug("    Node ID: ", node->id);
 
     return common_dependencies_set;
 }
@@ -885,7 +913,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
             // Print candidate nodes
             logging->debug("Abstraction count: ", abstraction_count);
             logging->debug("Candidate Nodes:");
-            for (const auto& node : candidate_nodes) { logging->debug("    ", *node); }
+            for (const auto& node : candidate_nodes) { logging->debug("    Node ID: ", node->id); }
         }
 
         if (!candidate_nodes.empty()) {

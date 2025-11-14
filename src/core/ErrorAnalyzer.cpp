@@ -1,14 +1,9 @@
 #include "cire/core/ErrorAnalyzer.h"
+#include "cire/core/Results.h"
 #include "cire/core/Graph.h"
 #include "cire/interfaces/Logging.h"
 
-struct InstructionErrorInfo {
-    std::string instructionName;
-    std::string instructionType;
-    double errorContribution;
-    ibex::Interval errorBounds;
-    int instructionIndex;
-};
+#include <algorithm>
 
 std::string getOpString(Node::Op op) {
     switch (op) {
@@ -494,73 +489,125 @@ T2 findWithDefaultInsertion(std::map<T1, T2> map, T1 key, T2 defaultVal) {
     }
 }
 
-std::map<Node*, std::vector<InstructionErrorInfo>> ErrorAnalyzer::getInstructionErrorBreakdown(IBEXInterface* ibexInterface) {
+std::map<Node*, std::vector<InstructionErrorInfo>> ErrorAnalyzer::getInstructionErrorBreakdown(IBEXInterface* ibexInterface, Graph* graph) {
     std::map<Node*, std::vector<InstructionErrorInfo>> result;
-    
+
     for (const auto& [outputNode, instructionErrorPairs] : perInstructionErrors) {
         std::vector<InstructionErrorInfo> instructionInfos;
-        int index = 0;
-        
+        std::map<Node*, ibex::ExprNode*> errorMap;
+
+        // Build a map of nodes to their error expressions for quick lookup
         for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
-            InstructionErrorInfo info;
-            
-            if (instrNode->type == VARIABLE || instrNode->type == FREE_VARIABLE) {
-                if (instrNode->type == VARIABLE) {
-                    auto* varNode = static_cast<VariableNode*>(instrNode);
-                    info.instructionName = varNode->variable->name;
-                    info.instructionType = "VARIABLE";
-                } else {
-                    info.instructionName = "input_" + std::to_string(instrNode->id);
-                    info.instructionType = "FREE_VARIABLE";
-                }
-            } else {
-                if (llvmInstructionInfo.find(instrNode->id) != llvmInstructionInfo.end()) {
-                    info.instructionName = llvmInstructionInfo[instrNode->id].first;
-                    info.instructionType = llvmInstructionInfo[instrNode->id].second;
-                } else {
-                    info.instructionName = "node_" + std::to_string(instrNode->id);
-                    switch (instrNode->type) {
-                    case UNARY_OP: {
-                        auto* unaryNode = static_cast<UnaryOp*>(instrNode);
-                        info.instructionType = getOpString(unaryNode->op);
-                        break;
-                    }
-                    case BINARY_OP: {
-                        auto* binaryNode = static_cast<BinaryOp*>(instrNode);
-                        info.instructionType = getOpString(binaryNode->op);
-                        break;
-                    }
-                    case TERNARY_OP: {
-                        auto* ternaryNode = static_cast<TernaryOp*>(instrNode);
-                        info.instructionType = getOpString(ternaryNode->op);
-                        break;
-                    }
-                    case INTEGER:
-                        info.instructionType = "INTEGER";
-                        break;
-                    case FLOAT:
-                        info.instructionType = "FLOAT";
-                        break;
-                    case DOUBLE:
-                        info.instructionType = "DOUBLE";
-                        break;
-                    default:
-                        info.instructionType = "UNKNOWN";
-                        break;
-                    }
+            errorMap[instrNode] = errorExpr;
+        }
+
+        // Collect ALL nodes with metadata (if graph is provided)
+        std::vector<Node*> allInstructionNodes;
+        if (graph != nullptr) {
+            for (Node* node : graph->nodes) {
+                if (node->hasMetadata()) {
+                    allInstructionNodes.push_back(node);
                 }
             }
-            
+        } else {
+            // Fallback: only use nodes from perInstructionErrors
+            for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
+                allInstructionNodes.push_back(instrNode);
+            }
+        }
+
+        int index = 0;
+        double totalError = 0.0;
+
+        // First pass: calculate total error from nodes with error contributions
+        for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
             OptResult maxErr = ibexInterface->findAbsMax(*errorExpr);
-            info.errorContribution = maxErr.result.mag();
-            info.errorBounds = maxErr.result;
+            totalError += maxErr.result.mag();
+        }
+
+        // Second pass: populate instruction info for ALL instructions
+        double cumulativeError = 0.0;
+        for (Node* instrNode : allInstructionNodes) {
+            InstructionErrorInfo info;
+            info.nodeId = instrNode->id;
             info.instructionIndex = index++;
-            
+
+            // Extract information from node metadata
+            if (instrNode->hasMetadata()) {
+                InstructionMetadata* metadata = instrNode->getMetadata();
+                info.instructionName = metadata->getDisplayName();
+                info.instructionType = metadata->instructionOpcode;
+                info.sourceLocation = metadata->sourceLocation;
+                info.irRepresentation = metadata->irRepresentation;
+            } else {
+                // Fallback to node type-based naming
+                info.instructionName = "node_" + std::to_string(instrNode->id);
+                switch (instrNode->type) {
+                case VARIABLE:
+                    info.instructionType = "VARIABLE";
+                    break;
+                case FREE_VARIABLE:
+                    info.instructionType = "FREE_VARIABLE";
+                    break;
+                case UNARY_OP: {
+                    auto* unaryNode = static_cast<UnaryOp*>(instrNode);
+                    info.instructionType = getOpString(unaryNode->op);
+                    break;
+                }
+                case BINARY_OP: {
+                    auto* binaryNode = static_cast<BinaryOp*>(instrNode);
+                    info.instructionType = getOpString(binaryNode->op);
+                    break;
+                }
+                case TERNARY_OP: {
+                    auto* ternaryNode = static_cast<TernaryOp*>(instrNode);
+                    info.instructionType = getOpString(ternaryNode->op);
+                    break;
+                }
+                case INTEGER:
+                    info.instructionType = "INTEGER";
+                    break;
+                case FLOAT:
+                    info.instructionType = "FLOAT";
+                    break;
+                case DOUBLE:
+                    info.instructionType = "DOUBLE";
+                    break;
+                default:
+                    info.instructionType = "UNKNOWN";
+                    break;
+                }
+            }
+
+            // Calculate error metrics
+            auto errorIt = errorMap.find(instrNode);
+            if (errorIt != errorMap.end()) {
+                // This node has error contribution
+                OptResult maxErr = ibexInterface->findAbsMax(*errorIt->second);
+                info.errorContribution = maxErr.result.mag();
+                info.errorBounds = maxErr.result;
+                cumulativeError += info.errorContribution;
+            } else {
+                // This node has no error contribution
+                info.errorContribution = 0.0;
+                info.errorBounds = ibex::Interval(0.0, 0.0);
+            }
+
+            info.cumulativeError = cumulativeError;
+
+            // Calculate percentage contribution
+            if (totalError > 0.0) {
+                info.percentageContribution = (info.errorContribution / totalError) * 100.0;
+            }
+
             instructionInfos.push_back(info);
         }
-        
+
+        // Sort by error contribution (descending)
+        std::sort(instructionInfos.begin(), instructionInfos.end());
+
         result[outputNode] = instructionInfos;
     }
-    
+
     return result;
 }

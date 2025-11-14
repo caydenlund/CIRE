@@ -217,7 +217,7 @@ int main(int argc, char* argv[]) {
         logging->debug("Writing results to ", cire.results->file, " ...");
     }
 
-    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface);
+    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface, cire.graph);
     
     if (CSV_friendly) {
         cire.results->writeResultsForCSV(cire.graph->outputs, cire.graph->numOperatorsOutput,

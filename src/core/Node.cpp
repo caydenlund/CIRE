@@ -36,6 +36,18 @@ void Node::setAbsoluteError(const ibex::ExprNode* absErr) { absoluteError = absE
 
 Node::RoundingType Node::getRoundingType() const { return opRoundType; }
 
+void Node::setMetadata(std::unique_ptr<InstructionMetadata> meta) {
+    metadata = std::move(meta);
+}
+
+InstructionMetadata* Node::getMetadata() const {
+    return metadata.get();
+}
+
+bool Node::hasMetadata() const {
+    return metadata != nullptr;
+}
+
 void Node::write(std::ostream& os) const {
     os << "\nID:" << id << "\n";
     os << "\tDepth:" << depth << "\n";
@@ -589,7 +601,7 @@ void UnaryOp::write(std::ostream& os) const {
     Node::write(os);
 
     // Print remaining data
-    os << "\tOperand: [" << (Node)*operand << "]\n";
+    os << "\tOperand: [" << *operand << "]\n";
 }
 
 ibex::ExprNode* UnaryOp::getExprNode() const { return (ibex::ExprNode*)expr; }
@@ -673,7 +685,7 @@ void BinaryOp::write(std::ostream& os) const {
     Node::write(os);
 
     // Print remaining data
-    os << "\tLeft Operand: [" << (Node)*leftOperand << "]\n";
+    os << "\tLeft Operand: [" << *leftOperand << "]\n";
     // Print operator
     std::string operator_string;
     switch (op) {
@@ -695,7 +707,7 @@ void BinaryOp::write(std::ostream& os) const {
     }
 
     os << "\tOperator: " << operator_string << "\n";
-    os << "\tRight Operand: [" << (Node)*rightOperand << "]\n";
+    os << "\tRight Operand: [" << *rightOperand << "]\n";
 }
 
 bool BinaryOp::operator==(const BinaryOp& other) const {
@@ -768,9 +780,9 @@ void TernaryOp::write(std::ostream& os) const {
     Node::write(os);
 
     // Print remaining data
-    os << "\tLeft Operand: [" << (Node)*leftOperand << "]\n";
-    os << "\tMiddle Operand: [" << (Node)*middleOperand << "]\n";
-    os << "\tRight Operand: [" << (Node)*rightOperand << "]\n";
+    os << "\tLeft Operand: [" << *leftOperand << "]\n";
+    os << "\tMiddle Operand: [" << *middleOperand << "]\n";
+    os << "\tRight Operand: [" << *rightOperand << "]\n";
 }
 
 ibex::ExprNode* TernaryOp::getExprNode() const { return (ibex::ExprNode*)expr; }

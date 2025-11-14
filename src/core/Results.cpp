@@ -1,7 +1,10 @@
 #include "cire/core/Results.h"
+#include "cire/core/Graph.h"
+#include "cire/core/Node.h"
 #include "cire/interfaces/Logging.h"
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <utility>
 
@@ -58,7 +61,7 @@ bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOpe
                 optPoint.emplace_back(result.optPoint[i].lb(), result.optPoint[i].ub());
             }
             jsonObject[file_stem]["Results"][outputs[k]]["Optima"] = optPoint;
-            
+
             if (instructionErrors.find(node) != instructionErrors.end()) {
                 const auto& nodeInstrErrors = instructionErrors.at(node);
                 nlohmann::json instrErrorArray = nlohmann::json::array();
@@ -69,11 +72,29 @@ bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOpe
                     instrJson["error_contribution"] = instrError.errorContribution;
                     instrJson["error_bounds"] = {instrError.errorBounds.lb(), instrError.errorBounds.ub()};
                     instrJson["instruction_index"] = instrError.instructionIndex;
+                    instrJson["node_id"] = instrError.nodeId;
+                    instrJson["percentage_contribution"] = instrError.percentageContribution;
+                    instrJson["cumulative_error"] = instrError.cumulativeError;
+
+                    // Add source location if available
+                    if (instrError.sourceLocation.isValid()) {
+                        instrJson["source_location"] = {
+                            {"file", instrError.sourceLocation.filename},
+                            {"line", instrError.sourceLocation.line},
+                            {"column", instrError.sourceLocation.column}
+                        };
+                    }
+
+                    // Add IR representation if available
+                    if (!instrError.irRepresentation.empty()) {
+                        instrJson["ir_representation"] = instrError.irRepresentation;
+                    }
+
                     instrErrorArray.push_back(instrJson);
                 }
                 jsonObject[file_stem]["Results"][outputs[k]]["InstructionErrors"] = instrErrorArray;
             }
-            
+
             k++;
         }
         // Parsing Time + Error Analysis Time = Total Time
@@ -87,37 +108,55 @@ bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOpe
     }
 
     if (stdoutOutput) {
-        // Print non-nested format to stdout for compiler explorer
-        std::filesystem::path file_path = input_file;
-        std::string file_stem = file_path.stem().string();
-        
+        // Print compact single-line format for compiler explorer integration
         for (auto const& [node, result] : results) {
+            // Summary metrics - one line each
             std::cout << "Output: [" << result.outputExtrema.lb() << ", " << result.outputExtrema.ub() << "]" << std::endl;
             std::cout << "Error: [" << result.errorExtrema.lb() << ", " << result.errorExtrema.ub() << "]" << std::endl;
             std::cout << "NumOperators: " << numOperatorsOutput << std::endl;
             std::cout << "Height: " << heightDAG << std::endl;
-            std::cout << "Optimization Time: " << result.totalOptimizationTime << std::endl;
-            std::cout << "Number of Optimizer Calls: " << result.numOptimizationCalls << std::endl;
-            std::cout << "Parsing Time: " << time_map.at("Parsing").count() << std::endl;
-            std::cout << "Error Analysis Time: " << time_map.at("Error_Analysis").count() << std::endl;
-            std::cout << "Total Time: " << time_map.at("Total").count() << std::endl;
-            
+            std::cout << "Optimization_Time: " << result.totalOptimizationTime << std::endl;
+            std::cout << "Optimizer_Calls: " << result.numOptimizationCalls << std::endl;
+            std::cout << "Parsing_Time: " << time_map.at("Parsing").count() << std::endl;
+            std::cout << "Error_Analysis_Time: " << time_map.at("Error_Analysis").count() << std::endl;
+            std::cout << "Total_Time: " << time_map.at("Total").count() << std::endl;
+
+            // Instruction errors in Compiler Explorer annotation format
             if (instructionErrors.find(node) != instructionErrors.end()) {
                 const auto& nodeInstrErrors = instructionErrors.at(node);
-                std::cout << "Instruction Errors:" << std::endl;
                 for (const auto& instrError : nodeInstrErrors) {
-                    std::cout << "  " << instrError.instructionName << " (" << instrError.instructionType 
-                              << "): " << instrError.errorContribution << " [" 
-                              << instrError.errorBounds.lb() << ", " << instrError.errorBounds.ub() << "]" << std::endl;
+                    // Use Compiler Explorer format: <file>:<line>:<col>: <severity>: <message>
+                    if (instrError.sourceLocation.isValid()) {
+                        std::cout << instrError.sourceLocation.filename << ":"
+                                  << instrError.sourceLocation.line << ":"
+                                  << instrError.sourceLocation.column << ": note: "
+                                  << instrError.instructionName << " (" << instrError.instructionType << ") - "
+                                  << "error contribution: " << std::scientific << std::setprecision(3)
+                                  << instrError.errorContribution
+                                  << " (" << std::fixed << std::setprecision(1)
+                                  << instrError.percentageContribution << "%)" << std::endl;
+                    } else {
+                        // Fallback for instructions without source location
+                        std::cout << instrError.instructionName << " (" << instrError.instructionType << "): "
+                                  << "error contribution: " << std::scientific << std::setprecision(3)
+                                  << instrError.errorContribution
+                                  << " (" << std::fixed << std::setprecision(1)
+                                  << instrError.percentageContribution << "%)";
+                        // Include IR representation if available for easier correlation
+                        if (!instrError.irRepresentation.empty()) {
+                            std::cout << " | " << instrError.irRepresentation;
+                        }
+                        std::cout << std::endl;
+                    }
                 }
             }
-            
+
             break; // Only output first result for stdout
         }
     } else {
         std::ofstream out(file);
         out << std::setw(4) << jsonObject;
-        
+
         if (logging) { logging->debug("Results written to ", file, "!"); }
     }
 
@@ -177,37 +216,55 @@ bool Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int 
     }
 
     if (stdoutOutput) {
-        // Print non-nested format to stdout for compiler explorer
-        std::filesystem::path file_path = input_file;
-        std::string file_stem = file_path.stem().string();
-        
+        // Print compact single-line format for compiler explorer integration
         for (auto const& [node, result] : results) {
+            // Summary metrics - one line each
             std::cout << "Output: [" << result.outputExtrema.lb() << ", " << result.outputExtrema.ub() << "]" << std::endl;
             std::cout << "Error: [" << result.errorExtrema.lb() << ", " << result.errorExtrema.ub() << "]" << std::endl;
             std::cout << "NumOperators: " << numOperatorsOutput << std::endl;
             std::cout << "Height: " << heightDAG << std::endl;
-            std::cout << "Optimization Time: " << result.totalOptimizationTime << std::endl;
-            std::cout << "Number of Optimizer Calls: " << result.numOptimizationCalls << std::endl;
-            std::cout << "Parsing Time: " << time_map.at("Parsing").count() << std::endl;
-            std::cout << "Error Analysis Time: " << time_map.at("Error_Analysis").count() << std::endl;
-            std::cout << "Total Time: " << time_map.at("Total").count() << std::endl;
-            
+            std::cout << "Optimization_Time: " << result.totalOptimizationTime << std::endl;
+            std::cout << "Optimizer_Calls: " << result.numOptimizationCalls << std::endl;
+            std::cout << "Parsing_Time: " << time_map.at("Parsing").count() << std::endl;
+            std::cout << "Error_Analysis_Time: " << time_map.at("Error_Analysis").count() << std::endl;
+            std::cout << "Total_Time: " << time_map.at("Total").count() << std::endl;
+
+            // Instruction errors in Compiler Explorer annotation format
             if (instructionErrors.find(node) != instructionErrors.end()) {
                 const auto& nodeInstrErrors = instructionErrors.at(node);
-                std::cout << "Instruction Errors:" << std::endl;
                 for (const auto& instrError : nodeInstrErrors) {
-                    std::cout << "  " << instrError.instructionName << " (" << instrError.instructionType 
-                              << "): " << instrError.errorContribution << " [" 
-                              << instrError.errorBounds.lb() << ", " << instrError.errorBounds.ub() << "]" << std::endl;
+                    // Use Compiler Explorer format: <file>:<line>:<col>: <severity>: <message>
+                    if (instrError.sourceLocation.isValid()) {
+                        std::cout << instrError.sourceLocation.filename << ":"
+                                  << instrError.sourceLocation.line << ":"
+                                  << instrError.sourceLocation.column << ": note: "
+                                  << instrError.instructionName << " (" << instrError.instructionType << ") - "
+                                  << "error contribution: " << std::scientific << std::setprecision(3)
+                                  << instrError.errorContribution
+                                  << " (" << std::fixed << std::setprecision(1)
+                                  << instrError.percentageContribution << "%)" << std::endl;
+                    } else {
+                        // Fallback for instructions without source location
+                        std::cout << instrError.instructionName << " (" << instrError.instructionType << "): "
+                                  << "error contribution: " << std::scientific << std::setprecision(3)
+                                  << instrError.errorContribution
+                                  << " (" << std::fixed << std::setprecision(1)
+                                  << instrError.percentageContribution << "%)";
+                        // Include IR representation if available for easier correlation
+                        if (!instrError.irRepresentation.empty()) {
+                            std::cout << " | " << instrError.irRepresentation;
+                        }
+                        std::cout << std::endl;
+                    }
                 }
             }
-            
+
             break; // Only output first result for stdout
         }
     } else {
         std::ofstream out(file);
         out << std::setw(4) << jsonObject;
-        
+
         if (logging) { logging->debug("Results written to ", file, "!"); }
     }
 

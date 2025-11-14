@@ -47,9 +47,15 @@ add_library(Graph SHARED
         ${BISON_MyParser_OUTPUTS}
         ${FLEX_MyScanner_OUTPUTS})
 
+target_link_libraries(Graph PUBLIC nlohmann_json::nlohmann_json)
+
 option(ENABLE_LLVM_FRONTEND "Enable the LLVM frontend" OFF)
 
 if(ENABLE_LLVM_FRONTEND)
+    # Add LLVM-dependent sources to Graph library
+    target_sources(Graph PRIVATE
+        src/core/InstructionMetadata.cpp
+        src/core/SourceMapper.cpp)
     #===============================================================================
     # 1. LOAD LLVM CONFIGURATION
     #===============================================================================
@@ -84,6 +90,10 @@ if(ENABLE_LLVM_FRONTEND)
 
     add_library(llvm_util STATIC ${LLVM_UTIL_SRCS})
     add_library(util STATIC ${UTIL_SRCS})
+
+    # Link LLVM libraries to Graph for LLVM-dependent sources
+    llvm_map_components_to_libnames(graph_llvm_libs support core irreader)
+    target_link_libraries(Graph PUBLIC ${graph_llvm_libs})
 
     #===============================================================================
     # 2. LLVM-TUTOR BUILD CONFIGURATION

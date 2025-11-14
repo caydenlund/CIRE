@@ -1,11 +1,15 @@
 #ifndef CIRE_ERRORANALYZER_H
 #define CIRE_ERRORANALYZER_H
 
+#include "cire/core/InstructionMetadata.h"
 #include "cire/core/Node.h"
 #include "cire/interfaces/IBEXInterface.h"
 
-struct InstructionErrorInfo;
+#include <vector>
+
+// Forward declarations
 class ErrorAnalysisResult;
+struct InstructionErrorInfo;
 
 class ErrorAnalyzer {
 public:
@@ -35,10 +39,8 @@ public:
     std::map<Node*, std::set<Node*>> parentsOfNode;
 
     std::map<Node*, ibex::ExprNode*> errAccumulator;
-    
+
     std::map<Node*, std::vector<std::pair<Node*, ibex::ExprNode*>>> perInstructionErrors;
-    
-    std::map<int, std::pair<std::string, std::string>> llvmInstructionInfo;
 
     ErrorAnalyzer();
 
@@ -58,7 +60,7 @@ public:
     void logBwdDerivative(Node* outNode, Node* WRTNode);
     void logBwdDerivativesIbexExprs();
     
-    std::map<Node*, std::vector<InstructionErrorInfo>> getInstructionErrorBreakdown(IBEXInterface* ibexInterface);
+    std::map<Node*, std::vector<InstructionErrorInfo>> getInstructionErrorBreakdown(IBEXInterface* ibexInterface, class Graph* graph = nullptr);
 };
 
 ibex::ExprNode* getDerivativeWRTChildNode(Node* node, int index);

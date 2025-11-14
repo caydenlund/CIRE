@@ -126,18 +126,7 @@ int main(int argc, char** argv) {
             parseInputsInLLVM(*cire.graph, *func);
         }
 
-        // map the LLVM function arguments to the CIRE inputs
-        // Iterate the function arguments
-        for (auto& arg : func->args()) {
-            if (arg.getType()->isFloatingPointTy()) {
-                llvmToCireNodeMap[&arg]
-                        = cire.graph->symbolTables[cire.graph->currentScope]->table[arg.getNameOrAsOperand().c_str()];
-                cireToLLVMNodeMap[cire.graph->symbolTables[cire.graph->currentScope]
-                                          ->table[arg.getNameOrAsOperand().c_str()]]
-                        = &arg;
-            }
-        }
-
+        // Note: LLVM function arguments are now automatically mapped in parseInputsInLLVM
         parseExprsInLLVM(*cire.graph, *func);
     } else {
         for (auto& func : *llvmModule) {
@@ -149,18 +138,7 @@ int main(int argc, char** argv) {
                 parseInputsInLLVM(*cire.graph, func);
             }
 
-            // map the LLVM function arguments to the CIRE inputs
-            // Iterate the function arguments
-            for (auto& arg : func.args()) {
-                if (arg.getType()->isFloatingPointTy()) {
-                    llvmToCireNodeMap[&arg] = cire.graph->symbolTables[cire.graph->currentScope]
-                                                      ->table[arg.getNameOrAsOperand().c_str()];
-                    cireToLLVMNodeMap[cire.graph->symbolTables[cire.graph->currentScope]
-                                              ->table[arg.getNameOrAsOperand().c_str()]]
-                            = &arg;
-                }
-            }
-
+            // Note: LLVM function arguments are now automatically mapped in parseInputsInLLVM
             parseExprsInLLVM(*cire.graph, func);
             break;
         }
@@ -205,7 +183,7 @@ int main(int argc, char** argv) {
     logging->info("Total Time taken: " + std::to_string(cire.timeMap["Total"].count()) + " seconds");
 
 
-    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface);
+    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface, cire.graph);
     
     if (opts.csvFriendly) {
         cire.results->writeResultsForCSV(cire.graph->outputs, cire.graph->numOperatorsOutput,

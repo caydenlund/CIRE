@@ -2,10 +2,12 @@
 #define CIRE_NODE_H
 
 #include "ibex_Expr.h"
+#include "cire/core/InstructionMetadata.h"
 
 #include <cmath>
 #include <cstdint>
 #include <map>
+#include <memory>
 #include <set>
 
 enum NodeType : std::uint8_t {
@@ -71,6 +73,9 @@ public:
     const ibex::ExprNode* absoluteError = nullptr;
     std::set<Node*> parents;
 
+    // Instruction metadata for tracking LLVM IR source
+    std::unique_ptr<InstructionMetadata> metadata = nullptr;
+
     // Epsilon values for rounding to be applied for different types
     std::map<RoundingType, double> roundingAmount = {
             {CONST, 0.0}, {INT, 1.0}, {FL16, pow(2, -11 + 53)}, {FL32, pow(2, -24 + 53)}, {FL64, 1.0},
@@ -95,6 +100,11 @@ public:
     void setAbsoluteError(const ibex::ExprNode* absErr);
 
     RoundingType getRoundingType() const;
+
+    // Instruction metadata methods
+    void setMetadata(std::unique_ptr<InstructionMetadata> meta);
+    InstructionMetadata* getMetadata() const;
+    bool hasMetadata() const;
 
     virtual void write(std::ostream& os) const;
 

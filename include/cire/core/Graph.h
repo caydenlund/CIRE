@@ -2,7 +2,14 @@
 #define CIRE_GRAPH_H
 
 #include "cire/core/ErrorAnalyzer.h"
+#include "cire/core/SourceMapper.h"
 #include "cire/core/SymbolTable.h"
+
+#include <memory>
+
+namespace llvm {
+    class Value;
+}
 
 class ErrorAnalysisResult {
 public:
@@ -35,12 +42,31 @@ public:
 
     std::string validationFile;
 
+    // Instance-level LLVM IR to CIRE node mapping (replaces global maps)
+    std::map<llvm::Value*, Node*> llvmValueToNode;
+    std::map<Node*, llvm::Value*> nodeToLLVMValue;
+
+    // Source mapper for debug information extraction
+    std::unique_ptr<SourceMapper> sourceMapper = std::make_unique<SourceMapper>();
+
+    // Instruction type index for fast queries
+    std::map<std::string, std::vector<Node*>> instructionTypeIndex;
+
     std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics;
 
     Graph() = default;
     virtual ~Graph();
 
     void setValidationFile(std::string _validationFile);
+
+    // LLVM IR mapping methods
+    void registerLLVMNode(llvm::Value* llvmValue, Node* node);
+    Node* getNodeByLLVMValue(llvm::Value* llvmValue) const;
+    llvm::Value* getLLVMValueByNode(Node* node) const;
+
+    // Instruction query methods
+    std::vector<Node*> getNodesByInstructionType(const std::string& type) const;
+    void indexNodeByInstructionType(Node* node, const std::string& type);
 
     virtual void write(std::ostream& out) const;
 

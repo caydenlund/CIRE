@@ -1,0 +1,41 @@
+Output: [27, 27.0271]
+Error: [1.59873e-14, 1.60033e-14]
+NumOperators: 22
+Height: 13
+Optimization_Time: 0.153998
+Optimizer_Calls: 2
+Parsing_Time: 0.000460579
+Error_Analysis_Time: 0.160367
+Total_Time: 0.160849
+call_26 (call): error contribution: 4.217e+01 (28.9%) |   %2 = tail call double @llvm.fmuladd.f64(double %mul13, double %div, double %mul12)
+add18 (fadd): error contribution: 2.803e+01 (19.2%) |   %add18 = fadd double %mul17, %add16
+add19 (fadd): error contribution: 2.703e+01 (18.5%) |   %add19 = fadd double %x1, %add18
+add15 (fadd): error contribution: 2.008e+01 (13.8%) |   %add15 = fadd double %mul1, %2
+add16 (fadd): error contribution: 1.909e+01 (13.1%) |   %add16 = fadd double %x1, %add15
+mul17 (fmul): error contribution: 9.010e+00 (6.2%) |   %mul17 = fmul double %div, 3.000000e+00
+mul1 (fmul): error contribution: 1.002e+00 (0.7%) |   %mul1 = fmul double %x1, %mul
+x1 (): error contribution: 1.001e-07 (0.1%) | double %x1
+mul13 (fmul): error contribution: 0.000e+00 (0.0%) |   %mul13 = fmul double %mul, 3.000000e+00
+mul12 (fmul): error contribution: 0.000e+00 (0.0%) |   %mul12 = fmul double %add, %add10
+add10 (fadd): error contribution: 0.000e+00 (0.0%) |   %add10 = fadd double %mul7, %mul9
+mul9 (fmul): error contribution: 0.000e+00 (0.0%) |   %mul9 = fmul double %mul, %1
+call_21 (call): error contribution: 0.000e+00 (0.0%) |   %1 = tail call double @llvm.fmuladd.f64(double %div, double 4.000000e+00, double -6.000000e+00)
+<unnamed> (): error contribution: 0.000e+00 (0.0%) | double -6.000000e+00
+<unnamed> (): error contribution: 0.000e+00 (0.0%) | double 4.000000e+00
+mul7 (fmul): error contribution: 0.000e+00 (0.0%) |   %mul7 = fmul double %mul5, %sub6
+<unnamed> (): error contribution: 0.000e+00 (0.0%) | double -3.000000e+00
+sub6 (fadd): error contribution: 0.000e+00 (0.0%) |   %sub6 = fadd double %div, -3.000000e+00
+mul5 (fmul): error contribution: 0.000e+00 (0.0%) |   %mul5 = fmul double %mul4, %div
+mul4 (fmul): error contribution: 0.000e+00 (0.0%) |   %mul4 = fmul double %x1, 2.000000e+00
+div (fdiv): error contribution: 0.000e+00 (0.0%) |   %div = fdiv double %sub, %add
+add (fadd): error contribution: 0.000e+00 (0.0%) |   %add = fadd double %mul, 1.000000e+00
+<unnamed> (): error contribution: 0.000e+00 (0.0%) | double 1.000000e+00
+sub (fsub): error contribution: 0.000e+00 (0.0%) |   %sub = fsub double %0, %x1
+call_9 (call): error contribution: 0.000e+00 (0.0%) |   %0 = tail call double @llvm.fmuladd.f64(double %mul, double 3.000000e+00, double %mul3)
+<unnamed> (): error contribution: 0.000e+00 (0.0%) | double 3.000000e+00
+mul3 (fmul): error contribution: 0.000e+00 (0.0%) |   %mul3 = fmul double %x2, 2.000000e+00
+<unnamed> (): error contribution: 0.000e+00 (0.0%) | double 2.000000e+00
+mul (fmul): error contribution: 0.000e+00 (0.0%) |   %mul = fmul double %x1, %x1
+<synthetic> (FREE_VARIABLE): error contribution: 0.000e+00 (0.0%)
+x2 (): error contribution: 0.000e+00 (0.0%) | double %x2
+<synthetic> (FREE_VARIABLE): error contribution: 0.000e+00 (0.0%)
