@@ -13,6 +13,9 @@
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
+#include <map>
+#include <string>
+#include <utility>
 
 /**
  * @brief Adds metadata and mappings for a newly created CIRE node from an LLVM instruction.
@@ -43,10 +46,12 @@ Node* getNodeFromLLVMValue(llvm::Value* val, Graph& graph);
  *
  * @param graph The CIRE graph to populate.
  * @param func The LLVM function being parsed.
+ * @param inputBounds Map of parameter names to their (min, max) bounds. Unspecified parameters use [-1.0, 1.0].
  *
  * Creates variable nodes for each function argument and adds them to the graph's symbol table and inputs.
  */
-void parseInputsInLLVM(Graph& graph, llvm::Function& func);
+void parseInputsInLLVM(Graph& graph, llvm::Function& func,
+                       const std::map<std::string, std::pair<double, double>>& inputBounds = {});
 
 /**
  * @brief Parses expressions (instructions) from LLVM IR and converts them to CIRE nodes.

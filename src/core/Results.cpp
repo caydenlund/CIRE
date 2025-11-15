@@ -22,6 +22,8 @@ void Results::setFile(std::string _file) { file = std::move(_file); }
 
 void Results::setStdoutOutput(bool enable) { stdoutOutput = enable; }
 
+void Results::setShowAllInstructions(bool enable) { showAllInstructions = enable; }
+
 bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                            std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
                            const std::string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
@@ -66,6 +68,11 @@ bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOpe
                 const auto& nodeInstrErrors = instructionErrors.at(node);
                 nlohmann::json instrErrorArray = nlohmann::json::array();
                 for (const auto& instrError : nodeInstrErrors) {
+                    // Skip instructions with zero error contribution unless showAllInstructions is true
+                    if (!showAllInstructions && instrError.errorContribution == 0.0) {
+                        continue;
+                    }
+
                     nlohmann::json instrJson;
                     instrJson["instruction_name"] = instrError.instructionName;
                     instrJson["instruction_type"] = instrError.instructionType;
@@ -125,6 +132,11 @@ bool Results::writeResults(std::vector<std::string> outputs, unsigned int numOpe
             if (instructionErrors.find(node) != instructionErrors.end()) {
                 const auto& nodeInstrErrors = instructionErrors.at(node);
                 for (const auto& instrError : nodeInstrErrors) {
+                    // Skip instructions with zero error contribution unless showAllInstructions is true
+                    if (!showAllInstructions && instrError.errorContribution == 0.0) {
+                        continue;
+                    }
+
                     // Use Compiler Explorer format: <file>:<line>:<col>: <severity>: <message>
                     if (instrError.sourceLocation.isValid()) {
                         std::cout << instrError.sourceLocation.filename << ":"
@@ -233,6 +245,11 @@ bool Results::writeResultsForCSV(std::vector<std::string> outputs, unsigned int 
             if (instructionErrors.find(node) != instructionErrors.end()) {
                 const auto& nodeInstrErrors = instructionErrors.at(node);
                 for (const auto& instrError : nodeInstrErrors) {
+                    // Skip instructions with zero error contribution unless showAllInstructions is true
+                    if (!showAllInstructions && instrError.errorContribution == 0.0) {
+                        continue;
+                    }
+
                     // Use Compiler Explorer format: <file>:<line>:<col>: <severity>: <message>
                     if (instrError.sourceLocation.isValid()) {
                         std::cout << instrError.sourceLocation.filename << ":"

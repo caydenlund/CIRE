@@ -89,7 +89,8 @@ Node* getNodeFromLLVMValue(Value* val, Graph& graph) {
     return nullptr;
 }
 
-void parseInputsInLLVM(Graph& graph, Function& func) {
+void parseInputsInLLVM(Graph& graph, Function& func,
+                       const std::map<std::string, std::pair<double, double>>& inputBounds) {
     graph.createNewSymbolTable();
 
     // Iterate the function arguments
@@ -133,13 +134,26 @@ void parseInputsInLLVM(Graph& graph, Function& func) {
         // Register the argument mapping
         graph.registerLLVMNode(&arg, new_variable);
 
-        // Create corresponding free variable for input
-        auto* free_var = new FreeVariable(rounding_type);
+        // Create corresponding free variable for input with custom or default bounds
+        std::string paramName = arg.getNameOrAsOperand();
+        auto boundsIter = inputBounds.find(paramName);
+
+        FreeVariable* free_var;
+        if (boundsIter != inputBounds.end()) {
+            // Use custom bounds from command-line argument
+            double min = boundsIter->second.first;
+            double max = boundsIter->second.second;
+            free_var = new FreeVariable(*new ibex::Interval(min, max), rounding_type);
+        } else {
+            // Use default bounds [-1.0, 1.0]
+            free_var = new FreeVariable(rounding_type);
+        }
+
         auto freeVarMetadata = graph.sourceMapper->createSyntheticMetadata(
-            "input_" + arg.getNameOrAsOperand(), "FREE_VARIABLE");
+            "input_" + paramName, "FREE_VARIABLE");
         free_var->setMetadata(std::move(freeVarMetadata));
 
-        graph.inputs[arg.getNameOrAsOperand().c_str()] = free_var;
+        graph.inputs[paramName.c_str()] = free_var;
         graph.nodes.insert(free_var);
     }
 }

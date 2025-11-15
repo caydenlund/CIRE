@@ -1,5 +1,6 @@
 #include <memory>
 #include <fstream>
+#include <sstream>
 
 #include "cire/core/Cire.h"
 #include "cire/frontend/llvm_frontend.h"
@@ -58,7 +59,48 @@ struct CliOpts {
 
     cl::opt<bool> stdoutOutput {"stdout", cl::desc("Print output to stdout in non-nested format for compiler explorer"),
                                 cl::init(false)};
+
+    cl::opt<bool> showAllInstructions {"show-all-instructions",
+                                       cl::desc("Show all instructions including those with zero error contribution"),
+                                       cl::init(false)};
+
+    cl::opt<string> inputBounds {"input-bounds",
+                                 cl::desc("Specify input bounds as param:min:max,param2:min:max (default: -1:1 for all)"),
+                                 cl::value_desc("Comma-separated list of parameter bounds"), cl::init("")};
 };
+
+
+std::map<std::string, std::pair<double, double>> parseInputBounds(const std::string& boundsStr) {
+    std::map<std::string, std::pair<double, double>> boundsMap;
+
+    if (boundsStr.empty()) {
+        return boundsMap;
+    }
+
+    std::stringstream ss(boundsStr);
+    std::string token;
+
+    while (std::getline(ss, token, ',')) {
+        std::stringstream tokenStream(token);
+        std::string param, minStr, maxStr;
+
+        if (std::getline(tokenStream, param, ':') &&
+            std::getline(tokenStream, minStr, ':') &&
+            std::getline(tokenStream, maxStr)) {
+            try {
+                double min = std::stod(minStr);
+                double max = std::stod(maxStr);
+                boundsMap[param] = {min, max};
+            } catch (const std::exception& e) {
+                errs() << "Error parsing bounds for parameter '" << param << "': " << e.what() << "\n";
+            }
+        } else {
+            errs() << "Invalid bounds format for token '" << token << "'. Expected format: param:min:max\n";
+        }
+    }
+
+    return boundsMap;
+}
 
 
 int main(int argc, char** argv) {
@@ -114,6 +156,11 @@ int main(int argc, char** argv) {
 
     if (opts.stdoutOutput) cire.results->setStdoutOutput(true);
 
+    if (opts.showAllInstructions) cire.results->setShowAllInstructions(true);
+
+    // Parse input bounds from command-line argument
+    auto inputBoundsMap = parseInputBounds(opts.inputBounds.getValue());
+
     if (!opts.func.empty()) {
         auto* func = findFunction(*llvmModule, opts.func);
         if (func == nullptr) {
@@ -123,7 +170,7 @@ int main(int argc, char** argv) {
         if (!opts.input.empty()) {
             cire.graph->parse(*opts.input.c_str());
         } else {
-            parseInputsInLLVM(*cire.graph, *func);
+            parseInputsInLLVM(*cire.graph, *func, inputBoundsMap);
         }
 
         // Note: LLVM function arguments are now automatically mapped in parseInputsInLLVM
@@ -135,7 +182,7 @@ int main(int argc, char** argv) {
             if (!opts.input.empty()) {
                 cire.graph->parse(*opts.input.c_str());
             } else {
-                parseInputsInLLVM(*cire.graph, func);
+                parseInputsInLLVM(*cire.graph, func, inputBoundsMap);
             }
 
             // Note: LLVM function arguments are now automatically mapped in parseInputsInLLVM

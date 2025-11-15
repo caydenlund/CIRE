@@ -40,12 +40,14 @@ public:
     std::string file;
     nlohmann::json jsonObject;
     bool stdoutOutput = false;
+    bool showAllInstructions = false;
     Results();
     explicit Results(std::string file);
     ~Results();
 
     void setFile(std::string file);
     void setStdoutOutput(bool enable);
+    void setShowAllInstructions(bool enable);
 
     bool writeResults(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                       std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
