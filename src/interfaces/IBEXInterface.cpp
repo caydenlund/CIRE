@@ -10,7 +10,7 @@ IBEXInterface::IBEXInterface(ibex::IntervalVector InputIntervals, ibex::Array<co
 
 void IBEXInterface::setInputIntervals(ibex::IntervalVector& InputIntervals) { _inputIntervals = InputIntervals; }
 
-void IBEXInterface::setInputIntervals(std::map<string, FreeVariable*> inputs) {
+void IBEXInterface::setInputIntervals(std::map<string, ir::FreeVariable*> inputs) {
     double x[inputs.size()][2];
     int i = 0;
     for (auto& input : inputs) {
@@ -18,15 +18,15 @@ void IBEXInterface::setInputIntervals(std::map<string, FreeVariable*> inputs) {
         x[i][1] = input.second->var->ub();
         i++;
     }
-    _inputIntervals = ibex::IntervalVector(inputs.size(), x);
+    _inputIntervals = ibex::IntervalVector(int(inputs.size()), (double (*)[2])x);
 }
 
 void IBEXInterface::setInputIntervals(double x[][2]) { _inputIntervals = ibex::IntervalVector(2, x); }
 
-void IBEXInterface::setVariables(std::map<string, FreeVariable*> inputs, std::map<string, Node*> table) {
+void IBEXInterface::setVariables(std::map<string, ir::FreeVariable*> inputs, std::map<string, ir::Node*> table) {
     delete _variables;
     _variables = new ibex::Array<const ibex::ExprSymbol>;
-    for (auto& input : inputs) { _variables->add(*(ibex::ExprSymbol*)table[input.first]->getExprNode()); }
+    for (auto& input : inputs) _variables->add(*dynamic_cast<ibex::ExprSymbol*>(table[input.first]->getExprNode()));
 }
 
 void IBEXInterface::setFunction(ibex::Function* Function) { _function = Function; }
@@ -52,7 +52,7 @@ ibex::Interval IBEXInterface::eval(ibex::Function& Function) { return Function.e
 
 OptResult IBEXInterface::findMin(ibex::ExprNode& Expression) {
     ibex::SystemFactory factory;
-    for (auto& var : *_variables) { factory.add_var(var); }
+    for (const auto& var : *_variables) factory.add_var(var);
     factory.add_goal(Expression);
     setSystem(&factory);
     ibex::DefaultOptimizerConfig optConfig(
@@ -63,17 +63,17 @@ OptResult IBEXInterface::findMin(ibex::ExprNode& Expression) {
             //                                         1e-01,
             false, ibex::DefaultOptimizerConfig::default_inHC4, false,
             ibex::DefaultOptimizerConfig::default_random_seed, ibex::OptimizerConfig::default_eps_x);
-    if (optimizerTimeOut > 0) { optConfig.set_timeout(optimizerTimeOut); }
+    if (optimizerTimeOut > 0) optConfig.set_timeout(optimizerTimeOut);
     ibex::Optimizer opt(optConfig);
     try {
         if (logging && logging->level <= LogLevel::DEBUG) {
             // Remove the last "end" keyword from the file before using with IBEX to avoid syntax
             // errors
             dumpIbexSystemToFile("ibexFunctionMin.txt", *_system);
-            std::cout << "Input Intervals: " << _inputIntervals << std::endl;
+            std::cout << "Input Intervals: " << _inputIntervals << '\n';
             std::cout << "Variables: ";
-            for (auto& var : *_variables) { std::cout << var << ", "; }
-            std::cout << std::endl;
+            for (const auto& var : *_variables) std::cout << var << ", ";
+            std::cout << '\n';
         }
 
         opt.optimize(_inputIntervals);
@@ -85,27 +85,26 @@ OptResult IBEXInterface::findMin(ibex::ExprNode& Expression) {
     }
     if (opt.get_status() == ibex::Optimizer::INFEASIBLE) {
         if (logging) {
-            logging->critical("Optimizer returned INFEASIBLE. This case is not possible as we do not set an initial bound. Read up status description in IBEX documentation and investigate.");
+            logging->critical("Optimizer returned INFEASIBLE. This case is not possible as we do not set an initial "
+                              "bound. Read up status description in IBEX documentation and investigate.");
         }
     } else if (opt.get_status() == ibex::Optimizer::NO_FEASIBLE_FOUND) {
         if (logging) {
-            logging->critical("Optimizer returned NO_FEASIBLE_FOUND. This case is not possible as we do not set an initial bound. Read up status description in IBEX documentation and investigate.");
+            logging->critical("Optimizer returned NO_FEASIBLE_FOUND. This case is not possible as we do not set an "
+                              "initial bound. Read up status description in IBEX documentation and investigate.");
         }
     } else if (opt.get_status() == ibex::Optimizer::UNBOUNDED_OBJ) {
-        if (logging) {
-            logging->error("Optimizer returned UNBOUNDED. Objective tends to inf or -inf.");
-        }
+        if (logging) logging->error("Optimizer returned UNBOUNDED. Objective tends to inf or -inf.");
         optResult.result = ibex::Interval(std::numeric_limits<double>::min(), std::numeric_limits<double>::min());
         optResult.optimumPoint = opt.get_loup_point();
         optResult.optimizationTime = opt.get_time();
     } else if (opt.get_status() == ibex::Optimizer::UNREACHED_PREC) {
         if (logging) {
-            logging->critical("Optimizer returned UNREACHED_PREC. Might need to change objective, constrains or objective precision.");
+            logging->critical("Optimizer returned UNREACHED_PREC. Might need to change objective, constrains or "
+                              "objective precision.");
         }
     } else if (opt.get_status() == ibex::Optimizer::TIME_OUT) {
-        if (logging) {
-            logging->error("Optimizer TIMEOUT. Default error.");
-        }
+        if (logging) logging->error("Optimizer TIMEOUT. Default error.");
         optResult.result = ibex::Interval(std::numeric_limits<double>::min(), std::numeric_limits<double>::min());
         optResult.optimumPoint = opt.get_loup_point();
         optResult.optimizationTime = opt.get_time();
@@ -122,7 +121,7 @@ OptResult IBEXInterface::findMin(ibex::ExprNode& Expression) {
 
 OptResult IBEXInterface::findMax(ibex::ExprNode& Expression) {
     ibex::SystemFactory factory;
-    for (auto& var : *_variables) { factory.add_var(var); }
+    for (const auto& var : *_variables) factory.add_var(var);
     factory.add_goal(-Expression);
     setSystem(&factory);
     ibex::DefaultOptimizerConfig optConfig(
@@ -133,7 +132,7 @@ OptResult IBEXInterface::findMax(ibex::ExprNode& Expression) {
             //                                         1e-01,
             false, ibex::DefaultOptimizerConfig::default_inHC4, false,
             ibex::DefaultOptimizerConfig::default_random_seed, ibex::OptimizerConfig::default_eps_x);
-    if (optimizerTimeOut > 0) { optConfig.set_timeout(optimizerTimeOut); }
+    if (optimizerTimeOut > 0) optConfig.set_timeout(optimizerTimeOut);
     ibex::Optimizer opt(optConfig);
 
     try {
@@ -141,10 +140,10 @@ OptResult IBEXInterface::findMax(ibex::ExprNode& Expression) {
             // Remove the last "end" keyword from the file before using with IBEX to avoid syntax
             // errors
             dumpIbexSystemToFile("ibexFunctionMax.txt", *_system);
-            std::cout << "Input Intervals: " << _inputIntervals << std::endl;
+            std::cout << "Input Intervals: " << _inputIntervals << '\n';
             std::cout << "Variables: ";
-            for (auto& var : *_variables) { std::cout << var << ", "; }
-            std::cout << std::endl;
+            for (const auto& var : *_variables) std::cout << var << ", ";
+            std::cout << '\n';
         }
         opt.optimize(_inputIntervals);
     } catch (soplex::SPxInternalCodeException& e) {
@@ -156,27 +155,26 @@ OptResult IBEXInterface::findMax(ibex::ExprNode& Expression) {
 
     if (opt.get_status() == ibex::Optimizer::INFEASIBLE) {
         if (logging) {
-            logging->critical("Optimizer returned INFEASIBLE. This case is not possible as we do not set an initial bound. Read up status description in IBEX documentation and investigate.");
+            logging->critical("Optimizer returned INFEASIBLE. This case is not possible as we do not set an initial "
+                              "bound. Read up status description in IBEX documentation and investigate.");
         }
     } else if (opt.get_status() == ibex::Optimizer::NO_FEASIBLE_FOUND) {
         if (logging) {
-            logging->critical("Optimizer returned NO_FEASIBLE_FOUND. This case is not possible as we do not set an initial bound. Read up status description in IBEX documentation and investigate.");
+            logging->critical("Optimizer returned NO_FEASIBLE_FOUND. This case is not possible as we do not set an "
+                              "initial bound. Read up status description in IBEX documentation and investigate.");
         }
     } else if (opt.get_status() == ibex::Optimizer::UNBOUNDED_OBJ) {
-        if (logging) {
-            logging->error("Optimizer returned UNBOUNDED. Objective tends to inf or -inf.");
-        }
+        if (logging) logging->error("Optimizer returned UNBOUNDED. Objective tends to inf or -inf.");
         optResult.result = ibex::Interval(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
         optResult.optimumPoint = opt.get_loup_point();
         optResult.optimizationTime = opt.get_time();
     } else if (opt.get_status() == ibex::Optimizer::UNREACHED_PREC) {
         if (logging) {
-            logging->critical("Optimizer returned UNREACHED_PREC. Might need to change objective, constrains or objective precision.");
+            logging->critical("Optimizer returned UNREACHED_PREC. Might need to change objective, constrains or "
+                              "objective precision.");
         }
     } else if (opt.get_status() == ibex::Optimizer::TIME_OUT) {
-        if (logging) {
-            logging->error("Optimizer TIMEOUT. Default error.");
-        }
+        if (logging) logging->error("Optimizer TIMEOUT. Default error.");
         optResult.result = ibex::Interval(std::numeric_limits<double>::max(), std::numeric_limits<double>::max());
         optResult.optimumPoint = opt.get_loup_point();
         optResult.optimizationTime = opt.get_time();
@@ -214,11 +212,11 @@ void IBEXInterface::dumpIbexFunctionToFile(std::string filename, ibex::ExprNode*
 void IBEXInterface::dumpIbexExpressionToFile(std::string filename, ibex::ExprNode* Expression) {
     std::ofstream file;
     file.open(filename);
-    file << *Expression << std::endl;
+    file << *Expression << '\n';
     file.close();
 }
 
-ibex::Function IBEXInterface::parseIbexFunctionFromFile(const char* filename) { return ibex::Function(filename); }
+ibex::Function IBEXInterface::parseIbexFunctionFromFile(const char* filename) { return {filename}; }
 
 string IBEXInterface::dumpFunction(ibex::ExprNode* Expression) {
     setFunction(Expression);

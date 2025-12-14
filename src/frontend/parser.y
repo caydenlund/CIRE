@@ -4,7 +4,8 @@
 %}
 
 %code requires {
-    #include "cire/core/Graph.h"
+    #include "cire/core/Graph.hpp"
+    #include "cire/core/Node.hpp"
     #include<iostream>
     #include <ibex.h>
 
@@ -29,9 +30,9 @@
 
 %union {
     Number num;
-    Node::RoundingType rnd_type;
+    ir::Node::RoundingType rnd_type;
     char *str;
-    Node *node;
+    ir::Node *node;
 }
 
 %token EOL
@@ -105,31 +106,31 @@ intv_expr:  intv_term { $$ = $1; }
         ;
 
 interval:   ID FPTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
-                VariableNode *new_variable;
-                if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
+                ir::VariableNode *new_variable;
+                if(ir::Node *FreeVarNode = graph->findFreeVarNode($1)) {
 
                 } else {
-                    new_variable = new VariableNode($2);
+                    new_variable = new ir::VariableNode($2);
                     graph->nodes.insert(new_variable);
                     // graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
-                $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval), $2);
+                $$ = graph->inputs[$1] = new ir::FreeVariable(*new ibex::Interval($5.fval, $7.fval), $2);
                 graph->nodes.insert($$);
 
                 // std::cout << *graph << std::endl;
             }
             | ID INTTYPE COLON LPAREN intv_expr COMMA intv_expr RPAREN SEMICOLON {
-                VariableNode *new_variable;
-                if(Node *FreeVarNode = graph->findFreeVarNode($1)) {
+                ir::VariableNode *new_variable;
+                if(ir::Node *FreeVarNode = graph->findFreeVarNode($1)) {
 
                 } else {
-                    new_variable = new VariableNode($2);
+                    new_variable = new ir::VariableNode($2);
                     graph->nodes.insert(new_variable);
                     // graph->depthTable[new_variable->depth].insert(new_variable);
                     graph->symbolTables[graph->currentScope]->insert($1, new_variable);
                 }
-                $$ = graph->inputs[$1] = new FreeVariable(*new ibex::Interval($5.fval, $7.fval), $2);
+                $$ = graph->inputs[$1] = new ir::FreeVariable(*new ibex::Interval($5.fval, $7.fval), $2);
                 graph->nodes.insert($$);
 
                 // std::cout << *graph << std::endl;
@@ -189,12 +190,12 @@ exprs:  EXPRS LBRACE stmts RBRACE
         ;
 
 number: INT {
-            $$ = new Integer($1.ival);
+            $$ = new ir::Integer($1.ival);
             graph->nodes.insert($$);
             // std::cout << *$$ << std::endl;
         }
         | FP {
-            $$ = new Double($1.fval);
+            $$ = new ir::Double($1.fval);
             graph->nodes.insert($$);
             // std::cout << *$$ << std::endl;
         }
@@ -302,7 +303,7 @@ arith_fact: number { $$ = $1; }
         }
 	    | LPAREN arith_exp RPAREN { $$ = $2; }
         | ID {
-            if(Node *VarNode = graph->findVarNode($1)) {
+            if(ir::Node *VarNode = graph->findVarNode($1)) {
                 $$ = graph->symbolTables[graph->currentScope]->table[$1];
             } else {
                 std::cout << "ERROR: Variable " << $1 << " not found" << std::endl;

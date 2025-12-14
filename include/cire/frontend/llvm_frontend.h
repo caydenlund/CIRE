@@ -9,7 +9,8 @@
 #ifndef LLVM_FRONTEND_H
 #define LLVM_FRONTEND_H
 
-#include "cire/core/Graph.h"
+#include "cire/core/Graph.hpp"
+#include "cire/core/Node.hpp"
 
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
@@ -27,7 +28,7 @@
  * This function sets the rounding type based on the LLVM instruction's type, adds the node to the graph,
  * and maintains mappings between LLVM values and CIRE nodes.
  */
-void addDataForCreatedNode(llvm::Instruction& instr, Graph& graph, Node* node);
+void addDataForCreatedNode(llvm::Instruction& instr, Graph& graph, ir::Node* node);
 
 /**
  * @brief Retrieves or creates a CIRE node corresponding to an LLVM value.
@@ -39,7 +40,7 @@ void addDataForCreatedNode(llvm::Instruction& instr, Graph& graph, Node* node);
  * Handles constant values (floating-point and integer) by creating new nodes,
  * and returns existing nodes for non-constant values via the mapping.
  */
-Node* getNodeFromLLVMValue(llvm::Value* val, Graph& graph);
+ir::Node* getNodeFromLLVMValue(llvm::Value* val, Graph& graph);
 
 /**
  * @brief Parses function arguments from LLVM IR and creates corresponding input nodes in the CIRE graph.

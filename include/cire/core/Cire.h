@@ -1,7 +1,7 @@
 #ifndef CIRE_CIRE_H
 #define CIRE_CIRE_H
 
-#include "cire/core/Graph.h"
+#include "cire/core/Graph.hpp"
 #include "cire/core/Results.h"
 
 #include <map>
@@ -28,7 +28,7 @@ public:
     void setMinDepth(unsigned int depth);
     void setMaxDepth(unsigned int depth);
     void setCollectErrorComponentData(bool value) const;
-    std::map<Node*, ErrorAnalysisResult> performErrorAnalysis() const;
+    [[nodiscard]] std::map<ir::Node*, ErrorAnalysisResult> performErrorAnalysis() const;
 };
 
 #endif  // CIRE_CIRE_H

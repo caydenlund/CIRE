@@ -1,8 +1,9 @@
-#include <memory>
 #include <fstream>
+#include <memory>
 #include <sstream>
 
 #include "cire/core/Cire.h"
+#include "cire/core/Node.hpp"
 #include "cire/frontend/llvm_frontend.h"
 #include "cire/interfaces/Logging.h"
 #include "cire/utils/utils.h"
@@ -64,29 +65,28 @@ struct CliOpts {
                                        cl::desc("Show all instructions including those with zero error contribution"),
                                        cl::init(false)};
 
-    cl::opt<string> inputBounds {"input-bounds",
-                                 cl::desc("Specify input bounds as param:min:max,param2:min:max (default: -1:1 for all)"),
-                                 cl::value_desc("Comma-separated list of parameter bounds"), cl::init("")};
+    cl::opt<string> inputBounds {
+            "input-bounds", cl::desc("Specify input bounds as param:min:max,param2:min:max (default: -1:1 for all)"),
+            cl::value_desc("Comma-separated list of parameter bounds"), cl::init("")};
 };
 
 
 std::map<std::string, std::pair<double, double>> parseInputBounds(const std::string& boundsStr) {
     std::map<std::string, std::pair<double, double>> boundsMap;
 
-    if (boundsStr.empty()) {
-        return boundsMap;
-    }
+    if (boundsStr.empty()) { return boundsMap; }
 
     std::stringstream ss(boundsStr);
     std::string token;
 
     while (std::getline(ss, token, ',')) {
         std::stringstream tokenStream(token);
-        std::string param, minStr, maxStr;
+        std::string param;
+        std::string minStr;
+        std::string maxStr;
 
-        if (std::getline(tokenStream, param, ':') &&
-            std::getline(tokenStream, minStr, ':') &&
-            std::getline(tokenStream, maxStr)) {
+        if (std::getline(tokenStream, param, ':') && std::getline(tokenStream, minStr, ':')
+            && std::getline(tokenStream, maxStr)) {
             try {
                 double min = std::stod(minStr);
                 double max = std::stod(maxStr);
@@ -196,13 +196,13 @@ int main(int argc, char** argv) {
     logging->debug("Parsing complete");
     logging->info("Performing error analysis");
 
-    std::map<Node*, ErrorAnalysisResult> answer = cire.performErrorAnalysis();
+    std::map<ir::Node*, ErrorAnalysisResult> answer = cire.performErrorAnalysis();
 
     const auto errorAnalysisEnd = std::chrono::high_resolution_clock::now();
 
     // print the result of nodes corresponding nodes in the output list
     for (string& output : cire.graph->outputs) {
-        Node* node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
+        ir::Node* node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
         assert(answer.find(node) != answer.end());
 
         logging->debug("Output variable: '" + output + "'");
@@ -230,8 +230,9 @@ int main(int argc, char** argv) {
     logging->info("Total Time taken: " + std::to_string(cire.timeMap["Total"].count()) + " seconds");
 
 
-    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface, cire.graph);
-    
+    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface,
+                                                                                     cire.graph);
+
     if (opts.csvFriendly) {
         cire.results->writeResultsForCSV(cire.graph->outputs, cire.graph->numOperatorsOutput,
                                          cire.graph->depthTable.rbegin()->first, cire.graph->abstractionMetrics,

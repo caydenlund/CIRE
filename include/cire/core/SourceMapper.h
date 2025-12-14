@@ -22,7 +22,7 @@ namespace llvm {
     class Function;
     class Instruction;
     class Value;
-}
+}  // namespace llvm
 
 /**
  * @brief Manages mapping between LLVM IR and source code locations
@@ -57,10 +57,8 @@ public:
      * @param bbIdx Basic block index
      * @return Unique pointer to created InstructionMetadata
      */
-    std::unique_ptr<InstructionMetadata> createMetadata(llvm::Instruction* instr,
-                                                        const std::string& funcName,
-                                                        unsigned int instrIdx,
-                                                        unsigned int bbIdx);
+    std::unique_ptr<InstructionMetadata> createMetadata(llvm::Instruction* instr, const std::string& funcName,
+                                                        unsigned int instrIdx, unsigned int bbIdx);
 
     /**
      * @brief Create metadata for an LLVM value (may be constant or instruction)
@@ -68,8 +66,7 @@ public:
      * @param funcName Parent function name
      * @return Unique pointer to created InstructionMetadata
      */
-    std::unique_ptr<InstructionMetadata> createMetadata(llvm::Value* value,
-                                                        const std::string& funcName = "");
+    std::unique_ptr<InstructionMetadata> createMetadata(llvm::Value* value, const std::string& funcName = "");
 
     /**
      * @brief Create synthetic metadata for nodes not derived from LLVM
@@ -77,14 +74,13 @@ public:
      * @param type Node type description
      * @return Unique pointer to created InstructionMetadata
      */
-    std::unique_ptr<InstructionMetadata> createSyntheticMetadata(const std::string& name,
-                                                                 const std::string& type);
+    std::unique_ptr<InstructionMetadata> createSyntheticMetadata(const std::string& name, const std::string& type);
 
     /**
      * @brief Check if module has debug information
      * @return true if debug info is available
      */
-    bool hasDebugInfo() const { return hasDebugInformation; }
+    bool hasDebugInfo() const { return _hasDebugInformation; }
 
     /**
      * @brief Get statistics about processed instructions
@@ -93,10 +89,10 @@ public:
     std::map<std::string, unsigned int> getStatistics() const;
 
 private:
-    bool hasDebugInformation = false;
-    unsigned int totalInstructions = 0;
-    unsigned int instructionsWithDebugInfo = 0;
-    std::vector<std::string> processedFunctions;
+    bool _hasDebugInformation = false;
+    unsigned int _totalInstructions = 0;
+    unsigned int _instructionsWithDebugInfo = 0;
+    std::vector<std::string> _processedFunctions;
 };
 
 #endif  // CIRE_SOURCEMAPPER_H

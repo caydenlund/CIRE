@@ -16,11 +16,10 @@ void Cire::setMaxDepth(unsigned int depth) { abstractionWindow.second = depth; }
 
 void Cire::setCollectErrorComponentData(bool _value) const { graph->collectErrorCompData = _value; }
 
-std::map<Node*, ErrorAnalysisResult> Cire::performErrorAnalysis() const {
-    if (abstraction) { graph->performAbstraction(abstractionWindow.first, abstractionWindow.second); }
-    std::set<Node*> output_set;
-    for (auto& output : graph->outputs) { output_set.insert(graph->findVarNode(output)); }
+std::map<ir::Node*, ErrorAnalysisResult> Cire::performErrorAnalysis() const {
+    if (abstraction) graph->performAbstraction(abstractionWindow.first, abstractionWindow.second);
+    std::set<ir::Node*> output_set;
+    for (auto& output : graph->outputs) output_set.insert(graph->findVarNode(output));
 
     return graph->simplifyWithAbstraction(output_set, 0, true);
-    ;
 }

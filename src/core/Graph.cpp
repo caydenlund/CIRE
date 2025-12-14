@@ -1,4 +1,4 @@
-#include "cire/core/Graph.h"
+#include "cire/core/Graph.hpp"
 #include "interfaces/Logging.h"
 #include "parser.h"
 
@@ -16,32 +16,30 @@ Graph::~Graph() {
 
 void Graph::setValidationFile(std::string _validationFile) { validationFile = std::move(_validationFile); }
 
-void Graph::registerLLVMNode(llvm::Value* llvmValue, Node* node) {
-    if (llvmValue && node) {
+void Graph::registerLLVMNode(llvm::Value* llvmValue, ir::Node* node) {
+    if ((llvmValue != nullptr) && (node != nullptr)) {
         llvmValueToNode[llvmValue] = node;
         nodeToLLVMValue[node] = llvmValue;
     }
 }
 
-Node* Graph::getNodeByLLVMValue(llvm::Value* llvmValue) const {
+ir::Node* Graph::getNodeByLLVMValue(llvm::Value* llvmValue) const {
     auto it = llvmValueToNode.find(llvmValue);
     return (it != llvmValueToNode.end()) ? it->second : nullptr;
 }
 
-llvm::Value* Graph::getLLVMValueByNode(Node* node) const {
+llvm::Value* Graph::getLLVMValueByNode(ir::Node* node) const {
     auto it = nodeToLLVMValue.find(node);
     return (it != nodeToLLVMValue.end()) ? it->second : nullptr;
 }
 
-std::vector<Node*> Graph::getNodesByInstructionType(const std::string& type) const {
+std::vector<ir::Node*> Graph::getNodesByInstructionType(const std::string& type) const {
     auto it = instructionTypeIndex.find(type);
-    return (it != instructionTypeIndex.end()) ? it->second : std::vector<Node*>();
+    return (it != instructionTypeIndex.end()) ? it->second : std::vector<ir::Node*>();
 }
 
-void Graph::indexNodeByInstructionType(Node* node, const std::string& type) {
-    if (node) {
-        instructionTypeIndex[type].push_back(node);
-    }
+void Graph::indexNodeByInstructionType(ir::Node* node, const std::string& type) {
+    if (node != nullptr) { instructionTypeIndex[type].push_back(node); }
 }
 
 std::ostream& operator<<(std::ostream& os, const Graph& graph) {
@@ -52,21 +50,21 @@ std::ostream& operator<<(std::ostream& os, const Graph& graph) {
 void Graph::write(std::ostream& out) const {
     out << "Graph:\n";
     out << "Inputs:\n";
-    for (const auto& input : inputs) { out << "    " << input.first << " : " << *input.second; }
+    for (const auto& input : inputs) out << "    " << input.first << " : " << *input.second;
     out << "Outputs:\n";
-    for (const auto& output : outputs) { out << "    " << output; }
+    for (const auto& output : outputs) out << "    " << output;
     out << "Variables:\n";
     for (const auto& variable : symbolTables.find(currentScope)->second->table) {
         out << "\t" << variable.first << " : " << *variable.second;
     }
 
     out << "Nodes:\n";
-    for (const auto& node : nodes) { out << "    " << *node << "\n"; }
+    for (const auto& node : nodes) out << "    " << *node << "\n";
 
     out << "Depth Table:";
     for (const auto& depth : depthTable) {
         out << "    " << depth.first << " : ";
-        for (const auto& node : depth.second) { out << *node << " "; }
+        for (const auto& node : depth.second) out << *node << " ";
         out << "\n";
     }
 }
@@ -79,7 +77,7 @@ void Graph::createNewSymbolTable() {
 void Graph::generateIbexSymbols() {
     for (const auto& input : inputs) {
         assert(symbolTables[currentScope]->table[input.first]->isVariable() && "Input is not a variable node");
-        (dynamic_cast<VariableNode*>(symbolTables[currentScope]->table[input.first]))->variable = &(
+        (dynamic_cast<ir::VariableNode*>(symbolTables[currentScope]->table[input.first]))->variable = &(
                 ibex::ExprSymbol::new_(input.first.c_str()));
         symbolTables[currentScope]->table[input.first]->setAbsoluteError(
                 &ibex::ExprConstant::new_scalar(input.second->var->ub() * pow(2, -53)));
@@ -88,63 +86,64 @@ void Graph::generateIbexSymbols() {
 
     for (const auto& node : nodes) {
         switch (node->type) {
-            case NodeType::INTEGER: {
-                (dynamic_cast<Integer*>(node))->value = &(
-                        ibex::ExprConstant::new_scalar((dynamic_cast<Integer*>(node))->val));
+            case ir::Node::Type::INTEGER: {
+                (dynamic_cast<ir::Integer*>(node))->value = &(
+                        ibex::ExprConstant::new_scalar((dynamic_cast<ir::Integer*>(node))->val));
                 node->setAbsoluteError(&ibex::ExprConstant::new_scalar(0.0));
                 break;
             }
-            case NodeType::FLOAT: {
-                (dynamic_cast<Float*>(node))->value = &(
-                        ibex::ExprConstant::new_scalar((dynamic_cast<Float*>(node))->val));
+            case ir::Node::Type::FLOAT: {
+                (dynamic_cast<ir::Float*>(node))->value = &(
+                        ibex::ExprConstant::new_scalar((dynamic_cast<ir::Float*>(node))->val));
                 node->setAbsoluteError(
-                        &ibex::ExprConstant::new_scalar((dynamic_cast<Float*>(node))->val * pow(2, -24)));
+                        &ibex::ExprConstant::new_scalar((dynamic_cast<ir::Float*>(node))->val * pow(2, -24)));
                 break;
             }
-            case NodeType::DOUBLE: {
-                (dynamic_cast<Double*>(node))->value = &(
-                        ibex::ExprConstant::new_scalar((dynamic_cast<Double*>(node))->val));
+            case ir::Node::Type::DOUBLE: {
+                (dynamic_cast<ir::Double*>(node))->value = &(
+                        ibex::ExprConstant::new_scalar((dynamic_cast<ir::Double*>(node))->val));
                 node->setAbsoluteError(
-                        &ibex::ExprConstant::new_scalar((dynamic_cast<Double*>(node))->val * pow(2, -53)));
+                        &ibex::ExprConstant::new_scalar((dynamic_cast<ir::Double*>(node))->val * pow(2, -53)));
                 break;
             }
-            case NodeType::FREE_VARIABLE: {
-                node->setAbsoluteError(&ibex::ExprConstant::new_scalar(((FreeVariable*)node)->var->ub() * pow(2, -53)));
+            case ir::Node::Type::FREE_VARIABLE: {
+                node->setAbsoluteError(&ibex::ExprConstant::new_scalar(dynamic_cast<ir::FreeVariable*>(node)->var->ub()
+                                                                       * pow(2, -53)));
                 break;
             }
-            case NodeType::VARIABLE:  // The absoluteError has already been set in the previous
-                                      // inputs for loop
+            case ir::Node::Type::VARIABLE:  // The absoluteError has already been set in the previous
+                                            // inputs for loop
             // Following nodes do not have an absolute error. Only Constants and FreeVariables have
             // an absolute error
-            case NodeType::UNARY_OP:
-            case NodeType::BINARY_OP:
-            case NodeType::TERNARY_OP:
-            case NodeType::DEFAULT: {
+            case ir::Node::Type::UNARY_OP:
+            case ir::Node::Type::BINARY_OP:
+            case ir::Node::Type::TERNARY_OP:
+            case ir::Node::Type::DEFAULT: {
                 break;
             }
         }
     }
 }
 
-Node* Graph::findFreeVarNode(string Var) const {
+ir::Node* Graph::findFreeVarNode(string Var) const {
     auto it = inputs.find(Var);
-    if (it != inputs.end()) { return it->second; }
+    if (it != inputs.end()) return it->second;
 
     return nullptr;
 }
 
-Node* Graph::findVarNode(string Var) const {
+ir::Node* Graph::findVarNode(string Var) const {
     auto it = symbolTables.find(currentScope)->second->table.find(Var);
-    if (it != symbolTables.find(currentScope)->second->table.end()) { return it->second; }
+    if (it != symbolTables.find(currentScope)->second->table.end()) return it->second;
 
     return nullptr;
 }
 
-void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
+void Graph::setupDerivativeComputation(std::set<ir::Node*> candidate_nodes) {
     // Set up output
     // Get the max depth of the candidate_nodes
     unsigned int max_depth = 0;
-    for (const auto& node : candidate_nodes) { max_depth = std::max<unsigned int>(node->depth, max_depth); }
+    for (const auto& node : candidate_nodes) max_depth = std::max<unsigned int>(node->depth, max_depth);
 
     errorAnalyzer->derivativeComputedNodes.clear();
     errorAnalyzer->errorComputedNodes.clear();
@@ -156,7 +155,7 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
 
     // Insert candidate_nodes with max depth into worklist
     for (const auto& node : candidate_nodes) {
-        if (node->depth == max_depth) { errorAnalyzer->workList.insert(node); }
+        if (node->depth == max_depth) errorAnalyzer->workList.insert(node);
     }
 
     // Set BwdDerivatives of each candidate_node (output node) with respect to itself to 1
@@ -166,25 +165,25 @@ void Graph::setupDerivativeComputation(std::set<Node*> candidate_nodes) {
     }
 
     // Set numParentsOfNode of each node to the number of parents it has
-    for (const auto& node : candidate_nodes) { errorAnalyzer->numParentsOfNode[node] = node->parents.size(); }
+    for (const auto& node : candidate_nodes) errorAnalyzer->numParentsOfNode[node] = node->parents.size();
 }
 
 // Generates Expressions corresponding to all candidate_nodes bottom up
-void Graph::generateExprDriver(const std::set<Node*>& candidate_nodes) {
+void Graph::generateExprDriver(const std::set<ir::Node*>& candidate_nodes) {
     // Map from depth to nodes at that depth whose expression has been generated. Similar to
     // "reachable" in Satire
-    std::map<int, std::set<Node*>> generatedExprsAtDepth;
+    std::map<int, std::set<ir::Node*>> generatedExprsAtDepth;
 
     // Map from Ibex::ExprNode to the Nodes that have that expression
     // Common Subexpression Elimination Table
     // This keeps track of nodes that have the same expression and can be replaced by a single node
-    std::map<ibex::ExprNode*, std::set<Node*>> cseTable;
+    std::map<ibex::ExprNode*, std::set<ir::Node*>> cseTable;
 
     logging->info("Generating expressions...");
 
     for (const auto& node : candidate_nodes) {
         logging->debug("Processing node '", node->id, "'");
-        if (generatedExprsAtDepth[node->depth].find(node) == generatedExprsAtDepth[node->depth].end()) {
+        if (generatedExprsAtDepth[int(node->depth)].find(node) == generatedExprsAtDepth[int(node->depth)].end()) {
             generateExpr(node, generatedExprsAtDepth, cseTable);
         }
         logging->debug("Processed node '", node->id, "'");
@@ -193,59 +192,65 @@ void Graph::generateExprDriver(const std::set<Node*>& candidate_nodes) {
     logging->info("Done generating expressions");
 }
 
-void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedExprsAtDepth,
-                         std::map<ibex::ExprNode*, std::set<Node*>>& cseTable) {
+void Graph::generateExpr(ir::Node* node, std::map<int, std::set<ir::Node*>>& generatedExprsAtDepth,
+                         std::map<ibex::ExprNode*, std::set<ir::Node*>>& cseTable) {
     switch (node->type) {
-        case NodeType::INTEGER:
-        case NodeType::FLOAT:
-        case NodeType::DOUBLE:
-        case NodeType::FREE_VARIABLE:
-        case NodeType::VARIABLE:
+        case ir::Node::Type::INTEGER:
+        case ir::Node::Type::FLOAT:
+        case ir::Node::Type::DOUBLE:
+        case ir::Node::Type::FREE_VARIABLE:
+        case ir::Node::Type::VARIABLE:
             // Already has an expression or interval
             break;
-        case NodeType::UNARY_OP:
-            if (generatedExprsAtDepth[((UnaryOp*)node)->operand->depth].find(((UnaryOp*)node)->operand)
-                == generatedExprsAtDepth[((UnaryOp*)node)->operand->depth].end()) {
-                generateExpr(((UnaryOp*)node)->operand, generatedExprsAtDepth, cseTable);
+        case ir::Node::Type::UNARY_OP:
+            if (generatedExprsAtDepth[int(dynamic_cast<ir::UnaryOp*>(node)->operand->depth)].find(
+                        dynamic_cast<ir::UnaryOp*>(node)->operand)
+                == generatedExprsAtDepth[int(dynamic_cast<ir::UnaryOp*>(node)->operand->depth)].end()) {
+                generateExpr(dynamic_cast<ir::UnaryOp*>(node)->operand, generatedExprsAtDepth, cseTable);
             }
-            ((UnaryOp*)node)->expr = (ibex::ExprUnaryOp*)&node->generateSymExpr();
-            errorAnalyzer->parentsOfNode[((UnaryOp*)node)->operand].insert(node);
+            dynamic_cast<ir::UnaryOp*>(node)->expr = dynamic_cast<ibex::ExprUnaryOp*>(&node->generateSymExpr());
+            errorAnalyzer->parentsOfNode[dynamic_cast<ir::UnaryOp*>(node)->operand].insert(node);
             logging->debug("Node '", node->id, "' processed");
             logging->debug("    UnaryOp processed");
             break;
-        case NodeType::BINARY_OP:
-            if (generatedExprsAtDepth[((BinaryOp*)node)->leftOperand->depth].find(((BinaryOp*)node)->leftOperand)
-                == generatedExprsAtDepth[((BinaryOp*)node)->leftOperand->depth].end()) {
-                generateExpr(((BinaryOp*)node)->leftOperand, generatedExprsAtDepth, cseTable);
+        case ir::Node::Type::BINARY_OP:
+            if (generatedExprsAtDepth[int(dynamic_cast<ir::BinaryOp*>(node)->leftOperand->depth)].find(
+                        dynamic_cast<ir::BinaryOp*>(node)->leftOperand)
+                == generatedExprsAtDepth[int(dynamic_cast<ir::BinaryOp*>(node)->leftOperand->depth)].end()) {
+                generateExpr(dynamic_cast<ir::BinaryOp*>(node)->leftOperand, generatedExprsAtDepth, cseTable);
             }
-            if (generatedExprsAtDepth[((BinaryOp*)node)->rightOperand->depth].find(((BinaryOp*)node)->rightOperand)
-                == generatedExprsAtDepth[((BinaryOp*)node)->rightOperand->depth].end()) {
-                generateExpr(((BinaryOp*)node)->rightOperand, generatedExprsAtDepth, cseTable);
+            if (generatedExprsAtDepth[int(dynamic_cast<ir::BinaryOp*>(node)->rightOperand->depth)].find(
+                        dynamic_cast<ir::BinaryOp*>(node)->rightOperand)
+                == generatedExprsAtDepth[int(dynamic_cast<ir::BinaryOp*>(node)->rightOperand->depth)].end()) {
+                generateExpr(dynamic_cast<ir::BinaryOp*>(node)->rightOperand, generatedExprsAtDepth, cseTable);
             }
-            ((BinaryOp*)node)->expr = (ibex::ExprBinaryOp*)&node->generateSymExpr();
-            errorAnalyzer->parentsOfNode[((BinaryOp*)node)->leftOperand].insert(node);
-            errorAnalyzer->parentsOfNode[((BinaryOp*)node)->rightOperand].insert(node);
+            dynamic_cast<ir::BinaryOp*>(node)->expr = dynamic_cast<ibex::ExprBinaryOp*>(&node->generateSymExpr());
+            errorAnalyzer->parentsOfNode[dynamic_cast<ir::BinaryOp*>(node)->leftOperand].insert(node);
+            errorAnalyzer->parentsOfNode[dynamic_cast<ir::BinaryOp*>(node)->rightOperand].insert(node);
             logging->debug("Node '", node->id, "' processed");
             logging->debug("    BinaryOp processed");
             break;
-        case NodeType::TERNARY_OP:
-            if (generatedExprsAtDepth[((TernaryOp*)node)->leftOperand->depth].find(((TernaryOp*)node)->leftOperand)
-                == generatedExprsAtDepth[((TernaryOp*)node)->leftOperand->depth].end()) {
-                generateExpr(((TernaryOp*)node)->leftOperand, generatedExprsAtDepth, cseTable);
+        case ir::Node::Type::TERNARY_OP:
+            if (generatedExprsAtDepth[int(dynamic_cast<ir::TernaryOp*>(node)->leftOperand->depth)].find(
+                        dynamic_cast<ir::TernaryOp*>(node)->leftOperand)
+                == generatedExprsAtDepth[int(dynamic_cast<ir::TernaryOp*>(node)->leftOperand->depth)].end()) {
+                generateExpr(dynamic_cast<ir::TernaryOp*>(node)->leftOperand, generatedExprsAtDepth, cseTable);
             }
-            if (generatedExprsAtDepth[((TernaryOp*)node)->middleOperand->depth].find(((TernaryOp*)node)->middleOperand)
-                == generatedExprsAtDepth[((TernaryOp*)node)->middleOperand->depth].end()) {
-                generateExpr(((TernaryOp*)node)->middleOperand, generatedExprsAtDepth, cseTable);
+            if (generatedExprsAtDepth[int(dynamic_cast<ir::TernaryOp*>(node)->middleOperand->depth)].find(
+                        dynamic_cast<ir::TernaryOp*>(node)->middleOperand)
+                == generatedExprsAtDepth[int(dynamic_cast<ir::TernaryOp*>(node)->middleOperand->depth)].end()) {
+                generateExpr(dynamic_cast<ir::TernaryOp*>(node)->middleOperand, generatedExprsAtDepth, cseTable);
             }
-            if (generatedExprsAtDepth[((TernaryOp*)node)->rightOperand->depth].find(((TernaryOp*)node)->rightOperand)
-                == generatedExprsAtDepth[((TernaryOp*)node)->rightOperand->depth].end()) {
-                generateExpr(((TernaryOp*)node)->rightOperand, generatedExprsAtDepth, cseTable);
+            if (generatedExprsAtDepth[int(dynamic_cast<ir::TernaryOp*>(node)->rightOperand->depth)].find(
+                        dynamic_cast<ir::TernaryOp*>(node)->rightOperand)
+                == generatedExprsAtDepth[int(dynamic_cast<ir::TernaryOp*>(node)->rightOperand->depth)].end()) {
+                generateExpr(dynamic_cast<ir::TernaryOp*>(node)->rightOperand, generatedExprsAtDepth, cseTable);
             }
             // Ibex does not have a TernaryOp, so we split the Op into two BinaryOps
-            ((TernaryOp*)node)->expr = (ibex::ExprBinaryOp*)&node->generateSymExpr();
-            errorAnalyzer->parentsOfNode[((TernaryOp*)node)->leftOperand].insert(node);
-            errorAnalyzer->parentsOfNode[((TernaryOp*)node)->middleOperand].insert(node);
-            errorAnalyzer->parentsOfNode[((TernaryOp*)node)->rightOperand].insert(node);
+            dynamic_cast<ir::TernaryOp*>(node)->expr = dynamic_cast<ibex::ExprBinaryOp*>(&node->generateSymExpr());
+            errorAnalyzer->parentsOfNode[dynamic_cast<ir::TernaryOp*>(node)->leftOperand].insert(node);
+            errorAnalyzer->parentsOfNode[dynamic_cast<ir::TernaryOp*>(node)->middleOperand].insert(node);
+            errorAnalyzer->parentsOfNode[dynamic_cast<ir::TernaryOp*>(node)->rightOperand].insert(node);
             logging->debug("Node '", node->id, "' processed");
             logging->debug("    TernaryOp processed");
             break;
@@ -254,46 +259,53 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
     }
 
     // Update the map tracking processed nodes
-    generatedExprsAtDepth[node->depth].insert(node);
+    generatedExprsAtDepth[int(node->depth)].insert(node);
 
     // Common sub expression elimination phase
     // 1) Find all subexpressions similar to the current node
-    std::vector<Node*> nodes_to_merge;
+    std::vector<ir::Node*> nodes_to_merge;
     for (const auto& n : cseTable[node->getExprNode()]) {
         // Ensuring n and node are not the same nodes
         if (n != node) {
             // Check if all children of n and node are the same
             switch (n->type) {
-                case NodeType::INTEGER:
+                case ir::Node::Type::INTEGER:
                     if (node->isInteger()) nodes_to_merge.push_back(n);
                     break;
-                case NodeType::FLOAT:
+                case ir::Node::Type::FLOAT:
                     if (node->isFloat()) nodes_to_merge.push_back(n);
                     break;
-                case NodeType::DOUBLE:
+                case ir::Node::Type::DOUBLE:
                     if (node->isDouble()) nodes_to_merge.push_back(n);
                     break;
-                case NodeType::FREE_VARIABLE:
+                case ir::Node::Type::FREE_VARIABLE:
                     if (node->isFreeVariable()) nodes_to_merge.push_back(n);
                     break;
-                case NodeType::VARIABLE:
+                case ir::Node::Type::VARIABLE:
                     if (node->isVariable()) nodes_to_merge.push_back(n);
                     break;
-                case NodeType::UNARY_OP:
-                    if (node->isUnaryOp() && ((UnaryOp*)n)->operand == ((UnaryOp*)node)->operand) {
+                case ir::Node::Type::UNARY_OP:
+                    if (node->isUnaryOp()
+                        && dynamic_cast<ir::UnaryOp*>(n)->operand == dynamic_cast<ir::UnaryOp*>(node)->operand) {
                         nodes_to_merge.push_back(n);
                     }
                     break;
-                case NodeType::BINARY_OP:
-                    if (node->isBinaryOp() && ((BinaryOp*)n)->leftOperand == ((BinaryOp*)node)->leftOperand
-                        && ((BinaryOp*)n)->rightOperand == ((BinaryOp*)node)->rightOperand) {
+                case ir::Node::Type::BINARY_OP:
+                    if (node->isBinaryOp()
+                        && dynamic_cast<ir::BinaryOp*>(n)->leftOperand == dynamic_cast<ir::BinaryOp*>(node)->leftOperand
+                        && dynamic_cast<ir::BinaryOp*>(n)->rightOperand
+                                   == dynamic_cast<ir::BinaryOp*>(node)->rightOperand) {
                         nodes_to_merge.push_back(n);
                     }
                     break;
-                case NodeType::TERNARY_OP:
-                    if (node->isTernaryOp() && ((TernaryOp*)n)->leftOperand == ((TernaryOp*)node)->leftOperand
-                        && ((TernaryOp*)n)->middleOperand == ((TernaryOp*)node)->middleOperand
-                        && ((TernaryOp*)n)->rightOperand == ((TernaryOp*)node)->rightOperand) {
+                case ir::Node::Type::TERNARY_OP:
+                    if (node->isTernaryOp()
+                        && dynamic_cast<ir::TernaryOp*>(n)->leftOperand
+                                   == dynamic_cast<ir::TernaryOp*>(node)->leftOperand
+                        && dynamic_cast<ir::TernaryOp*>(n)->middleOperand
+                                   == dynamic_cast<ir::TernaryOp*>(node)->middleOperand
+                        && dynamic_cast<ir::TernaryOp*>(n)->rightOperand
+                                   == dynamic_cast<ir::TernaryOp*>(node)->rightOperand) {
                         nodes_to_merge.push_back(n);
                     }
                     break;
@@ -324,32 +336,42 @@ void Graph::generateExpr(Node* node, std::map<int, std::set<Node*>>& generatedEx
 //    Removing node1 from the symbol table
 //    Merging the parentsOfNode entries of node1 and node2
 //    Removing node1 from parentsOfNode
-Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*>>& parentsOfNode) {
+ir::Node* Graph::mergeNodes(ir::Node* node1, ir::Node* node2, std::map<ir::Node*, std::set<ir::Node*>>& parentsOfNode) {
     // Set union of parents of node1 and node2
-    std::set<Node*> new_parents;
+    std::set<ir::Node*> new_parents;
     std::set_union(parentsOfNode[node1].begin(), parentsOfNode[node1].end(), parentsOfNode[node2].begin(),
                    parentsOfNode[node2].end(), std::inserter(new_parents, new_parents.end()));
 
     // Update the children of the new_parents set to point to node2 of they point to node1
     for (const auto& par : new_parents) {
         switch (par->type) {
-            case NodeType::INTEGER:
-            case NodeType::FLOAT:
-            case NodeType::DOUBLE:
-            case NodeType::FREE_VARIABLE:
-            case NodeType::VARIABLE:
+            case ir::Node::Type::INTEGER:
+            case ir::Node::Type::FLOAT:
+            case ir::Node::Type::DOUBLE:
+            case ir::Node::Type::FREE_VARIABLE:
+            case ir::Node::Type::VARIABLE:
                 break;
-            case NodeType::UNARY_OP:
-                if (((UnaryOp*)par)->operand == node1) { ((UnaryOp*)par)->operand = node2; }
+            case ir::Node::Type::UNARY_OP:
+                if (dynamic_cast<ir::UnaryOp*>(par)->operand == node1) dynamic_cast<ir::UnaryOp*>(par)->operand = node2;
                 break;
-            case NodeType::BINARY_OP:
-                if (((BinaryOp*)par)->leftOperand == node1) { ((BinaryOp*)par)->leftOperand = node2; }
-                if (((BinaryOp*)par)->rightOperand == node1) { ((BinaryOp*)par)->rightOperand = node2; }
+            case ir::Node::Type::BINARY_OP:
+                if (dynamic_cast<ir::BinaryOp*>(par)->leftOperand == node1) {
+                    dynamic_cast<ir::BinaryOp*>(par)->leftOperand = node2;
+                }
+                if (dynamic_cast<ir::BinaryOp*>(par)->rightOperand == node1) {
+                    dynamic_cast<ir::BinaryOp*>(par)->rightOperand = node2;
+                }
                 break;
-            case NodeType::TERNARY_OP:
-                if (((TernaryOp*)par)->leftOperand == node1) { ((TernaryOp*)par)->leftOperand = node2; }
-                if (((TernaryOp*)par)->middleOperand == node1) { ((TernaryOp*)par)->middleOperand = node2; }
-                if (((TernaryOp*)par)->rightOperand == node1) { ((TernaryOp*)par)->rightOperand = node2; }
+            case ir::Node::Type::TERNARY_OP:
+                if ((dynamic_cast<ir::TernaryOp*>(par))->leftOperand == node1) {
+                    (dynamic_cast<ir::TernaryOp*>(par))->leftOperand = node2;
+                }
+                if ((dynamic_cast<ir::TernaryOp*>(par))->middleOperand == node1) {
+                    (dynamic_cast<ir::TernaryOp*>(par))->middleOperand = node2;
+                }
+                if ((dynamic_cast<ir::TernaryOp*>(par))->rightOperand == node1) {
+                    (dynamic_cast<ir::TernaryOp*>(par))->rightOperand = node2;
+                }
                 break;
             default:
                 logging->critical("Unknown node type");
@@ -374,24 +396,24 @@ Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*
 
     // Update parentsOfNode for children of `node2` by removing `node1`
     switch (node2->type) {
-        case NodeType::INTEGER:
-        case NodeType::FLOAT:
-        case NodeType::DOUBLE:
-        case NodeType::FREE_VARIABLE:
-        case NodeType::VARIABLE:
-        case NodeType::DEFAULT:
+        case ir::Node::Type::INTEGER:
+        case ir::Node::Type::FLOAT:
+        case ir::Node::Type::DOUBLE:
+        case ir::Node::Type::FREE_VARIABLE:
+        case ir::Node::Type::VARIABLE:
+        case ir::Node::Type::DEFAULT:
             break;
-        case NodeType::UNARY_OP:
-            parentsOfNode[((UnaryOp*)node2)->operand].erase(node1);
+        case ir::Node::Type::UNARY_OP:
+            parentsOfNode[(dynamic_cast<ir::UnaryOp*>(node2))->operand].erase(node1);
             break;
-        case NodeType::BINARY_OP:
-            parentsOfNode[((BinaryOp*)node2)->leftOperand].erase(node1);
-            parentsOfNode[((BinaryOp*)node2)->rightOperand].erase(node1);
+        case ir::Node::Type::BINARY_OP:
+            parentsOfNode[(dynamic_cast<ir::BinaryOp*>(node2))->leftOperand].erase(node1);
+            parentsOfNode[(dynamic_cast<ir::BinaryOp*>(node2))->rightOperand].erase(node1);
             break;
-        case NodeType::TERNARY_OP:
-            parentsOfNode[((TernaryOp*)node2)->leftOperand].erase(node1);
-            parentsOfNode[((TernaryOp*)node2)->middleOperand].erase(node1);
-            parentsOfNode[((TernaryOp*)node2)->rightOperand].erase(node1);
+        case ir::Node::Type::TERNARY_OP:
+            parentsOfNode[(dynamic_cast<ir::TernaryOp*>(node2))->leftOperand].erase(node1);
+            parentsOfNode[(dynamic_cast<ir::TernaryOp*>(node2))->middleOperand].erase(node1);
+            parentsOfNode[(dynamic_cast<ir::TernaryOp*>(node2))->rightOperand].erase(node1);
             break;
     }
 
@@ -402,12 +424,12 @@ Node* Graph::mergeNodes(Node* node1, Node* node2, std::map<Node*, std::set<Node*
 }
 
 void Graph::concretizeErrorComponents() {
-    int totalNodesInBwdDerivatives = errorAnalyzer->bwdDerivatives.size();
+    int totalNodesInBwdDerivatives = int(errorAnalyzer->bwdDerivatives.size());
     int processedNodes = 0;
 
     // Iterate through the bwdDerivative map
     for (const auto& node_bwd_derivatives : errorAnalyzer->bwdDerivatives) {
-        Node* node = node_bwd_derivatives.first;
+        ir::Node* node = node_bwd_derivatives.first;
 
         node_bwd_derivatives.second.size();
 
@@ -415,7 +437,7 @@ void Graph::concretizeErrorComponents() {
 
         // Iterate through the nodeBwdDerivatives map
         for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
-            Node* output_node = node_output_bwd_derivative.first;
+            ir::Node* output_node = node_output_bwd_derivative.first;
             OptResult max_bwd = ibexInterface->findAbsMax(*node_output_bwd_derivative.second);
             OptResult max_local_err = ibexInterface->findAbsMax(
                     const_cast<ibex::ExprNode&>(product(node->getAbsoluteError(), node->getRounding())));
@@ -433,14 +455,14 @@ void Graph::concretizeErrorComponents() {
 // node to ibex::IntervalVector, ibex::IntervalVector
 void Graph::examineBwdDerivativeAndLocalError() {
     // Create a map similar to errorAnalyzer->BwdDerivatives but with a pair of double as the value
-    std::map<Node*, std::map<Node*, std::pair<double, double>>> evaluatedBwdDerivatives;
+    std::map<ir::Node*, std::map<ir::Node*, std::pair<double, double>>> evaluatedBwdDerivatives;
 
     // Iterate through the bwdDerivative map
     for (const auto& node_bwd_derivatives : errorAnalyzer->bwdDerivatives) {
-        Node* node = node_bwd_derivatives.first;
+        ir::Node* node = node_bwd_derivatives.first;
         // Iterate through the nodeBwdDerivatives map
         for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
-            Node* output_node = node_output_bwd_derivative.first;
+            ir::Node* output_node = node_output_bwd_derivative.first;
             OptResult max_bwd = ibexInterface->findAbsMax(*node_output_bwd_derivative.second);
             OptResult max_local_err = ibexInterface->findAbsMax(
                     const_cast<ibex::ExprNode&>(product(node->getAbsoluteError(), node->getRounding())));
@@ -452,9 +474,9 @@ void Graph::examineBwdDerivativeAndLocalError() {
 
     // print the evaluatedBwdDerivatives
     for (const auto& node_bwd_derivatives : evaluatedBwdDerivatives) {
-        Node* node = node_bwd_derivatives.first;
+        ir::Node* node = node_bwd_derivatives.first;
         for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
-            Node* output_node = node_output_bwd_derivative.first;
+            ir::Node* output_node = node_output_bwd_derivative.first;
             std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
             logging->debug("(Output Id, Depth): ", output_node->id, ", ", output_node->depth,
                            " (Node Id, Depth): ", node->id, ", ", node->depth, " Bwd: ", bwd_local_err.first,
@@ -467,9 +489,9 @@ void Graph::examineBwdDerivativeAndLocalError() {
     // Output format: Node Id, Depth, Bwd, Local Error
     bwd_derivatives_file << "Node Id,Depth,Bwd,Local Error";
     for (const auto& node_bwd_derivatives : evaluatedBwdDerivatives) {
-        Node* node = node_bwd_derivatives.first;
+        ir::Node* node = node_bwd_derivatives.first;
         for (const auto& node_output_bwd_derivative : node_bwd_derivatives.second) {
-            Node* output_node = node_output_bwd_derivative.first;
+            ir::Node* output_node = node_output_bwd_derivative.first;
             std::pair<double, double> bwd_local_err = node_output_bwd_derivative.second;
             bwd_derivatives_file << node->id << "," << node->depth << "," << bwd_local_err.first << ","
                                  << bwd_local_err.second;
@@ -486,41 +508,61 @@ bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
             case ibex::ExprNode::NumExprConstant:
                 return expr1 == expr2;
             case ibex::ExprNode::NumExprAdd:
-                return compareDAGs(((ibex::ExprAdd*)&expr1)->left, ((ibex::ExprAdd*)&expr2)->left)
-                    && compareDAGs(((ibex::ExprAdd*)&expr1)->right, ((ibex::ExprAdd*)&expr2)->right);
+                return compareDAGs((dynamic_cast<ibex::ExprAdd*>(&expr1))->left,
+                                   (dynamic_cast<ibex::ExprAdd*>(&expr2))->left)
+                    && compareDAGs((dynamic_cast<ibex::ExprAdd*>(&expr1))->right,
+                                   (dynamic_cast<ibex::ExprAdd*>(&expr2))->right);
             case ibex::ExprNode::NumExprMul:
-                return compareDAGs(((ibex::ExprMul*)&expr1)->left, ((ibex::ExprMul*)&expr2)->left)
-                    && compareDAGs(((ibex::ExprMul*)&expr1)->right, ((ibex::ExprMul*)&expr2)->right);
+                return compareDAGs((dynamic_cast<ibex::ExprMul*>(&expr1))->left,
+                                   (dynamic_cast<ibex::ExprMul*>(&expr2))->left)
+                    && compareDAGs((dynamic_cast<ibex::ExprMul*>(&expr1))->right,
+                                   (dynamic_cast<ibex::ExprMul*>(&expr2))->right);
             case ibex::ExprNode::NumExprSub:
-                return compareDAGs(((ibex::ExprSub*)&expr1)->left, ((ibex::ExprSub*)&expr2)->left)
-                    && compareDAGs(((ibex::ExprSub*)&expr1)->right, ((ibex::ExprSub*)&expr2)->right);
+                return compareDAGs((dynamic_cast<ibex::ExprSub*>(&expr1))->left,
+                                   (dynamic_cast<ibex::ExprSub*>(&expr2))->left)
+                    && compareDAGs((dynamic_cast<ibex::ExprSub*>(&expr1))->right,
+                                   (dynamic_cast<ibex::ExprSub*>(&expr2))->right);
             case ibex::ExprNode::NumExprDiv:
-                return compareDAGs(((ibex::ExprDiv*)&expr1)->left, ((ibex::ExprDiv*)&expr2)->left)
-                    && compareDAGs(((ibex::ExprDiv*)&expr1)->right, ((ibex::ExprDiv*)&expr2)->right);
+                return compareDAGs((dynamic_cast<ibex::ExprDiv*>(&expr1))->left,
+                                   (dynamic_cast<ibex::ExprDiv*>(&expr2))->left)
+                    && compareDAGs((dynamic_cast<ibex::ExprDiv*>(&expr1))->right,
+                                   (dynamic_cast<ibex::ExprDiv*>(&expr2))->right);
             case ibex::ExprNode::NumExprSin:
-                return compareDAGs(((ibex::ExprSin*)&expr1)->expr, ((ibex::ExprSin*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprSin*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprSin*>(&expr2))->expr);
             case ibex::ExprNode::NumExprCos:
-                return compareDAGs(((ibex::ExprCos*)&expr1)->expr, ((ibex::ExprCos*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprCos*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprCos*>(&expr2))->expr);
             case ibex::ExprNode::NumExprTan:
-                return compareDAGs(((ibex::ExprTan*)&expr1)->expr, ((ibex::ExprTan*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprTan*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprTan*>(&expr2))->expr);
             case ibex::ExprNode::NumExprSinh:
-                return compareDAGs(((ibex::ExprSinh*)&expr1)->expr, ((ibex::ExprSinh*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprSinh*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprSinh*>(&expr2))->expr);
             case ibex::ExprNode::NumExprCosh:
-                return compareDAGs(((ibex::ExprCosh*)&expr1)->expr, ((ibex::ExprCosh*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprCosh*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprCosh*>(&expr2))->expr);
             case ibex::ExprNode::NumExprTanh:
-                return compareDAGs(((ibex::ExprTanh*)&expr1)->expr, ((ibex::ExprTanh*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprTanh*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprTanh*>(&expr2))->expr);
             case ibex::ExprNode::NumExprAsin:
-                return compareDAGs(((ibex::ExprAsin*)&expr1)->expr, ((ibex::ExprAsin*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprAsin*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprAsin*>(&expr2))->expr);
             case ibex::ExprNode::NumExprAcos:
-                return compareDAGs(((ibex::ExprAcos*)&expr1)->expr, ((ibex::ExprAcos*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprAcos*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprAcos*>(&expr2))->expr);
             case ibex::ExprNode::NumExprAtan:
-                return compareDAGs(((ibex::ExprAtan*)&expr1)->expr, ((ibex::ExprAtan*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprAtan*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprAtan*>(&expr2))->expr);
             case ibex::ExprNode::NumExprLog:
-                return compareDAGs(((ibex::ExprLog*)&expr1)->expr, ((ibex::ExprLog*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprLog*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprLog*>(&expr2))->expr);
             case ibex::ExprNode::NumExprSqrt:
-                return compareDAGs(((ibex::ExprSqrt*)&expr1)->expr, ((ibex::ExprSqrt*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprSqrt*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprSqrt*>(&expr2))->expr);
             case ibex::ExprNode::NumExprExp:
-                return compareDAGs(((ibex::ExprExp*)&expr1)->expr, ((ibex::ExprExp*)&expr2)->expr);
+                return compareDAGs((dynamic_cast<ibex::ExprExp*>(&expr1))->expr,
+                                   (dynamic_cast<ibex::ExprExp*>(&expr2))->expr);
             default:
                 logging->critical("Unknown node type");
         }
@@ -538,86 +580,91 @@ bool Graph::compareDAGs(ibex::ExprNode expr1, ibex::ExprNode expr2) {
  *
  * @return A set of nodes that are flattened subDAGs
  */
-std::set<Node*> Graph::flattenSubDags(Node* node, unsigned int min_depth, unsigned int max_depth) {
+std::set<ir::Node*> Graph::flattenSubDags(ir::Node* node, unsigned int min_depth, unsigned int max_depth) {
     assert(min_depth <= max_depth && "Invalid bounds for flattening");
 
-    std::set<Node*> nodes_to_flatten;
+    std::set<ir::Node*> nodes_to_flatten;
 
     // Flatten nodes from children of node within depth windowI
     switch (node->type) {
-        case NodeType::INTEGER:
+        case ir::Node::Type::INTEGER:
+        case ir::Node::Type::FLOAT:
+        case ir::Node::Type::DOUBLE:
+        case ir::Node::Type::FREE_VARIABLE:
+        case ir::Node::Type::VARIABLE:
             break;
-        case NodeType::FLOAT:
-            break;
-        case NodeType::DOUBLE:
-            break;
-        case NodeType::FREE_VARIABLE:
-            break;
-        case NodeType::VARIABLE:
-            break;
-        case NodeType::UNARY_OP:
-            if (((UnaryOp*)node)->operand->depth >= min_depth && ((UnaryOp*)node)->operand->depth <= max_depth) {
-                nodes_to_flatten.insert(((UnaryOp*)node)->operand);
+        case ir::Node::Type::UNARY_OP:
+            if ((dynamic_cast<ir::UnaryOp*>(node))->operand->depth >= min_depth
+                && (dynamic_cast<ir::UnaryOp*>(node))->operand->depth <= max_depth) {
+                nodes_to_flatten.insert((dynamic_cast<ir::UnaryOp*>(node))->operand);
             }
-            if (((UnaryOp*)node)->operand->depth > min_depth) {
-                std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               flattenSubDags(((UnaryOp*)node)->operand, min_depth, max_depth).begin(),
-                               flattenSubDags(((UnaryOp*)node)->operand, min_depth, max_depth).end(),
-                               std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+            if ((dynamic_cast<ir::UnaryOp*>(node))->operand->depth > min_depth) {
+                std::set_union(
+                        nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                        flattenSubDags((dynamic_cast<ir::UnaryOp*>(node))->operand, min_depth, max_depth).begin(),
+                        flattenSubDags((dynamic_cast<ir::UnaryOp*>(node))->operand, min_depth, max_depth).end(),
+                        std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             break;
-        case NodeType::BINARY_OP:
-            if (((BinaryOp*)node)->leftOperand->depth >= min_depth
-                && ((BinaryOp*)node)->leftOperand->depth <= max_depth) {
-                nodes_to_flatten.insert(((BinaryOp*)node)->leftOperand);
+        case ir::Node::Type::BINARY_OP:
+            if ((dynamic_cast<ir::BinaryOp*>(node))->leftOperand->depth >= min_depth
+                && (dynamic_cast<ir::BinaryOp*>(node))->leftOperand->depth <= max_depth) {
+                nodes_to_flatten.insert((dynamic_cast<ir::BinaryOp*>(node))->leftOperand);
             }
-            if (((BinaryOp*)node)->rightOperand->depth >= min_depth
-                && ((BinaryOp*)node)->rightOperand->depth <= max_depth) {
-                nodes_to_flatten.insert(((BinaryOp*)node)->rightOperand);
+            if ((dynamic_cast<ir::BinaryOp*>(node))->rightOperand->depth >= min_depth
+                && (dynamic_cast<ir::BinaryOp*>(node))->rightOperand->depth <= max_depth) {
+                nodes_to_flatten.insert((dynamic_cast<ir::BinaryOp*>(node))->rightOperand);
             }
-            if (((BinaryOp*)node)->leftOperand->depth > min_depth) {
-                std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               flattenSubDags(((BinaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
-                               flattenSubDags(((BinaryOp*)node)->leftOperand, min_depth, max_depth).end(),
-                               std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+            if ((dynamic_cast<ir::BinaryOp*>(node))->leftOperand->depth > min_depth) {
+                std::set_union(
+                        nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                        flattenSubDags((dynamic_cast<ir::BinaryOp*>(node))->leftOperand, min_depth, max_depth).begin(),
+                        flattenSubDags((dynamic_cast<ir::BinaryOp*>(node))->leftOperand, min_depth, max_depth).end(),
+                        std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
-            if (((BinaryOp*)node)->rightOperand->depth > min_depth) {
-                std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               flattenSubDags(((BinaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
-                               flattenSubDags(((BinaryOp*)node)->rightOperand, min_depth, max_depth).end(),
-                               std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+            if ((dynamic_cast<ir::BinaryOp*>(node))->rightOperand->depth > min_depth) {
+                std::set_union(
+                        nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                        flattenSubDags((dynamic_cast<ir::BinaryOp*>(node))->rightOperand, min_depth, max_depth).begin(),
+                        flattenSubDags((dynamic_cast<ir::BinaryOp*>(node))->rightOperand, min_depth, max_depth).end(),
+                        std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             break;
-        case NodeType::TERNARY_OP:
-            if (((TernaryOp*)node)->leftOperand->depth >= min_depth
-                && ((TernaryOp*)node)->leftOperand->depth <= max_depth) {
-                nodes_to_flatten.insert(((TernaryOp*)node)->leftOperand);
+        case ir::Node::Type::TERNARY_OP:
+            if ((dynamic_cast<ir::TernaryOp*>(node))->leftOperand->depth >= min_depth
+                && (dynamic_cast<ir::TernaryOp*>(node))->leftOperand->depth <= max_depth) {
+                nodes_to_flatten.insert((dynamic_cast<ir::TernaryOp*>(node))->leftOperand);
             }
-            if (((TernaryOp*)node)->middleOperand->depth >= min_depth
-                && ((TernaryOp*)node)->middleOperand->depth <= max_depth) {
-                nodes_to_flatten.insert(((TernaryOp*)node)->middleOperand);
+            if ((dynamic_cast<ir::TernaryOp*>(node))->middleOperand->depth >= min_depth
+                && (dynamic_cast<ir::TernaryOp*>(node))->middleOperand->depth <= max_depth) {
+                nodes_to_flatten.insert((dynamic_cast<ir::TernaryOp*>(node))->middleOperand);
             }
-            if (((TernaryOp*)node)->rightOperand->depth >= min_depth
-                && ((TernaryOp*)node)->rightOperand->depth <= max_depth) {
-                nodes_to_flatten.insert(((TernaryOp*)node)->rightOperand);
+            if ((dynamic_cast<ir::TernaryOp*>(node))->rightOperand->depth >= min_depth
+                && (dynamic_cast<ir::TernaryOp*>(node))->rightOperand->depth <= max_depth) {
+                nodes_to_flatten.insert((dynamic_cast<ir::TernaryOp*>(node))->rightOperand);
             }
-            if (((TernaryOp*)node)->leftOperand->depth > min_depth) {
-                std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               flattenSubDags(((TernaryOp*)node)->leftOperand, min_depth, max_depth).begin(),
-                               flattenSubDags(((TernaryOp*)node)->leftOperand, min_depth, max_depth).end(),
-                               std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+            if ((dynamic_cast<ir::TernaryOp*>(node))->leftOperand->depth > min_depth) {
+                std::set_union(
+                        nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                        flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->leftOperand, min_depth, max_depth).begin(),
+                        flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->leftOperand, min_depth, max_depth).end(),
+                        std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
-            if (((TernaryOp*)node)->middleOperand->depth > min_depth) {
-                std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               flattenSubDags(((TernaryOp*)node)->middleOperand, min_depth, max_depth).begin(),
-                               flattenSubDags(((TernaryOp*)node)->middleOperand, min_depth, max_depth).end(),
-                               std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+            if ((dynamic_cast<ir::TernaryOp*>(node))->middleOperand->depth > min_depth) {
+                std::set_union(
+                        nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                        flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->middleOperand, min_depth, max_depth)
+                                .begin(),
+                        flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->middleOperand, min_depth, max_depth).end(),
+                        std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
-            if (((TernaryOp*)node)->rightOperand->depth > min_depth) {
-                std::set_union(nodes_to_flatten.begin(), nodes_to_flatten.end(),
-                               flattenSubDags(((TernaryOp*)node)->rightOperand, min_depth, max_depth).begin(),
-                               flattenSubDags(((TernaryOp*)node)->rightOperand, min_depth, max_depth).end(),
-                               std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
+            if ((dynamic_cast<ir::TernaryOp*>(node))->rightOperand->depth > min_depth) {
+                std::set_union(
+                        nodes_to_flatten.begin(), nodes_to_flatten.end(),
+                        flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->rightOperand, min_depth, max_depth)
+                                .begin(),
+                        flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->rightOperand, min_depth, max_depth).end(),
+                        std::inserter(nodes_to_flatten, nodes_to_flatten.end()));
             }
             break;
         default:
@@ -636,46 +683,48 @@ std::set<Node*> Graph::flattenSubDags(Node* node, unsigned int min_depth, unsign
  *
  * @return A set of nodes that are common to all nodes in node's children
  */
-std::set<Node*> Graph::findCommonNodes(Node* node, unsigned int min_depth, unsigned int max_depth) {
-    std::set<Node*> common_nodes;
+std::set<ir::Node*> Graph::findCommonNodes(ir::Node* node, unsigned int min_depth, unsigned int max_depth) {
+    std::set<ir::Node*> common_nodes;
 
     // Create a list of flattened subDAGs of children of node
-    std::vector<std::set<Node*>> flattened_subDAGs;
+    std::vector<std::set<ir::Node*>> flattened_subDAGs;
     switch (node->type) {
-        case NodeType::INTEGER:
+        case ir::Node::Type::INTEGER:
+        case ir::Node::Type::FLOAT:
+        case ir::Node::Type::DOUBLE:
+        case ir::Node::Type::FREE_VARIABLE:
+        case ir::Node::Type::VARIABLE:
             break;
-        case NodeType::FLOAT:
+        case ir::Node::Type::UNARY_OP:
+            flattened_subDAGs.push_back(
+                    flattenSubDags((dynamic_cast<ir::UnaryOp*>(node))->operand, min_depth, max_depth));
             break;
-        case NodeType::DOUBLE:
+        case ir::Node::Type::BINARY_OP:
+            flattened_subDAGs.push_back(
+                    flattenSubDags((dynamic_cast<ir::BinaryOp*>(node))->leftOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(
+                    flattenSubDags((dynamic_cast<ir::BinaryOp*>(node))->rightOperand, min_depth, max_depth));
             break;
-        case NodeType::FREE_VARIABLE:
-            break;
-        case NodeType::VARIABLE:
-            break;
-        case NodeType::UNARY_OP:
-            flattened_subDAGs.push_back(flattenSubDags(((UnaryOp*)node)->operand, min_depth, max_depth));
-            break;
-        case NodeType::BINARY_OP:
-            flattened_subDAGs.push_back(flattenSubDags(((BinaryOp*)node)->leftOperand, min_depth, max_depth));
-            flattened_subDAGs.push_back(flattenSubDags(((BinaryOp*)node)->rightOperand, min_depth, max_depth));
-            break;
-        case NodeType::TERNARY_OP:
-            flattened_subDAGs.push_back(flattenSubDags(((TernaryOp*)node)->leftOperand, min_depth, max_depth));
-            flattened_subDAGs.push_back(flattenSubDags(((TernaryOp*)node)->middleOperand, min_depth, max_depth));
-            flattened_subDAGs.push_back(flattenSubDags(((TernaryOp*)node)->rightOperand, min_depth, max_depth));
+        case ir::Node::Type::TERNARY_OP:
+            flattened_subDAGs.push_back(
+                    flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->leftOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(
+                    flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->middleOperand, min_depth, max_depth));
+            flattened_subDAGs.push_back(
+                    flattenSubDags((dynamic_cast<ir::TernaryOp*>(node))->rightOperand, min_depth, max_depth));
             break;
         default:
             logging->critical("Unknown node type");
     }
 
-    flattened_subDAGs.push_back(std::set<Node*>({node}));
+    flattened_subDAGs.push_back(std::set<ir::Node*>({node}));
 
     // Find common nodes
     for (const auto& flattened_subDAG : flattened_subDAGs) {
         if (common_nodes.empty()) {
             common_nodes = flattened_subDAG;
         } else {
-            std::set<Node*> temp;
+            std::set<ir::Node*> temp;
             std::set_intersection(common_nodes.begin(), common_nodes.end(), flattened_subDAG.begin(),
                                   flattened_subDAG.end(), std::inserter(temp, temp.end()));
             common_nodes = temp;
@@ -694,21 +743,22 @@ std::set<Node*> Graph::findCommonNodes(Node* node, unsigned int min_depth, unsig
  *
  * @return A set of nodes that are common to all nodes in nodes
  */
-std::map<Node*, std::set<Node*>> Graph::findCommonDependencies(std::set<Node*> nodes, unsigned int min_depth,
-                                                               unsigned int max_depth) {
-    std::map<Node*, std::set<Node*>> common_dependencies;
+std::map<ir::Node*, std::set<ir::Node*>> Graph::findCommonDependencies(std::set<ir::Node*> nodes,
+                                                                       unsigned int min_depth, unsigned int max_depth) {
+    std::map<ir::Node*, std::set<ir::Node*>> common_dependencies;
 
     // Populate common_dependencies with common_nodes from each node's common node list
     for (const auto& node : nodes) {
-        std::set<Node*> initial_dependence_list = findCommonNodes(node, min_depth, max_depth);
-        std::vector<std::set<Node*>> common_nodes_list;
+        std::set<ir::Node*> initial_dependence_list = findCommonNodes(node, min_depth, max_depth);
+        std::vector<std::set<ir::Node*>> common_nodes_list;
 
         // Populate common_nodes_list with common_nodes from each node's common node list
+        common_nodes_list.reserve(initial_dependence_list.size());
         for (const auto& node : initial_dependence_list) {
             common_nodes_list.push_back(findCommonNodes(node, min_depth, max_depth));
         }
 
-        std::set<Node*> redundant_nodes;
+        std::set<ir::Node*> redundant_nodes;
 
         // Unionize common_nodes_list into redundant_nodes
         for (const auto& common_nodes : common_nodes_list) {
@@ -717,7 +767,7 @@ std::map<Node*, std::set<Node*>> Graph::findCommonDependencies(std::set<Node*> n
         }
 
         // Get the set difference between initial_dependence_list and redundant_nodes
-        std::set<Node*> common_nodes;
+        std::set<ir::Node*> common_nodes;
         std::set_difference(initial_dependence_list.begin(), initial_dependence_list.end(), redundant_nodes.begin(),
                             redundant_nodes.end(), std::inserter(common_nodes, common_nodes.end()));
         if (!common_nodes.empty()) {
@@ -738,13 +788,14 @@ std::map<Node*, std::set<Node*>> Graph::findCommonDependencies(std::set<Node*> n
  *
  * @return A vector of op operation nodes within max_depth
  */
-std::set<Node*> Graph::filterNodesWithOperationWithinDepth(Node::Op op, unsigned int max_depth) {
-    std::set<Node*> nodes_with_op;
+std::set<ir::Node*> Graph::filterNodesWithOperationWithinDepth(ir::Node::OpType op, unsigned int max_depth) {
+    std::set<ir::Node*> nodes_with_op;
 
     std::copy_if(nodes.begin(), nodes.end(), std::inserter(nodes_with_op, nodes_with_op.end()),
-                 [op, max_depth](Node* node) {
-                     return node->depth <= max_depth && (node->isUnaryOp() && ((UnaryOp*)node)->op == op)
-                         || (node->isBinaryOp() && ((BinaryOp*)node)->op == op);
+                 [op, max_depth](ir::Node* node) {
+                     return node->depth <= max_depth
+                                 && (node->isUnaryOp() && (dynamic_cast<ir::UnaryOp*>(node))->op == op)
+                         || (node->isBinaryOp() && (dynamic_cast<ir::BinaryOp*>(node))->op == op);
                  });
 
     return nodes_with_op;
@@ -760,28 +811,28 @@ std::set<Node*> Graph::filterNodesWithOperationWithinDepth(Node::Op op, unsigned
  *
  * @return A vector of nodes that are candidates for abstraction
  */
-std::set<Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound,
-                                                      unsigned int upper_bound) {
+std::set<ir::Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, unsigned int lower_bound,
+                                                          unsigned int upper_bound) {
     assert(lower_bound <= upper_bound && upper_bound <= max_depth && "Invalid bounds for abstraction");
 
-    std::set<Node*> nodes_with_op = filterNodesWithOperationWithinDepth(Node::Op::DIV, max_depth);
+    std::set<ir::Node*> nodes_with_op = filterNodesWithOperationWithinDepth(ir::Node::OpType::DIV, max_depth);
 
     // Print nodes with op
     logging->debug("Nodes with op:");
-    for (const auto& node : nodes_with_op) { logging->debug("    Node ID: ", node->id); }
+    for (const auto& node : nodes_with_op) logging->debug("    Node ID: ", node->id);
 
-    std::map<Node*, std::set<Node*>> common_dependencies = findCommonDependencies(nodes_with_op, lower_bound,
-                                                                                  upper_bound);
+    std::map<ir::Node*, std::set<ir::Node*>> common_dependencies = findCommonDependencies(nodes_with_op, lower_bound,
+                                                                                          upper_bound);
 
     // Print common dependencies
     logging->debug("Common dependencies:");
     for (const auto& common_dependency : common_dependencies) {
         logging->debug("    Node ID: ", common_dependency.first->id, ":");
-        for (const auto& node : common_dependency.second) { logging->debug("        Node ID: ", node->id); }
+        for (const auto& node : common_dependency.second) logging->debug("        Node ID: ", node->id);
     }
 
     // Unionize the node set from common_dependencies
-    std::set<Node*> common_dependencies_set;
+    std::set<ir::Node*> common_dependencies_set;
     for (const auto& common_dependency : common_dependencies) {
         std::set_union(common_dependencies_set.begin(), common_dependencies_set.end(), common_dependency.second.begin(),
                        common_dependency.second.end(),
@@ -803,14 +854,12 @@ std::set<Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, un
     } else {
         unsigned int local_max_depth = -1;
         // Get the greatest depth from nodes in common_dependencies_set
-        for (const auto& node : common_dependencies_set) {
-            if (node->depth > local_max_depth) { local_max_depth = node->depth; }
-        }
+        for (const auto& node : common_dependencies_set) local_max_depth = std::max(node->depth, local_max_depth);
 
         // Get nodes from common_dependencies_set with depth equal to local_max_depth
-        std::set<Node*> common_dependencies_set;
+        std::set<ir::Node*> common_dependencies_set;
         for (const auto& node : common_dependencies_set) {
-            if (node->depth == local_max_depth) { common_dependencies_set.insert(node); }
+            if (node->depth == local_max_depth) common_dependencies_set.insert(node);
         }
     }
 
@@ -821,19 +870,20 @@ std::set<Node*> Graph::filterCandidatesForAbstraction(unsigned int max_depth, un
     return common_dependencies_set;
 }
 
-std::pair<unsigned int, std::set<Node*>>
+std::pair<unsigned int, std::set<ir::Node*>>
 Graph::selectNodesForAbstraction(unsigned int max_depth, unsigned int bound_min_depth, unsigned int bound_max_depth) {
     assert(bound_min_depth <= bound_max_depth && bound_max_depth <= max_depth && "Invalid bounds for abstraction");
-    std::set<Node*> nodes_to_abstract;
+    std::set<ir::Node*> nodes_to_abstract;
 
     logging->debug("Selecting nodes for abstraction...");
 
     // Abstraction window is just 1 level wide
     if (bound_min_depth == bound_max_depth && bound_max_depth <= max_depth) {
-        return std::make_pair(bound_min_depth, depthTable[bound_min_depth]);
+        return std::make_pair(bound_min_depth, depthTable[int(bound_min_depth)]);
     }
 
-    std::set<Node*> initialCandidateList = filterCandidatesForAbstraction(max_depth, bound_min_depth, bound_max_depth);
+    std::set<ir::Node*> initialCandidateList = filterCandidatesForAbstraction(max_depth, bound_min_depth,
+                                                                              bound_max_depth);
 
     unsigned int local_max_depth = bound_max_depth;
 
@@ -846,51 +896,48 @@ Graph::selectNodesForAbstraction(unsigned int max_depth, unsigned int bound_min_
 
     if (initialCandidateList.empty()) {
         logging->debug("No candidates found!");
-        return std::make_pair(-1, std::set<Node*>());
-    } else {
-        local_max_depth = 0;
-        // Set local_max_depth to the greatest depth of nodes in initialCandidateList
-        for (const auto& node : initialCandidateList) {
-            if (node->depth > local_max_depth) { local_max_depth = node->depth; }
-        }
-
-        auto f = [&local_max_depth](Node* x) { return float(x->depth) / (local_max_depth + 0.01); };
-
-        auto g = [](Node* x, auto y) { return (-1) * y * log2(y) * x->parents.size(); };
-
-        // Create a list of cost
-        std::map<Node*, double> cost_dict;
-
-        // Compute g(x, f(x)) for each node in initialCandidateList
-        for (const auto& node : initialCandidateList) { cost_dict[node] = g(node, f(node)); }
-
-        // Sum cost of all nodes with same depth
-        std::map<int, double> cost_sum_dict;
-        for (const auto& node : initialCandidateList) { cost_sum_dict[node->depth] += cost_dict[node]; }
-
-        // Print cost_sum_dict
-        logging->debug("Cost Sum Dict:");
-        for (const auto& cost_sum : cost_sum_dict) { logging->debug("\t", cost_sum.first, " : ", cost_sum.second); }
-
-        // Get the depth with the greatest cost
-        int abstraction_depth = -1;
-        double greatest_cost = -1;
-        for (const auto& cost_sum : cost_sum_dict) {
-            if (cost_sum.second > greatest_cost) {
-                greatest_cost = cost_sum.second;
-                abstraction_depth = cost_sum.first;
-            }
-        }
-
-        // Get nodes with depth equal to depth_with_greatest_cost
-        auto candidate_nodes = depthTable[abstraction_depth];
-
-        // Print max depth and abstraction depth
-        logging->debug("Max Depth: ", max_depth);
-        logging->debug("Abstraction Depth: ", abstraction_depth);
-
-        return std::make_pair(abstraction_depth, candidate_nodes);
+        return std::make_pair(-1, std::set<ir::Node*>());
     }
+    local_max_depth = 0;
+    // Set local_max_depth to the greatest depth of nodes in initialCandidateList
+    for (const auto& node : initialCandidateList) local_max_depth = std::max(node->depth, local_max_depth);
+
+    auto f = [&local_max_depth](ir::Node* x) { return float(x->depth) / (local_max_depth + 0.01); };
+
+    auto g = [](ir::Node* x, auto y) { return (-1) * y * log2(y) * x->parents.size(); };
+
+    // Create a list of cost
+    std::map<ir::Node*, double> cost_dict;
+
+    // Compute g(x, f(x)) for each node in initialCandidateList
+    for (const auto& node : initialCandidateList) cost_dict[node] = g(node, f(node));
+
+    // Sum cost of all nodes with same depth
+    std::map<int, double> cost_sum_dict;
+    for (const auto& node : initialCandidateList) cost_sum_dict[int(node->depth)] += cost_dict[node];
+
+    // Print cost_sum_dict
+    logging->debug("Cost Sum Dict:");
+    for (const auto& cost_sum : cost_sum_dict) logging->debug("\t", cost_sum.first, " : ", cost_sum.second);
+
+    // Get the depth with the greatest cost
+    int abstraction_depth = -1;
+    double greatest_cost = -1;
+    for (const auto& cost_sum : cost_sum_dict) {
+        if (cost_sum.second > greatest_cost) {
+            greatest_cost = cost_sum.second;
+            abstraction_depth = cost_sum.first;
+        }
+    }
+
+    // Get nodes with depth equal to depth_with_greatest_cost
+    auto candidate_nodes = depthTable[abstraction_depth];
+
+    // Print max depth and abstraction depth
+    logging->debug("Max Depth: ", max_depth);
+    logging->debug("Abstraction Depth: ", abstraction_depth);
+
+    return std::make_pair(abstraction_depth, candidate_nodes);
 }
 
 
@@ -913,7 +960,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
             // Print candidate nodes
             logging->debug("Abstraction count: ", abstraction_count);
             logging->debug("Candidate Nodes:");
-            for (const auto& node : candidate_nodes) { logging->debug("    Node ID: ", node->id); }
+            for (const auto& node : candidate_nodes) logging->debug("    Node ID: ", node->id);
         }
 
         if (!candidate_nodes.empty()) {
@@ -933,7 +980,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
             unsigned int max_operators_count = 1000;
             for (const auto& node : candidate_nodes) {
                 unsigned int op_count = node->getExprNode()->size;
-                if (op_count < max_operators_count) { max_operators_count = op_count; }
+                max_operators_count = std::min(op_count, max_operators_count);
             }
 
             // These metrics are computed after the abstraction is performed
@@ -947,7 +994,7 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
                     bound_max_depth = bound_max_depth - 2;
                 }
 
-                if (bound_max_depth - bound_min_depth > 4) { bound_min_depth = bound_min_depth - 2; }
+                if (bound_max_depth - bound_min_depth > 4) bound_min_depth = bound_min_depth - 2;
             } else if (max_depth <= bound_max_depth && max_depth > bound_min_depth) {
                 bound_max_depth = max_depth;
                 assert(bound_max_depth >= bound_min_depth);
@@ -960,11 +1007,11 @@ void Graph::performAbstraction(unsigned int bound_min_depth, unsigned int bound_
     logging->debug("Abstraction complete!");
 }
 
-void Graph::findOutputExtrema(const std::set<Node*>& candidate_nodes) {
+void Graph::findOutputExtrema(const std::set<ir::Node*>& candidate_nodes) {
     logging->debug("Finding output extremas for ", candidate_nodes.size(), " nodes");
 
 
-    std::map<Node*, OptResult> max;
+    std::map<ir::Node*, OptResult> max;
     for (const auto& node : candidate_nodes) {
         logging->debug("Finding max for '", node->id, "'");
         logging->debug("Output Expression computed for node ", node->id);
@@ -988,23 +1035,23 @@ void Graph::findOutputExtrema(const std::set<Node*>& candidate_nodes) {
     logging->debug("Output extremas found!");
 }
 
-void Graph::findErrorExtrema(const std::set<Node*>& candidate_nodes) {
+void Graph::findErrorExtrema(const std::set<ir::Node*>& candidate_nodes) {
     logging->debug("Finding error extrema...");
 
     setupDerivativeComputation(candidate_nodes);
 
     errorAnalyzer->derivativeComputingDriver();
 
-    if (concretizeErrorComps) { concretizeErrorComponents(); }
+    if (concretizeErrorComps) concretizeErrorComponents();
 
     errorAnalyzer->errorComputingDriver(candidate_nodes, ibexInterface);
 
-    if (collectErrorCompData) { examineBwdDerivativeAndLocalError(); }
+    if (collectErrorCompData) examineBwdDerivativeAndLocalError();
 
     logging->debug("Solving for ", candidate_nodes.size(), " nodes");
 
 
-    std::map<Node*, OptResult> max;
+    std::map<ir::Node*, OptResult> max;
     for (const auto& node : candidate_nodes) {
         logging->debug("Finding max for: ", node->id);
 
@@ -1034,8 +1081,8 @@ void Graph::findErrorExtrema(const std::set<Node*>& candidate_nodes) {
     logging->debug("Error extremas found!");
 }
 
-std::map<Node*, ErrorAnalysisResult> Graph::simplifyWithAbstraction(const std::set<Node*>& candidate_nodes,
-                                                                    unsigned int max_depth, bool isFinal) {
+std::map<ir::Node*, ErrorAnalysisResult> Graph::simplifyWithAbstraction(const std::set<ir::Node*>& candidate_nodes,
+                                                                        unsigned int max_depth, bool isFinal) {
     logging->debug("Final computation...");
 
 
@@ -1054,9 +1101,9 @@ std::map<Node*, ErrorAnalysisResult> Graph::simplifyWithAbstraction(const std::s
     }
 
     logging->debug("Abstracting nodes");
-    for (const auto& node : candidate_nodes) { logging->debug("    ", node->id); }
+    for (const auto& node : candidate_nodes) logging->debug("    ", node->id);
 
-    std::map<Node*, std::vector<ibex::Interval>> results;
+    std::map<ir::Node*, std::vector<ibex::Interval>> results;
 
     for (const auto& node : candidate_nodes) {
         results[node].push_back(errorAnalysisResults[node].outputExtrema);
@@ -1076,11 +1123,12 @@ std::map<Node*, ErrorAnalysisResult> Graph::simplifyWithAbstraction(const std::s
  *
  * @return A list of nodes that are common to all nodes in the probe list
  */
-std::vector<Node*> Graph::modProbeList() {
-    std::vector<Node*> probe_list;
+std::vector<ir::Node*> Graph::modProbeList() {
+    std::vector<ir::Node*> probe_list;
 
     // Get nodes from symbol table corresponding to the output variables
-    for (const auto& output : outputs) { probe_list.push_back(symbolTables[currentScope]->table[output]); }
+    probe_list.reserve(outputs.size());
+    for (const auto& output : outputs) probe_list.push_back(symbolTables[currentScope]->table[output]);
 
     return probe_list;
 }
@@ -1090,7 +1138,7 @@ std::vector<Node*> Graph::modProbeList() {
  *
  * @param results A map of nodes to their corresponding intervals
  */
-void Graph::abstractNodes(std::map<Node*, std::vector<ibex::Interval>> results) {
+void Graph::abstractNodes(std::map<ir::Node*, std::vector<ibex::Interval>> results) {
     logging->debug("Abstracting nodes...");
 
 
@@ -1098,10 +1146,10 @@ void Graph::abstractNodes(std::map<Node*, std::vector<ibex::Interval>> results) 
     for (const auto& singleResult : results) {
         auto* node = singleResult.first;
 
-        VariableNode* converted_node;
+        ir::VariableNode* converted_node;
 
         // Convert node to VariableNode
-        converted_node = new VariableNode(*node);
+        converted_node = new ir::VariableNode(*node);
         converted_node->setAbsoluteError(&ibex::ExprConstant::new_scalar(singleResult.second[1].ub()));
 
         // Add converted node to nodes and symbol table
@@ -1109,7 +1157,8 @@ void Graph::abstractNodes(std::map<Node*, std::vector<ibex::Interval>> results) 
         symbolTables[currentScope]->table[converted_node->variable->name] = converted_node;
 
         // Create corresponding FreeVariable node using the singleResult IntervalVector
-        auto* free_node = new FreeVariable(*new ibex::Interval(singleResult.second[0]), Node::RoundingType::FL64);
+        auto* free_node = new ir::FreeVariable(*new ibex::Interval(singleResult.second[0]),
+                                               ir::Node::RoundingType::FL64);
         inputs[converted_node->variable->name] = free_node;
 
         // Add free node to nodes and inputs
@@ -1120,7 +1169,9 @@ void Graph::abstractNodes(std::map<Node*, std::vector<ibex::Interval>> results) 
 
         logging->debug("Converted Node ", node->id, " --> variable (", converted_node->id, ")");
 
-        logging->debug("Result for node ", node->id, " : Output: ", singleResult.second[0], ", Error: ", singleResult.second[1], ", Optimizer Calls: ", errorAnalysisResults[node].numOptimizationCalls);
+        logging->debug("Result for node ", node->id, " : Output: ", singleResult.second[0],
+                       ", Error: ", singleResult.second[1],
+                       ", Optimizer Calls: ", errorAnalysisResults[node].numOptimizationCalls);
     }
 
     logging->debug("Nodes abstracted!");
@@ -1133,9 +1184,9 @@ void Graph::rebuildAst() {
     logging->debug("Rebuilding AST...");
 
 
-    std::vector<Node*> probe_list = modProbeList();
+    std::vector<ir::Node*> probe_list = modProbeList();
 
-    std::map<Node*, unsigned int> completed;
+    std::map<ir::Node*, unsigned int> completed;
 
     // Recursively call RebuildASTNode on nodes in probe_list if not already completed
     for (const auto& node : probe_list) {
@@ -1144,11 +1195,11 @@ void Graph::rebuildAst() {
 
     // Get max depth among nodes in probe_list
     int max_depth = -1;
-    for (const auto& node : probe_list) max_depth = std::max(node->depth, max_depth);
+    for (const auto& node : probe_list) max_depth = std::max(int(node->depth), max_depth);
 
     // Get total number of nodes before
     unsigned int num_nodes = 0;
-    for (const auto& depth_table : depthTable) { num_nodes += depth_table.second.size(); }
+    for (const auto& depth_table : depthTable) num_nodes += depth_table.second.size();
 
     // Print num_nodes before
     logging->debug("Num nodes before: ", num_nodes);
@@ -1156,11 +1207,11 @@ void Graph::rebuildAst() {
 
     // Modify depthTable using the completed map
     depthTable.clear();
-    for (const auto& node : completed) { depthTable[node.second].insert(node.first); }
+    for (const auto& node : completed) depthTable[int(node.second)].insert(node.first);
 
     // Get total number of nodes after
     num_nodes = 0;
-    for (const auto& depth_table : depthTable) { num_nodes += depth_table.second.size(); }
+    for (const auto& depth_table : depthTable) num_nodes += depth_table.second.size();
 
     // Print num_nodes after
     logging->debug("Num nodes after: ", num_nodes);
@@ -1169,48 +1220,51 @@ void Graph::rebuildAst() {
     logging->debug("AST rebuilt!");
 }
 
-void Graph::rebuildAstNode(Node* node, std::map<Node*, unsigned int>& completed) {
+void Graph::rebuildAstNode(ir::Node* node, std::map<ir::Node*, unsigned int>& completed) {
     // Recursively call RebuildASTNode on children of node if not already completed
     switch (node->type) {
-        case NodeType::INTEGER:
-        case NodeType::FLOAT:
-        case NodeType::DOUBLE:
-        case NodeType::FREE_VARIABLE:
-        case NodeType::VARIABLE:
+        case ir::Node::Type::INTEGER:
+        case ir::Node::Type::FLOAT:
+        case ir::Node::Type::DOUBLE:
+        case ir::Node::Type::FREE_VARIABLE:
+        case ir::Node::Type::VARIABLE:
             node->depth = 0;
             break;
-        case NodeType::UNARY_OP:
-            if (((UnaryOp*)node)->op != Node::Op::NEG) {
-                if (completed.find(((UnaryOp*)node)->operand) == completed.end()) {
-                    rebuildAstNode(((UnaryOp*)node)->operand, completed);
+        case ir::Node::Type::UNARY_OP:
+            if ((dynamic_cast<ir::UnaryOp*>(node))->op != ir::Node::OpType::NEG) {
+                if (completed.find((dynamic_cast<ir::UnaryOp*>(node))->operand) == completed.end()) {
+                    rebuildAstNode((dynamic_cast<ir::UnaryOp*>(node))->operand, completed);
                 }
 
-                node->depth = ((UnaryOp*)node)->operand->depth + 1;
+                node->depth = (dynamic_cast<ir::UnaryOp*>(node))->operand->depth + 1;
                 completed[node] = node->depth;
             }
             break;
-        case NodeType::BINARY_OP:
-            if (completed.find(((BinaryOp*)node)->leftOperand) == completed.end()) {
-                rebuildAstNode(((BinaryOp*)node)->leftOperand, completed);
+        case ir::Node::Type::BINARY_OP:
+            if (completed.find((dynamic_cast<ir::BinaryOp*>(node))->leftOperand) == completed.end()) {
+                rebuildAstNode((dynamic_cast<ir::BinaryOp*>(node))->leftOperand, completed);
             }
-            if (completed.find(((BinaryOp*)node)->rightOperand) == completed.end()) {
-                rebuildAstNode(((BinaryOp*)node)->rightOperand, completed);
+            if (completed.find((dynamic_cast<ir::BinaryOp*>(node))->rightOperand) == completed.end()) {
+                rebuildAstNode((dynamic_cast<ir::BinaryOp*>(node))->rightOperand, completed);
             }
-            node->depth = std::max(((BinaryOp*)node)->leftOperand->depth, ((BinaryOp*)node)->rightOperand->depth) + 1;
+            node->depth = std::max((dynamic_cast<ir::BinaryOp*>(node))->leftOperand->depth,
+                                   (dynamic_cast<ir::BinaryOp*>(node))->rightOperand->depth)
+                        + 1;
             completed[node] = node->depth;
             break;
-        case NodeType::TERNARY_OP:
-            if (completed.find(((TernaryOp*)node)->leftOperand) == completed.end()) {
-                rebuildAstNode(((TernaryOp*)node)->leftOperand, completed);
+        case ir::Node::Type::TERNARY_OP:
+            if (completed.find((dynamic_cast<ir::TernaryOp*>(node))->leftOperand) == completed.end()) {
+                rebuildAstNode((dynamic_cast<ir::TernaryOp*>(node))->leftOperand, completed);
             }
-            if (completed.find(((TernaryOp*)node)->middleOperand) == completed.end()) {
-                rebuildAstNode(((TernaryOp*)node)->middleOperand, completed);
+            if (completed.find((dynamic_cast<ir::TernaryOp*>(node))->middleOperand) == completed.end()) {
+                rebuildAstNode((dynamic_cast<ir::TernaryOp*>(node))->middleOperand, completed);
             }
-            if (completed.find(((TernaryOp*)node)->rightOperand) == completed.end()) {
-                rebuildAstNode(((TernaryOp*)node)->rightOperand, completed);
+            if (completed.find((dynamic_cast<ir::TernaryOp*>(node))->rightOperand) == completed.end()) {
+                rebuildAstNode((dynamic_cast<ir::TernaryOp*>(node))->rightOperand, completed);
             }
-            node->depth = std::max({((TernaryOp*)node)->leftOperand->depth, ((TernaryOp*)node)->middleOperand->depth,
-                                    ((TernaryOp*)node)->rightOperand->depth})
+            node->depth = std::max({(dynamic_cast<ir::TernaryOp*>(node))->leftOperand->depth,
+                                    (dynamic_cast<ir::TernaryOp*>(node))->middleOperand->depth,
+                                    (dynamic_cast<ir::TernaryOp*>(node))->rightOperand->depth})
                         + 1;
             completed[node] = node->depth;
             break;
@@ -1220,7 +1274,8 @@ void Graph::rebuildAstNode(Node* node, std::map<Node*, unsigned int>& completed)
     }
 
     // Modify node
-    if ((node->isUnaryOp() && ((UnaryOp*)node)->op != Node::Op::NEG) || node->isBinaryOp() || node->isTernaryOp()) {
+    if ((node->isUnaryOp() && (dynamic_cast<ir::UnaryOp*>(node))->op != ir::Node::OpType::NEG) || node->isBinaryOp()
+        || node->isTernaryOp()) {
         completed[node] = node->depth;
     } else {
         node->depth = 0;

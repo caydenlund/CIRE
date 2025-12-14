@@ -39,11 +39,11 @@ ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
 add_library(Graph SHARED
         src/interfaces/Logging.cpp
+        src/core/Graph.cpp
         src/core/Node.cpp
         src/core/SymbolTable.cpp
         src/core/ErrorAnalyzer.cpp
         src/interfaces/IBEXInterface.cpp
-        src/core/Graph.cpp
         ${BISON_MyParser_OUTPUTS}
         ${FLEX_MyScanner_OUTPUTS})
 

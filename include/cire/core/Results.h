@@ -4,14 +4,16 @@
 #include "cire/core/InstructionMetadata.h"
 #include "ibex_Interval.h"
 
+#include <chrono>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <string>
-#include <map>
 #include <vector>
-#include <chrono>
 
 // Forward declarations
-class Node;
+namespace ir {
+    class Node;
+}  // namespace ir
 class ErrorAnalysisResult;
 
 struct InstructionErrorInfo {
@@ -23,15 +25,13 @@ struct InstructionErrorInfo {
 
     // Enhanced fields for richer reporting
     double percentageContribution = 0.0;  // Percentage of total error
-    double cumulativeError = 0.0;          // Cumulative error up to this instruction
-    SourceLocation sourceLocation;         // Source code location
-    std::string irRepresentation;          // LLVM IR string
-    int nodeId = -1;                       // CIRE node ID
+    double cumulativeError = 0.0;         // Cumulative error up to this instruction
+    SourceLocation sourceLocation;        // Source code location
+    std::string irRepresentation;         // LLVM IR string
+    int nodeId = -1;                      // CIRE node ID
 
     // Sort comparator by error contribution (descending)
-    bool operator<(const InstructionErrorInfo& other) const {
-        return errorContribution > other.errorContribution;
-    }
+    bool operator<(const InstructionErrorInfo& other) const { return errorContribution > other.errorContribution; }
 };
 
 class Results {
@@ -51,15 +51,15 @@ public:
 
     bool writeResults(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                       std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
-                      const std::string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
+                      const std::string& input_file, const std::map<ir::Node*, ErrorAnalysisResult>& results,
                       const std::map<std::string, std::chrono::duration<double>>& time_map,
-                      const std::map<Node*, std::vector<InstructionErrorInfo>>& instructionErrors = {});
+                      const std::map<ir::Node*, std::vector<InstructionErrorInfo>>& instructionErrors = {});
 
     bool writeResultsForCSV(std::vector<std::string> outputs, unsigned int numOperatorsOutput, unsigned int heightDAG,
                             std::map<unsigned int, std::map<std::string, unsigned int>> abstractionMetrics,
-                            const std::string& input_file, const std::map<Node*, ErrorAnalysisResult>& results,
+                            const std::string& input_file, const std::map<ir::Node*, ErrorAnalysisResult>& results,
                             const std::map<std::string, std::chrono::duration<double>>& time_map,
-                            const std::map<Node*, std::vector<InstructionErrorInfo>>& instructionErrors = {});
+                            const std::map<ir::Node*, std::vector<InstructionErrorInfo>>& instructionErrors = {});
 };
 
 

@@ -1,66 +1,70 @@
 #include "cire/core/Cire.h"
+#include "cire/core/Node.hpp"
 #include "cire/interfaces/Logging.h"
 
-void show_usage(std::string name) {
-    if (logging) {
-        logging->info("Usage: ", name, " <option(s)> <input_file>");
-        logging->info("Options:");
-        logging->info("\t-h,--help\t\tShow this help message");
-        logging->info("\t-a,--abstraction\t\tEnable abstraction");
-        logging->info("\t-m,--min-depth\t\tSet minimum depth for abstraction");
-        logging->info("\t-M,--max-depth\t\tSet maximum depth for abstraction");
-        logging->info("\t-c,--compare\t\tValidate the generated error expression with the one in the file");
-        logging->info("\t-o,--output\t\tSet the output file");
-        logging->info("\t-d,--debug-level\t\tSet the debug level");
-        logging->info("\t-l,--log-level\t\tSet the log level");
-        logging->info("\t-lo,--log-output\t\tSet the log output file");
-        logging->info("\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner");
-        logging->info("\t-to,--global-opt-timeout\t\tSet the global optimization timeout");
-        logging->info("\t-op,--operator-threshold\t\tSet the threshold on numer of operators on the error expression");
-        logging->info("\t-cec,--concretize-error-components\t\tConcretize error components");
-        logging->info("\t-cecd,--collect-error-component-data\t\tCollect error component data");
-        logging->info("\t--stdout\t\tPrint output to stdout in non-nested format for compiler explorer");
-    } else {
-        std::cerr << "Usage: " << name << " <option(s)> <input_file>"
-                  << "Options:\n"
-                  << "\t-h,--help\t\tShow this help message\n"
-                  << "\t-a,--abstraction\t\tEnable abstraction\n"
-                  << "\t-m,--min-depth\t\tSet minimum depth for abstraction\n"
-                  << "\t-M,--max-depth\t\tSet maximum depth for abstraction\n"
-                  << "\t-c,--compare\t\tValidate the generated error expression with the one in the "
-                     "file\n"
-                  << "\t-o,--output\t\tSet the output file\n"
-                  << "\t-d,--debug-level\t\tSet the debug level\n"
-                  << "\t-l,--log-level\t\tSet the log level\n"
-                  << "\t-lo,--log-output\t\tSet the log output file\n"
-                  << "\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner\n"
-                  << "\t-to,--global-opt-timeout\t\tSet the global optimization timeout\n"
-                  << "\t-op,--operator-threshold\t\tSet the threshold on numer of operators on the "
-                     "error expression\n"
-                  << "\t-cec,--concretize-error-components\t\tConcretize error components\n"
-                  << "\t-cecd,--collect-error-component-data\t\tCollect error component data\n"
-                  << "\t--stdout\t\tPrint output to stdout in non-nested format for compiler explorer\n"
-                  << "\n";
+namespace {
+    void showUsage(const std::string& name) {
+        if (logging) {
+            logging->info("Usage: ", name, " <option(s)> <input_file>");
+            logging->info("Options:");
+            logging->info("\t-h,--help\t\tShow this help message");
+            logging->info("\t-a,--abstraction\t\tEnable abstraction");
+            logging->info("\t-m,--min-depth\t\tSet minimum depth for abstraction");
+            logging->info("\t-M,--max-depth\t\tSet maximum depth for abstraction");
+            logging->info("\t-c,--compare\t\tValidate the generated error expression with the one in the file");
+            logging->info("\t-o,--output\t\tSet the output file");
+            logging->info("\t-d,--debug-level\t\tSet the debug level");
+            logging->info("\t-l,--log-level\t\tSet the log level");
+            logging->info("\t-lo,--log-output\t\tSet the log output file");
+            logging->info("\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner");
+            logging->info("\t-to,--global-opt-timeout\t\tSet the global optimization timeout");
+            logging->info(
+                    "\t-op,--operator-threshold\t\tSet the threshold on numer of operators on the error expression");
+            logging->info("\t-cec,--concretize-error-components\t\tConcretize error components");
+            logging->info("\t-cecd,--collect-error-component-data\t\tCollect error component data");
+            logging->info("\t--stdout\t\tPrint output to stdout in non-nested format for compiler explorer");
+        } else {
+            std::cerr << "Usage: " << name << " <option(s)> <input_file>"
+                      << "Options:\n"
+                      << "\t-h,--help\t\tShow this help message\n"
+                      << "\t-a,--abstraction\t\tEnable abstraction\n"
+                      << "\t-m,--min-depth\t\tSet minimum depth for abstraction\n"
+                      << "\t-M,--max-depth\t\tSet maximum depth for abstraction\n"
+                      << "\t-c,--compare\t\tValidate the generated error expression with the one in the "
+                         "file\n"
+                      << "\t-o,--output\t\tSet the output file\n"
+                      << "\t-d,--debug-level\t\tSet the debug level\n"
+                      << "\t-l,--log-level\t\tSet the log level\n"
+                      << "\t-lo,--log-output\t\tSet the log output file\n"
+                      << "\t-cf,--csv-friendly\t\tEnable output to JSON file in a CSV friendly manner\n"
+                      << "\t-to,--global-opt-timeout\t\tSet the global optimization timeout\n"
+                      << "\t-op,--operator-threshold\t\tSet the threshold on numer of operators on the "
+                         "error expression\n"
+                      << "\t-cec,--concretize-error-components\t\tConcretize error components\n"
+                      << "\t-cecd,--collect-error-component-data\t\tCollect error component data\n"
+                      << "\t--stdout\t\tPrint output to stdout in non-nested format for compiler explorer\n"
+                      << "\n";
+        }
     }
-}
+}  // namespace
 
 int main(int argc, char* argv[]) {
     // Initialize logging system
     logging = std::make_unique<Logging>(std::cout, LogLevel::WARN);
-    
+
     Cire cire;
 
     const auto start = std::chrono::high_resolution_clock::now();
     bool CSV_friendly = false;
 
     if (argc < 2) {
-        show_usage(argv[0]);
+        showUsage(argv[0]);
         return 1;
     }
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if ((arg == "-h") || (arg == "--help")) {
-            show_usage(argv[0]);
+            showUsage(argv[0]);
             return 0;
         }
         if ((arg == "-a") || (arg == "--abstraction")) {
@@ -180,24 +184,22 @@ int main(int argc, char* argv[]) {
     }
 
 
-    if (cire.graph->parse(*cire.file.c_str()) != 0) { return 1; }
+    if (cire.graph->parse(*cire.file.c_str()) != 0) return 1;
 
     const auto parse_end = std::chrono::high_resolution_clock::now();
 
-    std::map<Node*, ErrorAnalysisResult> answer = cire.performErrorAnalysis();
+    std::map<ir::Node*, ErrorAnalysisResult> answer = cire.performErrorAnalysis();
 
     const auto error_analysis_end = std::chrono::high_resolution_clock::now();
 
     if (logging && logging->level <= LogLevel::INFO) {
         // print the result of nodes corresponding nodes in the output list
         for (string& output : cire.graph->outputs) {
-            Node* node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
+            ir::Node* node = cire.graph->symbolTables[cire.graph->currentScope]->table[output];
             assert(answer.find(node) != answer.end());
 
             logging->info("\nOutput Variable: ", output);
-            if (logging->level <= LogLevel::DEBUG) {
-                std::cout << *node;
-            }
+            if (logging->level <= LogLevel::DEBUG) std::cout << *node;
             logging->info(": \tOutput: ", answer[node].outputExtrema.lb(), ", ", answer[node].outputExtrema.ub());
             logging->info("  \tError: ", answer[node].errorExtrema.lb(), ", ", answer[node].errorExtrema.ub());
             logging->info("  \n\tNum Optimizer Calls: ", answer[node].numOptimizationCalls);
@@ -217,8 +219,9 @@ int main(int argc, char* argv[]) {
         logging->debug("Writing results to ", cire.results->file, " ...");
     }
 
-    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface, cire.graph);
-    
+    auto instructionErrors = cire.graph->errorAnalyzer->getInstructionErrorBreakdown(cire.graph->ibexInterface,
+                                                                                     cire.graph);
+
     if (CSV_friendly) {
         cire.results->writeResultsForCSV(cire.graph->outputs, cire.graph->numOperatorsOutput,
                                          cire.graph->depthTable.rbegin()->first, cire.graph->abstractionMetrics,
@@ -229,9 +232,7 @@ int main(int argc, char* argv[]) {
                                    answer, cire.timeMap, instructionErrors);
     }
 
-    if (logging) {
-        logging->debug("Results written to ", cire.results->file, "!");
-    }
+    if (logging) logging->debug("Results written to ", cire.results->file, "!");
 
     return 0;
 }

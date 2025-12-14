@@ -1,6 +1,7 @@
 %{
     // Includes for the forward declarations
     /* definitions */
+    #include "cire/core/Node.hpp"
     #include "parser.h"
 %}
 num [0-9][0-9]*
@@ -18,13 +19,13 @@ comment "#".*
 "else" { return ELSE; }
 "endif" { return ENDIF; }
 
-"int" { yylval.rnd_type = Node::RoundingType::INT;
+"int" { yylval.rnd_type = ir::Node::RoundingType::INT;
         return INTTYPE; }
-"fl16" { yylval.rnd_type = Node::RoundingType::FL16;
+"fl16" { yylval.rnd_type = ir::Node::RoundingType::FL16;
          return FPTYPE; }
-"fl32" { yylval.rnd_type = Node::RoundingType::FL32;
+"fl32" { yylval.rnd_type = ir::Node::RoundingType::FL32;
          return FPTYPE; }
-"fl64" { yylval.rnd_type = Node::RoundingType::FL64;
+"fl64" { yylval.rnd_type = ir::Node::RoundingType::FL64;
          return FPTYPE; }
 
 {comment} { }

@@ -2,7 +2,7 @@
 #define CIRE_ERRORANALYZER_H
 
 #include "cire/core/InstructionMetadata.h"
-#include "cire/core/Node.h"
+#include "cire/core/Node.hpp"
 #include "cire/interfaces/IBEXInterface.h"
 
 #include <vector>
@@ -14,56 +14,57 @@ struct InstructionErrorInfo;
 class ErrorAnalyzer {
 public:
     unsigned int errorExpressionOperatorThreshold = 10000;
-    std::map<Node*, unsigned> nodeNumOptCallsMap;
+    std::map<ir::Node*, unsigned> nodeNumOptCallsMap;
 
     // Data structures for derivative computation
     // Map from node to number of parents of node
-    std::map<Node*, unsigned long> numParentsOfNode;
+    std::map<ir::Node*, unsigned long> numParentsOfNode;
     // Nodes to compute derivative for
-    std::set<Node*> workList;
+    std::set<ir::Node*> workList;
 
     // Nodes to compute derivative for
-    std::set<Node*> nextWorkList;
+    std::set<ir::Node*> nextWorkList;
     // Map with derivative information (Contains maps of derivatives of expression corresponding to
     // the node corresponding key in the inner map with respect to node corresponding key in outer
     // map)
-    std::map<Node*, std::map<Node*, ibex::ExprNode*>> bwdDerivatives;
+    std::map<ir::Node*, std::map<ir::Node*, ibex::ExprNode*>> bwdDerivatives;
     // Map with type cast rounding information (Contains maps of type cast amount to operation
     // corresponding the node corresponding key in the outer map)
-    std::map<Node*, std::map<Node*, ibex::ExprNode*>> typeCastRnd;
+    std::map<ir::Node*, std::map<ir::Node*, ibex::ExprNode*>> typeCastRnd;
     // Map from depth to nodes at that depth whose Backward derivative has been computed
-    std::map<int, std::set<Node*>> derivativeComputedNodes;
+    std::map<int, std::set<ir::Node*>> derivativeComputedNodes;
     // Map from depth to nodes at that depth whose error has been computed
-    std::map<int, std::set<Node*>> errorComputedNodes;
+    std::map<int, std::set<ir::Node*>> errorComputedNodes;
     // Map of node from parents of node
-    std::map<Node*, std::set<Node*>> parentsOfNode;
+    std::map<ir::Node*, std::set<ir::Node*>> parentsOfNode;
 
-    std::map<Node*, ibex::ExprNode*> errAccumulator;
+    std::map<ir::Node*, ibex::ExprNode*> errAccumulator;
 
-    std::map<Node*, std::vector<std::pair<Node*, ibex::ExprNode*>>> perInstructionErrors;
+    std::map<ir::Node*, std::vector<std::pair<ir::Node*, ibex::ExprNode*>>> perInstructionErrors;
 
     ErrorAnalyzer();
 
-    bool parentsVisited(Node* node);
+    bool parentsVisited(ir::Node* node);
 
     void derivativeComputingDriver();
-    void derivativeComputing(Node* node);
+    void derivativeComputing(ir::Node* node);
 
-    void errorComputingDriver(const std::set<Node*>& candidate_nodes, IBEXInterface* ibexInterface);
-    void errorComputing(Node* node, IBEXInterface* ibexInterface);
+    void errorComputingDriver(const std::set<ir::Node*>& candidate_nodes, IBEXInterface* ibexInterface);
+    void errorComputing(ir::Node* node, IBEXInterface* ibexInterface);
 
-    void propagateError(Node* node, IBEXInterface* ibexInterface);
+    void propagateError(ir::Node* node, IBEXInterface* ibexInterface);
 
-    void printBwdDerivative(Node* outNode, Node* WRTNode);
+    void printBwdDerivative(ir::Node* outNode, ir::Node* WRTNode);
     void printBwdDerivativesIbexExprs();
 
-    void logBwdDerivative(Node* outNode, Node* WRTNode);
+    void logBwdDerivative(ir::Node* outNode, ir::Node* WRTNode);
     void logBwdDerivativesIbexExprs();
-    
-    std::map<Node*, std::vector<InstructionErrorInfo>> getInstructionErrorBreakdown(IBEXInterface* ibexInterface, class Graph* graph = nullptr);
+
+    std::map<ir::Node*, std::vector<InstructionErrorInfo>> getInstructionErrorBreakdown(IBEXInterface* ibexInterface,
+                                                                                        class Graph* graph = nullptr);
 };
 
-ibex::ExprNode* getDerivativeWRTChildNode(Node* node, int index);
+ibex::ExprNode* getDerivativeWRTChildNode(ir::Node* node, int index);
 
 template<class KeyType, class ValType>
 std::vector<KeyType> keys(std::map<KeyType, ValType> map);

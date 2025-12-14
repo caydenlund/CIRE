@@ -11,40 +11,34 @@
 #include <llvm/IR/Module.h>
 
 bool SourceMapper::processModule(llvm::Module* module) {
-    if (!module) return false;
+    if (module == nullptr) return false;
 
     // Check if module has debug info
-    if (module->getNamedMetadata("llvm.dbg.cu")) {
-        hasDebugInformation = true;
-    }
+    if (module->getNamedMetadata("llvm.dbg.cu") != nullptr) _hasDebugInformation = true;
 
     // Process all functions in the module
     for (auto& func : *module) {
-        if (!func.isDeclaration()) {
-            processFunction(&func);
-        }
+        if (!func.isDeclaration()) processFunction(&func);
     }
 
-    return hasDebugInformation;
+    return _hasDebugInformation;
 }
 
 void SourceMapper::processFunction(llvm::Function* func, const std::string& funcName) {
-    if (!func) return;
+    if (func == nullptr) return;
 
     std::string actualFuncName = funcName.empty() ? func->getName().str() : funcName;
-    processedFunctions.push_back(actualFuncName);
+    _processedFunctions.push_back(actualFuncName);
 
     // Iterate through basic blocks and instructions
     unsigned int bbIndex = 0;
     for (auto& bb : *func) {
         unsigned int instrIndex = 0;
         for (auto& instr : bb) {
-            totalInstructions++;
+            _totalInstructions++;
 
             // Check if instruction has debug location
-            if (instr.getDebugLoc()) {
-                instructionsWithDebugInfo++;
-            }
+            if (instr.getDebugLoc()) _instructionsWithDebugInfo++;
 
             instrIndex++;
         }
@@ -52,16 +46,13 @@ void SourceMapper::processFunction(llvm::Function* func, const std::string& func
     }
 }
 
-std::unique_ptr<InstructionMetadata> SourceMapper::createMetadata(llvm::Instruction* instr,
-                                                                  const std::string& funcName,
-                                                                  unsigned int instrIdx,
-                                                                  unsigned int bbIdx) {
+std::unique_ptr<InstructionMetadata> SourceMapper::createMetadata(llvm::Instruction* instr, const std::string& funcName,
+                                                                  unsigned int instrIdx, unsigned int bbIdx) {
     auto metadata = std::make_unique<InstructionMetadata>(instr, funcName, instrIdx, bbIdx);
     return metadata;
 }
 
-std::unique_ptr<InstructionMetadata> SourceMapper::createMetadata(llvm::Value* value,
-                                                                  const std::string& funcName) {
+std::unique_ptr<InstructionMetadata> SourceMapper::createMetadata(llvm::Value* value, const std::string& funcName) {
     auto metadata = std::make_unique<InstructionMetadata>(value);
     metadata->functionName = funcName;
 
@@ -79,9 +70,9 @@ std::unique_ptr<InstructionMetadata> SourceMapper::createSyntheticMetadata(const
 
 std::map<std::string, unsigned int> SourceMapper::getStatistics() const {
     std::map<std::string, unsigned int> stats;
-    stats["total_instructions"] = totalInstructions;
-    stats["instructions_with_debug_info"] = instructionsWithDebugInfo;
-    stats["functions_processed"] = static_cast<unsigned int>(processedFunctions.size());
-    stats["has_debug_info"] = hasDebugInformation ? 1 : 0;
+    stats["total_instructions"] = _totalInstructions;
+    stats["instructions_with_debug_info"] = _instructionsWithDebugInfo;
+    stats["functions_processed"] = static_cast<unsigned int>(_processedFunctions.size());
+    stats["has_debug_info"] = _hasDebugInformation ? 1 : 0;
     return stats;
 }

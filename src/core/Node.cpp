@@ -1,29 +1,43 @@
-#include "cire/core/Node.h"
+#include "cire/core/Node.hpp"
 #include "cire/interfaces/Logging.h"
 
 #include <algorithm>
 #include <iostream>
 
+using ir::Node;
+using Type = ir::Node::Type;
+using OpType = ir::Node::OpType;
+using RoundingType = ir::Node::RoundingType;
+
+using ir::BinaryOp;
+using ir::Double;
+using ir::Float;
+using ir::FreeVariable;
+using ir::Integer;
+using ir::TernaryOp;
+using ir::UnaryOp;
+using ir::VariableNode;
+
 int Node::NEW_FREE_VARIABLE_COUNTER = 0;
 int Node::NODE_COUNTER = 0;
 
-bool Node::isInteger() const { return type == INTEGER; }
+bool Node::isInteger() const { return type == Type::INTEGER; }
 
-bool Node::isFloat() const { return type == FLOAT; }
+bool Node::isFloat() const { return type == Type::FLOAT; }
 
-bool Node::isDouble() const { return type == DOUBLE; }
+bool Node::isDouble() const { return type == Type::DOUBLE; }
 
-bool Node::isFreeVariable() const { return type == FREE_VARIABLE; }
+bool Node::isFreeVariable() const { return type == Type::FREE_VARIABLE; }
 
-bool Node::isVariable() const { return type == VARIABLE; }
+bool Node::isVariable() const { return type == Type::VARIABLE; }
 
-bool Node::isUnaryOp() const { return type == UNARY_OP; }
+bool Node::isUnaryOp() const { return type == Type::UNARY_OP; }
 
-bool Node::isBinaryOp() const { return type == BINARY_OP; }
+bool Node::isBinaryOp() const { return type == Type::BINARY_OP; }
 
-bool Node::isTernaryOp() const { return type == TERNARY_OP; }
+bool Node::isTernaryOp() const { return type == Type::TERNARY_OP; }
 
-void Node::setRoundingType(Node::RoundingType RndType) { opRoundType = RndType; }
+void Node::setRoundingType(RoundingType RndType) { opRoundType = RndType; }
 
 void Node::setRoundingFromType(RoundingType RndType) {
     opRoundType = RndType;
@@ -34,19 +48,13 @@ void Node::setRounding(double opRounding) { this->opRounding = opRounding; }
 
 void Node::setAbsoluteError(const ibex::ExprNode* absErr) { absoluteError = absErr; }
 
-Node::RoundingType Node::getRoundingType() const { return opRoundType; }
+RoundingType Node::getRoundingType() const { return opRoundType; }
 
-void Node::setMetadata(std::unique_ptr<InstructionMetadata> meta) {
-    metadata = std::move(meta);
-}
+void Node::setMetadata(std::unique_ptr<InstructionMetadata> meta) { metadata = std::move(meta); }
 
-InstructionMetadata* Node::getMetadata() const {
-    return metadata.get();
-}
+InstructionMetadata* Node::getMetadata() const { return metadata.get(); }
 
-bool Node::hasMetadata() const {
-    return metadata != nullptr;
-}
+bool Node::hasMetadata() const { return metadata != nullptr; }
 
 void Node::write(std::ostream& os) const {
     os << "\nID:" << id << "\n";
@@ -55,28 +63,28 @@ void Node::write(std::ostream& os) const {
     // Print type
     std::string type_string;
     switch (type) {
-        case INTEGER:
+        case Type::INTEGER:
             type_string = "INTEGER";
             break;
-        case FLOAT:
+        case Type::FLOAT:
             type_string = "FLOAT";
             break;
-        case DOUBLE:
+        case Type::DOUBLE:
             type_string = "DOUBLE";
             break;
-        case FREE_VARIABLE:
+        case Type::FREE_VARIABLE:
             type_string = "FREE_VARIABLE";
             break;
-        case VARIABLE:
+        case Type::VARIABLE:
             type_string = "VARIABLE";
             break;
-        case UNARY_OP:
+        case Type::UNARY_OP:
             type_string = "UNARY_OP";
             break;
-        case BINARY_OP:
+        case Type::BINARY_OP:
             type_string = "BINARY_OP";
             break;
-        case TERNARY_OP:
+        case Type::TERNARY_OP:
             type_string = "TERNARY_OP";
             break;
         default:
@@ -86,17 +94,13 @@ void Node::write(std::ostream& os) const {
     os << "\tType:" << type_string << "\n";
     os << "\tRounding:" << opRounding << "\n";
     os << "\tParents: [\n";
-    for (const auto* parent : parents) { os << "\t" << parent->id << ", "; }
+    for (const auto* parent : parents) os << "\t" << parent->id << ", ";
     os << "]\n";
 }
 
 ibex::ExprNode* Node::getExprNode() const {
-    if (logging) {
-        logging->critical("Base class getExprNode called");
-    } else {
-        std::cout << "ERROR: Base class getExprNode called\n";
-        exit(1);
-    }  // NOLINT
+    logging->critical("Base class getExprNode called");
+    exit(1);  // NOLINT
 }
 
 bool Node::operator==(const Node& other) const {
@@ -141,16 +145,16 @@ Node* Node::getChildNode(int) const {
     exit(1);  // NOLINT
 }
 
-Integer::Integer(const int val) : val(val) {
-    type = INTEGER;
-    opRoundType = INT;
-    opRounding = roundingAmount[INT];
+ir::Integer::Integer(const int val) : val(val) {
+    type = Type::INTEGER;
+    opRoundType = RoundingType::INT;
+    opRounding = roundingAmount[RoundingType::INT];
 }
 
 Integer::Integer(const ibex::ExprConstant& value) : value(&value) {
-    type = INTEGER;
-    opRoundType = INT;
-    opRounding = roundingAmount[INT];
+    type = Type::INTEGER;
+    opRoundType = RoundingType::INT;
+    opRounding = roundingAmount[RoundingType::INT];
 }
 
 void Integer::write(std::ostream& os) const {
@@ -166,35 +170,35 @@ ibex::ExprNode* Integer::getExprNode() const { return (ibex::ExprNode*)value; }
 bool Integer::operator==(const Integer& other) const { return Node::operator==(other) && value == other.value; }
 
 Node& Integer::operator+(Node& other) const {
-    if (other.isInteger()) return *new Integer(val + ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val + ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val + ((Double*)&other)->val);
+    if (other.isInteger()) return *new Integer(val + dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Float(float(val) + dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val + dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, ADD);
+    return *new BinaryOp((Node*)this, &other, OpType::ADD);
 }
 
 Node& Integer::operator-(Node& other) const {
-    if (other.isInteger()) return *new Integer(val - ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val - ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val - ((Double*)&other)->val);
+    if (other.isInteger()) return *new Integer(val - dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Float(float(val) - dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val - dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, SUB);
+    return *new BinaryOp((Node*)this, &other, OpType::SUB);
 }
 
 Node& Integer::operator*(Node& other) const {
-    if (other.isInteger()) return *new Integer(val * ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val * ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val * ((Double*)&other)->val);
+    if (other.isInteger()) return *new Integer(val * dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Float(float(val) * dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val * dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, MUL);
+    return *new BinaryOp((Node*)this, &other, OpType::MUL);
 }
 
 Node& Integer::operator/(Node& other) const {
-    if (other.isInteger()) return *new Integer(val / ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val / ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val / ((Double*)&other)->val);
+    if (other.isInteger()) return *new Integer(val / dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Float(float(val) / dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val / dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, DIV);
+    return *new BinaryOp((Node*)this, &other, OpType::DIV);
 }
 
 ibex::ExprNode& Integer::generateSymExpr() {
@@ -211,15 +215,15 @@ Node* Integer::getChildNode(int) const {
 }
 
 Float::Float(const float val) : val(val) {
-    type = FLOAT;
-    opRoundType = FL32;
-    opRounding = roundingAmount[FL32];
+    type = Type::FLOAT;
+    opRoundType = RoundingType::FL32;
+    opRounding = roundingAmount[RoundingType::FL32];
 }
 
 Float::Float(const ibex::ExprConstant& value) : value(&value) {
-    type = FLOAT;
-    opRoundType = FL32;
-    opRounding = roundingAmount[FL32];
+    type = Type::FLOAT;
+    opRoundType = RoundingType::FL32;
+    opRounding = roundingAmount[RoundingType::FL32];
 }
 
 void Float::write(std::ostream& os) const {
@@ -235,35 +239,35 @@ ibex::ExprNode* Float::getExprNode() const { return (ibex::ExprNode*)value; }
 bool Float::operator==(const Float& other) const { return Node::operator==(other) && value == other.value; }
 
 Node& Float::operator+(Node& other) const {
-    if (other.isInteger()) return *new Float(val + ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val + ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val + ((Double*)&other)->val);
+    if (other.isInteger()) return *new Float(val + float(dynamic_cast<Integer*>(&other)->val));
+    if (other.isFloat()) return *new Float(val + dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val + dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, ADD);
+    return *new BinaryOp((Node*)this, &other, OpType::ADD);
 }
 
 Node& Float::operator-(Node& other) const {
-    if (other.isInteger()) return *new Float(val - ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val - ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val - ((Double*)&other)->val);
+    if (other.isInteger()) return *new Float(val - float(dynamic_cast<Integer*>(&other)->val));
+    if (other.isFloat()) return *new Float(val - dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val - dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, SUB);
+    return *new BinaryOp((Node*)this, &other, OpType::SUB);
 }
 
 Node& Float::operator*(Node& other) const {
-    if (other.isInteger()) return *new Float(val * ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val * ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val * ((Double*)&other)->val);
+    if (other.isInteger()) return *new Float(val * float(dynamic_cast<Integer*>(&other)->val));
+    if (other.isFloat()) return *new Float(val * dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val * dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, MUL);
+    return *new BinaryOp((Node*)this, &other, OpType::MUL);
 }
 
 Node& Float::operator/(Node& other) const {
-    if (other.isInteger()) return *new Float(val / ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Float(val / ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val / ((Double*)&other)->val);
+    if (other.isInteger()) return *new Float(val / float(dynamic_cast<Integer*>(&other)->val));
+    if (other.isFloat()) return *new Float(val / dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val / dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, DIV);
+    return *new BinaryOp((Node*)this, &other, OpType::DIV);
 }
 
 ibex::ExprNode& Float::getAbsoluteError() { return (ibex::ExprNode&)*absoluteError; }
@@ -281,15 +285,15 @@ Node* Float::getChildNode(int) const {
 }
 
 Double::Double(const double val) : val(val) {
-    type = DOUBLE;
-    opRoundType = FL64;
-    opRounding = roundingAmount[FL64];
+    type = Type::DOUBLE;
+    opRoundType = RoundingType::FL64;
+    opRounding = roundingAmount[RoundingType::FL64];
 }
 
 Double::Double(const ibex::ExprConstant& value) : value(&value) {
-    type = DOUBLE;
-    opRoundType = FL64;
-    opRounding = roundingAmount[FL64];
+    type = Type::DOUBLE;
+    opRoundType = RoundingType::FL64;
+    opRounding = roundingAmount[RoundingType::FL64];
 }
 
 void Double::write(std::ostream& os) const {
@@ -305,35 +309,35 @@ ibex::ExprNode* Double::getExprNode() const { return (ibex::ExprNode*)value; }
 bool Double::operator==(const Double& other) const { return Node::operator==(other) && value == other.value; }
 
 Node& Double::operator+(Node& other) const {
-    if (other.isInteger()) return *new Double(val + ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Double(val + ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val + ((Double*)&other)->val);
+    if (other.isInteger()) return *new Double(val + dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Double(val + dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val + dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, ADD);
+    return *new BinaryOp((Node*)this, &other, OpType::ADD);
 }
 
 Node& Double::operator-(Node& other) const {
-    if (other.isInteger()) return *new Double(val - ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Double(val - ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val - ((Double*)&other)->val);
+    if (other.isInteger()) return *new Double(val - dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Double(val - dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val - dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, SUB);
+    return *new BinaryOp((Node*)this, &other, OpType::SUB);
 }
 
 Node& Double::operator*(Node& other) const {
-    if (other.isInteger()) return *new Double(val * ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Double(val * ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val * ((Double*)&other)->val);
+    if (other.isInteger()) return *new Double(val * dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Double(val * dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val * dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, MUL);
+    return *new BinaryOp((Node*)this, &other, OpType::MUL);
 }
 
 Node& Double::operator/(Node& other) const {
-    if (other.isInteger()) return *new Double(val / ((Integer*)&other)->val);
-    if (other.isFloat()) return *new Double(val / ((Float*)&other)->val);
-    if (other.isDouble()) return *new Double(val / ((Double*)&other)->val);
+    if (other.isInteger()) return *new Double(val / dynamic_cast<Integer*>(&other)->val);
+    if (other.isFloat()) return *new Double(val / dynamic_cast<Float*>(&other)->val);
+    if (other.isDouble()) return *new Double(val / dynamic_cast<Double*>(&other)->val);
 
-    return *new BinaryOp((Node*)this, &other, DIV);
+    return *new BinaryOp((Node*)this, &other, OpType::DIV);
 }
 
 ibex::ExprNode& Double::getAbsoluteError() { return (ibex::ExprNode&)*absoluteError; }
@@ -352,18 +356,18 @@ Node* Double::getChildNode(int) const {
 
 FreeVariable::FreeVariable() {
     var = new ibex::Interval(-1.0, 1.0);
-    type = FREE_VARIABLE;
+    type = Type::FREE_VARIABLE;
 }
 
 FreeVariable::FreeVariable(RoundingType rnd_typ) {
     var = new ibex::Interval(-1.0, 1.0);
-    type = FREE_VARIABLE;
+    type = Type::FREE_VARIABLE;
     opRoundType = rnd_typ;
     opRounding = roundingAmount[rnd_typ];
 }
 
 FreeVariable::FreeVariable(const ibex::Interval& var, RoundingType rnd_typ) : var(&var) {
-    type = FREE_VARIABLE;
+    type = Type::FREE_VARIABLE;
     opRoundType = rnd_typ;
     opRounding = roundingAmount[rnd_typ];
 }
@@ -377,76 +381,76 @@ void FreeVariable::write(std::ostream& os) const {
 }
 
 Node& FreeVariable::operator+(Node& other) const {
-    assert(other.type == FREE_VARIABLE);
+    assert(other.type == Type::FREE_VARIABLE);
     const ibex::Interval* a = var;
-    const ibex::Interval* b = ((FreeVariable*)&other)->var;
+    const ibex::Interval* b = dynamic_cast<FreeVariable*>(&other)->var;
     const ibex::Interval* c = new ibex::Interval(*a + *b);
 
     FreeVariable* res;
 
     if (other.isInteger()) {
-        res = new FreeVariable(*c, INT);
+        res = new FreeVariable(*c, RoundingType::INT);
     } else if (other.isFloat()) {
-        res = new FreeVariable(*c, FL32);
+        res = new FreeVariable(*c, RoundingType::FL32);
     } else {
-        res = new FreeVariable(*c, FL64);
+        res = new FreeVariable(*c, RoundingType::FL64);
     }
 
     return *res;
 }
 
 Node& FreeVariable::operator-(Node& other) const {
-    assert(other.type == FREE_VARIABLE);
+    assert(other.type == Type::FREE_VARIABLE);
     const ibex::Interval* a = var;
-    const ibex::Interval* b = ((FreeVariable*)&other)->var;
+    const ibex::Interval* b = dynamic_cast<FreeVariable*>(&other)->var;
     const ibex::Interval* c = new ibex::Interval(*a - *b);
 
     FreeVariable* res;
 
     if (other.isInteger()) {
-        res = new FreeVariable(*c, INT);
+        res = new FreeVariable(*c, RoundingType::INT);
     } else if (other.isFloat()) {
-        res = new FreeVariable(*c, FL32);
+        res = new FreeVariable(*c, RoundingType::FL32);
     } else {
-        res = new FreeVariable(*c, FL64);
+        res = new FreeVariable(*c, RoundingType::FL64);
     }
 
     return *res;
 }
 
 Node& FreeVariable::operator*(Node& other) const {
-    assert(other.type == FREE_VARIABLE);
+    assert(other.type == Type::FREE_VARIABLE);
     const ibex::Interval* a = var;
-    const ibex::Interval* b = ((FreeVariable*)&other)->var;
+    const ibex::Interval* b = dynamic_cast<FreeVariable*>(&other)->var;
     const ibex::Interval* c = new ibex::Interval(*a * *b);
 
     FreeVariable* res;
 
     if (other.isInteger()) {
-        res = new FreeVariable(*c, INT);
+        res = new FreeVariable(*c, RoundingType::INT);
     } else if (other.isFloat()) {
-        res = new FreeVariable(*c, FL32);
+        res = new FreeVariable(*c, RoundingType::FL32);
     } else {
-        res = new FreeVariable(*c, FL64);
+        res = new FreeVariable(*c, RoundingType::FL64);
     }
 
     return *res;
 }
 
 Node& FreeVariable::operator/(Node& other) const {
-    assert(other.type == FREE_VARIABLE);
+    assert(other.type == Type::FREE_VARIABLE);
     const ibex::Interval* a = var;
-    const ibex::Interval* b = ((FreeVariable*)&other)->var;
+    const ibex::Interval* b = dynamic_cast<FreeVariable*>(&other)->var;
     const ibex::Interval* c = new ibex::Interval(*a / (*b));
 
     FreeVariable* res;
 
     if (other.isInteger()) {
-        res = new FreeVariable(*c, INT);
+        res = new FreeVariable(*c, RoundingType::INT);
     } else if (other.isFloat()) {
-        res = new FreeVariable(*c, FL32);
+        res = new FreeVariable(*c, RoundingType::FL32);
     } else {
-        res = new FreeVariable(*c, FL64);
+        res = new FreeVariable(*c, RoundingType::FL64);
     }
 
     return *res;
@@ -466,18 +470,18 @@ Node* FreeVariable::getChildNode(int) const {
     exit(1);  // NOLINT
 }
 
-VariableNode::VariableNode() : variable() { type = VARIABLE; }
+VariableNode::VariableNode() : variable() { type = Type::VARIABLE; }
 
 VariableNode::VariableNode(RoundingType rnd_typ) : variable() {
-    type = VARIABLE;
+    type = Type::VARIABLE;
     opRoundType = rnd_typ;
     opRounding = roundingAmount[rnd_typ];
 }
 
-VariableNode::VariableNode(const ibex::ExprSymbol& variable) : variable(&variable) { type = VARIABLE; }
+VariableNode::VariableNode(const ibex::ExprSymbol& variable) : variable(&variable) { type = Type::VARIABLE; }
 
 VariableNode::VariableNode(const Node& node) {
-    type = VARIABLE;
+    type = Type::VARIABLE;
     parents = node.parents;
     opRoundType = node.opRoundType;
     opRounding = node.opRounding;
@@ -486,13 +490,13 @@ VariableNode::VariableNode(const Node& node) {
     for (auto* parent : parents) {
         // switch on parent node type
         switch (parent->type) {
-            case UNARY_OP: {
-                auto* unaryOp = (UnaryOp*)parent;
-                if (unaryOp->operand == &node) { unaryOp->operand = this; }
+            case Type::UNARY_OP: {
+                auto* unaryOp = dynamic_cast<UnaryOp*>(parent);
+                if (unaryOp->operand == &node) unaryOp->operand = this;
                 break;
             }
-            case BINARY_OP: {
-                auto* binaryOp = (BinaryOp*)parent;
+            case Type::BINARY_OP: {
+                auto* binaryOp = dynamic_cast<BinaryOp*>(parent);
                 if (binaryOp->leftOperand == &node) {
                     binaryOp->leftOperand = this;
                 } else if (binaryOp->rightOperand == &node) {
@@ -500,8 +504,8 @@ VariableNode::VariableNode(const Node& node) {
                 }
                 break;
             }
-            case TERNARY_OP: {
-                auto* ternaryOp = (TernaryOp*)parent;
+            case Type::TERNARY_OP: {
+                auto* ternaryOp = dynamic_cast<TernaryOp*>(parent);
                 if (ternaryOp->leftOperand == &node) {
                     ternaryOp->leftOperand = this;
                 } else if (ternaryOp->middleOperand == &node) {
@@ -539,13 +543,13 @@ bool VariableNode::operator==(const VariableNode& other) const {
     return Node::operator==(other) && variable == other.variable;
 }
 
-Node& VariableNode::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, ADD); }
+Node& VariableNode::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::ADD); }
 
-Node& VariableNode::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, SUB); }
+Node& VariableNode::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::SUB); }
 
-Node& VariableNode::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, MUL); }
+Node& VariableNode::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::MUL); }
 
-Node& VariableNode::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, DIV); }
+Node& VariableNode::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::DIV); }
 
 ibex::ExprNode& VariableNode::getAbsoluteError() { return (ibex::ExprNode&)*absoluteError; }
 
@@ -563,31 +567,31 @@ Node* VariableNode::getChildNode(int) const {
 
 // We assume the opRoundType of operator is the same as opRoundType of the operands except in the case
 // of FPTRUNC and FPEXT where we explicitly pass the rounding type in rnd_typ
-UnaryOp::UnaryOp(Node* operand, Op op, RoundingType rnd_typ = CONST) : operand(operand), op(op) {
+UnaryOp::UnaryOp(Node* operand, OpType op, RoundingType rnd_typ = RoundingType::CONST) : operand(operand), op(op) {
     depth = operand->depth + 1;
-    type = UNARY_OP;
+    type = Type::UNARY_OP;
     operand->parents.insert(this);
     switch (op) {
-        case NEG:
-        case SIN:
-        case COS:
-        case TAN:
-        case SINH:
-        case COSH:
-        case TANH:
-        case ASIN:
-        case ACOS:
-        case ATAN:
-        case LOG:
-        case SQRT:
-        case EXP:
+        case OpType::NEG:
+        case OpType::SIN:
+        case OpType::COS:
+        case OpType::TAN:
+        case OpType::SINH:
+        case OpType::COSH:
+        case OpType::TANH:
+        case OpType::ASIN:
+        case OpType::ACOS:
+        case OpType::ATAN:
+        case OpType::LOG:
+        case OpType::SQRT:
+        case OpType::EXP:
             opRoundType = operand->opRoundType;
             opRounding = operand->opRounding;
             break;
             // We only use rnd_typ for cast instructions as the operator type is not the same as
             // operand type.
-        case FPTRUNC:
-        case FPEXT:
+        case OpType::FPTRUNC:
+        case OpType::FPEXT:
             opRoundType = rnd_typ;
             opRounding = roundingAmount[rnd_typ];
             break;
@@ -610,46 +614,46 @@ bool UnaryOp::operator==(const UnaryOp& other) const {
     return Node::operator==(other) && operand == other.operand && op == other.op;
 }
 
-Node& UnaryOp::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, ADD); }
+Node& UnaryOp::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::ADD); }
 
-Node& UnaryOp::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, SUB); }
+Node& UnaryOp::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::SUB); }
 
-Node& UnaryOp::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, MUL); }
+Node& UnaryOp::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::MUL); }
 
-Node& UnaryOp::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, DIV); }
+Node& UnaryOp::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::DIV); }
 
 double UnaryOp::getRounding() { return opRounding * opErrorULPs[op]; }
 
 ibex::ExprNode& UnaryOp::generateSymExpr() {
     switch (op) {
-        case NEG:
+        case OpType::NEG:
             return (ibex::ExprNode&)-(*operand->getExprNode());
-        case SIN:
+        case OpType::SIN:
             return (ibex::ExprNode&)sin(*operand->getExprNode());
-        case COS:
+        case OpType::COS:
             return (ibex::ExprNode&)cos(*operand->getExprNode());
-        case TAN:
+        case OpType::TAN:
             return (ibex::ExprNode&)tan(*operand->getExprNode());
-        case SINH:
+        case OpType::SINH:
             return (ibex::ExprNode&)sinh(*operand->getExprNode());
-        case COSH:
+        case OpType::COSH:
             return (ibex::ExprNode&)cosh(*operand->getExprNode());
-        case TANH:
+        case OpType::TANH:
             return (ibex::ExprNode&)tanh(*operand->getExprNode());
-        case ASIN:
+        case OpType::ASIN:
             return (ibex::ExprNode&)asin(*operand->getExprNode());
-        case ACOS:
+        case OpType::ACOS:
             return (ibex::ExprNode&)acos(*operand->getExprNode());
-        case ATAN:
+        case OpType::ATAN:
             return (ibex::ExprNode&)atan(*operand->getExprNode());
-        case LOG:
+        case OpType::LOG:
             return (ibex::ExprNode&)log(*operand->getExprNode());
-        case SQRT:
+        case OpType::SQRT:
             return (ibex::ExprNode&)sqrt(*operand->getExprNode());
-        case EXP:
+        case OpType::EXP:
             return (ibex::ExprNode&)exp(*operand->getExprNode());
-        case FPTRUNC:
-        case FPEXT:
+        case OpType::FPTRUNC:
+        case OpType::FPEXT:
             return *operand->getExprNode();
         default:
             std::cout << "ERROR: Unknown operator\n";
@@ -664,9 +668,9 @@ Node* UnaryOp::getChildNode(int index) const {
     exit(1);  // NOLINT
 }
 
-BinaryOp::BinaryOp(Node* Left, Node* Right, Op op) : leftOperand(Left), rightOperand(Right), op(op) {
+BinaryOp::BinaryOp(Node* Left, Node* Right, OpType op) : leftOperand(Left), rightOperand(Right), op(op) {
     depth = std::max(Left->depth, Right->depth) + 1;
-    type = BINARY_OP;
+    type = Type::BINARY_OP;
 
     if (Left->opRounding != 0.0 && Right->opRounding != 0.0) {
         opRounding = std::min(Left->opRounding, Right->opRounding);
@@ -689,16 +693,16 @@ void BinaryOp::write(std::ostream& os) const {
     // Print operator
     std::string operator_string;
     switch (op) {
-        case ADD:
+        case OpType::ADD:
             operator_string = "+";
             break;
-        case SUB:
+        case OpType::SUB:
             operator_string = "-";
             break;
-        case MUL:
+        case OpType::MUL:
             operator_string = "*";
             break;
-        case DIV:
+        case OpType::DIV:
             operator_string = "/";
             break;
         default:
@@ -717,25 +721,25 @@ bool BinaryOp::operator==(const BinaryOp& other) const {
 
 ibex::ExprNode* BinaryOp::getExprNode() const { return (ibex::ExprNode*)expr; }
 
-Node& BinaryOp::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, ADD); }
+Node& BinaryOp::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::ADD); }
 
-Node& BinaryOp::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, SUB); }
+Node& BinaryOp::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::SUB); }
 
-Node& BinaryOp::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, MUL); }
+Node& BinaryOp::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::MUL); }
 
-Node& BinaryOp::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, DIV); }
+Node& BinaryOp::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::DIV); }
 
 double BinaryOp::getRounding() { return opRounding * opErrorULPs[op]; }
 
 ibex::ExprNode& BinaryOp::generateSymExpr() {
     switch (op) {
-        case ADD:
+        case OpType::ADD:
             return (ibex::ExprNode&)(*leftOperand->getExprNode() + *rightOperand->getExprNode());
-        case SUB:
+        case OpType::SUB:
             return (ibex::ExprNode&)(*leftOperand->getExprNode() - *rightOperand->getExprNode());
-        case MUL:
+        case OpType::MUL:
             return (ibex::ExprNode&)(*leftOperand->getExprNode() * *rightOperand->getExprNode());
-        case DIV:
+        case OpType::DIV:
             return (ibex::ExprNode&)(*leftOperand->getExprNode() / *rightOperand->getExprNode());
         default:
             std::cout << "ERROR: Unknown operator\n";
@@ -752,13 +756,13 @@ Node* BinaryOp::getChildNode(int index) const {
     exit(1);  // NOLINT
 }
 
-TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right, Op op)
+TernaryOp::TernaryOp(Node* Left, Node* Middle, Node* Right, OpType op)
     : leftOperand(Left), middleOperand(Middle), rightOperand(Right), op(op) {
     depth = std::max({Left->depth, Middle->depth, Right->depth}) + 1;
-    type = TERNARY_OP;
+    type = Type::TERNARY_OP;
     if (Left->opRounding != 0.0 && Middle->opRounding != 0.0 && Right->opRounding != 0.0) {
         opRounding = std::max(std::min({Left->opRounding, Middle->opRounding, Right->opRounding}),
-                              roundingAmount[FL64]);
+                              roundingAmount[RoundingType::FL64]);
     } else if (Left->opRounding == 0.0) {
         if (Middle->opRounding == 0.0) {
             opRounding = Right->opRounding;
@@ -792,19 +796,19 @@ bool TernaryOp::operator==(const TernaryOp& other) const {
         && rightOperand == other.rightOperand;
 }
 
-Node& TernaryOp::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, ADD); }
+Node& TernaryOp::operator+(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::ADD); }
 
-Node& TernaryOp::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, SUB); }
+Node& TernaryOp::operator-(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::SUB); }
 
-Node& TernaryOp::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, MUL); }
+Node& TernaryOp::operator*(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::MUL); }
 
-Node& TernaryOp::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, DIV); }
+Node& TernaryOp::operator/(Node& other) const { return *new BinaryOp((Node*)this, &other, OpType::DIV); }
 
 double TernaryOp::getRounding() { return opRounding * opErrorULPs[op]; }
 
 ibex::ExprNode& TernaryOp::generateSymExpr() {
     switch (op) {
-        case FMA:
+        case OpType::FMA:
             return (ibex::ExprNode&)((*leftOperand->getExprNode() * *middleOperand->getExprNode())
                                      + *rightOperand->getExprNode());
         default:
@@ -827,47 +831,49 @@ std::ostream& operator<<(std::ostream& os, const Node& node) {
     return os;
 }
 
-Node& operator+(Node& x, Node* y) { return x + *y; }
+namespace ir {
+    Node& operator+(Node& x, Node* y) { return x + *y; }
 
-Node& operator-(Node& x, Node* y) { return x - *y; }
+    Node& operator-(Node& x, Node* y) { return x - *y; }
 
-Node& operator*(Node& x, Node* y) { return x * *y; }
+    Node& operator*(Node& x, Node* y) { return x * *y; }
 
-Node& operator/(Node& x, Node* y) { return x / (*y); }
+    Node& operator/(Node& x, Node* y) { return x / (*y); }
+}  // namespace ir
 
-Node& operator-(Node& x) { return *new UnaryOp(&x, Node::NEG); }
+Node& operator-(Node& x) { return *new UnaryOp(&x, OpType::NEG); }
 
-Node& sin(Node& x) { return *new UnaryOp(&x, Node::SIN); }
+Node& sin(Node& x) { return *new UnaryOp(&x, OpType::SIN); }
 
-Node& cos(Node& x) { return *new UnaryOp(&x, Node::COS); }
+Node& cos(Node& x) { return *new UnaryOp(&x, OpType::COS); }
 
-Node& tan(Node& x) { return *new UnaryOp(&x, Node::TAN); }
+Node& tan(Node& x) { return *new UnaryOp(&x, OpType::TAN); }
 
-Node& sinh(Node& x) { return *new UnaryOp(&x, Node::SINH); }
+Node& sinh(Node& x) { return *new UnaryOp(&x, OpType::SINH); }
 
-Node& cosh(Node& x) { return *new UnaryOp(&x, Node::COSH); }
+Node& cosh(Node& x) { return *new UnaryOp(&x, OpType::COSH); }
 
-Node& tanh(Node& x) { return *new UnaryOp(&x, Node::TANH); }
+Node& tanh(Node& x) { return *new UnaryOp(&x, OpType::TANH); }
 
-Node& asin(Node& x) { return *new UnaryOp(&x, Node::ASIN); }
+Node& asin(Node& x) { return *new UnaryOp(&x, OpType::ASIN); }
 
-Node& acos(Node& x) { return *new UnaryOp(&x, Node::ACOS); }
+Node& acos(Node& x) { return *new UnaryOp(&x, OpType::ACOS); }
 
-Node& atan(Node& x) { return *new UnaryOp(&x, Node::ATAN); }
+Node& atan(Node& x) { return *new UnaryOp(&x, OpType::ATAN); }
 
-Node& log(Node& x) { return *new UnaryOp(&x, Node::LOG); }
+Node& log(Node& x) { return *new UnaryOp(&x, OpType::LOG); }
 
-Node& sqrt(Node& x) { return *new UnaryOp(&x, Node::SQRT); }
+Node& sqrt(Node& x) { return *new UnaryOp(&x, OpType::SQRT); }
 
-Node& exp(Node& x) { return *new UnaryOp(&x, Node::EXP); }
+Node& exp(Node& x) { return *new UnaryOp(&x, OpType::EXP); }
 
-Node& fptrunc(Node& x, Node::RoundingType rnd_typ) { return *new UnaryOp(&x, Node::FPTRUNC, rnd_typ); }
+Node& fptrunc(Node& x, RoundingType rnd_typ) { return *new UnaryOp(&x, OpType::FPTRUNC, rnd_typ); }
 
-Node& fpext(Node& x, Node::RoundingType rnd_typ) { return *new UnaryOp(&x, Node::FPEXT, rnd_typ); }
+Node& fpext(Node& x, RoundingType rnd_typ) { return *new UnaryOp(&x, OpType::FPEXT, rnd_typ); }
 
 Node& fma(Node& x, Node& y, Node& z) {
     //  return x*y+z;
-    return *new TernaryOp(&x, &y, &z, Node::FMA);
+    return *new TernaryOp(&x, &y, &z, OpType::FMA);
 }
 
 const ibex::ExprNode& product(const ibex::ExprNode& left, const ibex::ExprNode& right) {

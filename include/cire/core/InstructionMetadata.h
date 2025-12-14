@@ -15,7 +15,7 @@ namespace llvm {
     class Value;
     class Instruction;
     class DebugLoc;
-}
+}  // namespace llvm
 
 /**
  * @brief Source location information extracted from LLVM debug metadata
@@ -25,9 +25,9 @@ struct SourceLocation {
     unsigned int line = 0;
     unsigned int column = 0;
 
-    bool isValid() const { return line > 0; }
+    [[nodiscard]] bool isValid() const { return line > 0; }
 
-    std::string toString() const {
+    [[nodiscard]] std::string toString() const {
         if (!isValid()) return "<unknown location>";
         return filename + ":" + std::to_string(line) + ":" + std::to_string(column);
     }
@@ -45,17 +45,17 @@ public:
     llvm::Value* llvmValue = nullptr;
 
     // Instruction identification
-    std::string instructionName;      // LLVM value name (e.g., "%add1")
-    std::string instructionOpcode;    // Opcode name (e.g., "fadd", "fmul")
-    std::string irRepresentation;     // Full LLVM IR string
+    std::string instructionName;    // LLVM value name (e.g., "%add1")
+    std::string instructionOpcode;  // Opcode name (e.g., "fadd", "fmul")
+    std::string irRepresentation;   // Full LLVM IR string
 
     // Source location (from debug info)
     SourceLocation sourceLocation;
 
     // Context information
-    std::string functionName;         // Parent function name
-    unsigned int instructionIndex = 0; // Position in basic block
-    unsigned int basicBlockIndex = 0;  // Basic block number
+    std::string functionName;           // Parent function name
+    unsigned int instructionIndex = 0;  // Position in basic block
+    unsigned int basicBlockIndex = 0;   // Basic block number
 
     // Node is synthetic (not from LLVM) if true
     bool isSynthetic = false;
@@ -64,8 +64,7 @@ public:
 
     explicit InstructionMetadata(llvm::Value* value);
 
-    InstructionMetadata(llvm::Value* value, const std::string& funcName,
-                        unsigned int instrIdx, unsigned int bbIdx);
+    InstructionMetadata(llvm::Value* value, const std::string& funcName, unsigned int instrIdx, unsigned int bbIdx);
 
     /**
      * @brief Extract debug location from LLVM instruction
@@ -84,19 +83,19 @@ public:
      * @brief Check if this metadata has valid LLVM instruction
      * @return true if metadata references a valid LLVM instruction
      */
-    bool hasLLVMInstruction() const { return llvmValue != nullptr && !isSynthetic; }
+    [[nodiscard]] bool hasLLVMInstruction() const { return llvmValue != nullptr && !isSynthetic; }
 
     /**
      * @brief Get a human-readable identifier for this instruction
      * @return String identifier suitable for display
      */
-    std::string getDisplayName() const;
+    [[nodiscard]] std::string getDisplayName() const;
 
     /**
      * @brief Get a unique identifier for this instruction
      * @return String that uniquely identifies this instruction
      */
-    std::string getUniqueId() const;
+    [[nodiscard]] std::string getUniqueId() const;
 };
 
 #endif  // CIRE_INSTRUCTIONMETADATA_H

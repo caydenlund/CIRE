@@ -1,7 +1,7 @@
 #ifndef CIRE_IBEXINTERFACE_H
 #define CIRE_IBEXINTERFACE_H
 
-#include "cire/core/Node.h"
+#include "cire/core/Node.hpp"
 #include "ibex_System.h"
 
 #include <map>
@@ -29,10 +29,10 @@ public:
 
 
     void setInputIntervals(ibex::IntervalVector& InputIntervals);
-    void setInputIntervals(std::map<string, FreeVariable*> inputs);
+    void setInputIntervals(std::map<string, ir::FreeVariable*> inputs);
     void setInputIntervals(double x[][2]);
 
-    void setVariables(std::map<string, FreeVariable*> inputs, std::map<string, Node*> table);
+    void setVariables(std::map<string, ir::FreeVariable*> inputs, std::map<string, ir::Node*> table);
 
     void setFunction(ibex::Function* Function);
     void setFunction(ibex::ExprNode* Expression);

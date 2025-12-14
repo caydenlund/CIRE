@@ -38,22 +38,22 @@ public:
 
     template<typename... ArgsType>
     void debug(ArgsType&&... args) {
-        if (level <= LogLevel::DEBUG) { _out << "[DEBUG]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n"; }
+        if (level <= LogLevel::DEBUG) _out << "[DEBUG]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n";
     }
 
     template<typename... ArgsType>
     void info(ArgsType&&... args) {
-        if (level <= LogLevel::INFO) { _out << "[INFO]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n"; }
+        if (level <= LogLevel::INFO) _out << "[INFO]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n";
     }
 
     template<typename... ArgsType>
     void warn(ArgsType&&... args) {
-        if (level <= LogLevel::WARN) { _out << "[WARN]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n"; }
+        if (level <= LogLevel::WARN) _out << "[WARN]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n";
     }
 
     template<typename... ArgsType>
     void error(ArgsType&&... args) {
-        if (level <= LogLevel::ERROR) { _out << "[ERROR]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n"; }
+        if (level <= LogLevel::ERROR) _out << "[ERROR]  " << _formatArgs(std::forward<ArgsType>(args)...) << "\n";
     }
 
     template<typename... ArgsType>
