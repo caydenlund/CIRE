@@ -48,6 +48,7 @@ public:
     // IBEX Operations
     ibex::Interval eval();
     ibex::Interval eval(ibex::Function& Function);
+    ibex::Interval evalAtPoint(ibex::ExprNode& Expression, const ibex::IntervalVector& point);
     OptResult findMin(ibex::ExprNode& Expression);
     OptResult findMax(ibex::ExprNode& Expression);
     OptResult findAbsMax(ibex::ExprNode& Expression);

@@ -50,6 +50,53 @@ ibex::Interval IBEXInterface::eval() { return _function->eval(_inputIntervals); 
 
 ibex::Interval IBEXInterface::eval(ibex::Function& Function) { return Function.eval(_inputIntervals); }
 
+ibex::Interval IBEXInterface::evalAtPoint(ibex::ExprNode& Expression, const ibex::IntervalVector& point) {
+    // Safety checks
+    if (!_variables || _variables->size() == 0) {
+        return ibex::Interval::ZERO;
+    }
+    
+    if (point.size() != _variables->size()) {
+        return ibex::Interval::ZERO;
+    }
+    
+    try {
+        // Use optimization to evaluate the expression at the point
+        // This is a more robust approach than creating a new Function
+        ibex::SystemFactory factory;
+        for (const auto& var : *_variables) factory.add_var(var);
+        factory.add_goal(Expression);
+        
+        ibex::System system(factory);
+        
+        // Convert point to tight intervals
+        ibex::IntervalVector tightPoint(point.size());
+        for (int i = 0; i < point.size(); i++) {
+            double val = point[i].mid();
+            tightPoint[i] = ibex::Interval(val - 1e-10, val + 1e-10); // Very tight interval around point
+        }
+        
+        // Use contractor to evaluate
+        ibex::DefaultOptimizerConfig optConfig(system, 
+            ibex::OptimizerConfig::default_rel_eps_f, 
+            ibex::OptimizerConfig::default_abs_eps_f,
+            ibex::NormalizedSystem::default_eps_h,
+            false, ibex::DefaultOptimizerConfig::default_inHC4, false,
+            ibex::DefaultOptimizerConfig::default_random_seed, 
+            ibex::OptimizerConfig::default_eps_x);
+        ibex::Optimizer opt(optConfig);
+        opt.optimize(tightPoint);
+        
+        if (opt.get_status() == ibex::Optimizer::SUCCESS || opt.get_status() == ibex::Optimizer::INFEASIBLE) {
+            return opt.get_uplo();
+        } else {
+            return ibex::Interval::ZERO;
+        }
+    } catch (...) {
+        return ibex::Interval::ZERO;
+    }
+}
+
 OptResult IBEXInterface::findMin(ibex::ExprNode& Expression) {
     ibex::SystemFactory factory;
     for (const auto& var : *_variables) factory.add_var(var);

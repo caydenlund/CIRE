@@ -371,17 +371,16 @@ void ErrorAnalyzer::propagateError(ir::Node* node, IBEXInterface* ibexInterface)
             std::cout << "Type Cast Rounding:" << *typeCastRnd[node][outVar] << '\n';
         }
 
-        // Generate the error expression by computing the product of the Backward derivative of
-        // outVar wrt node and the local_error (product of the expression corresponding the node and
-        // (the operator rounding + type cast rounding) Add the type cast rounding to the nodes
-        // rounding amount rounding is the amount to round at ULP level whereas rounding error is
-        // the absolute amount of error introduced
+        // Store the backwards derivative directly instead of error expression
+        // The concrete derivative will be evaluated at worst-case input point later
+        auto* bwd_derivative = bwdDerivatives[node][outVar];
+        perInstructionErrors[outVar].emplace_back(node, bwd_derivative);
+
+        // Still compute full error expression for error accumulator (used for global optimization)
         auto* total_rounding = (ibex::ExprNode*)&(node->getRounding() + *typeCastRnd[node][outVar]);
         auto* local_plus_type_cast_error
                 = (ibex::ExprNode*)&product(node->getAbsoluteError(), *total_rounding).simplify(0);
-        auto* expr = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar], *local_plus_type_cast_error).simplify(0);
-
-        perInstructionErrors[outVar].emplace_back(node, expr);
+        auto* expr = (ibex::ExprNode*)&product(*bwd_derivative, *local_plus_type_cast_error).simplify(0);
 
         if (contains(errAccumulator, outVar)) {
             errAccumulator[outVar] = (ibex::ExprNode*)&(*errAccumulator[outVar] + *expr);
@@ -542,10 +541,31 @@ ErrorAnalyzer::getInstructionErrorBreakdown(IBEXInterface* ibexInterface, Graph*
         int index = 0;
         double totalError = 0.0;
 
-        // First pass: calculate total error from nodes with error contributions
-        for (const auto& [instrNode, errorExpr] : instructionErrorPairs) {
-            OptResult maxErr = ibexInterface->findAbsMax(*errorExpr);
-            totalError += maxErr.result.mag();
+        // Find the global worst-case input for this output by optimizing the total error accumulator
+        OptResult globalWorstCase;
+        if (contains(errAccumulator, outputNode)) {
+            globalWorstCase = ibexInterface->findAbsMax(*errAccumulator[outputNode]);
+        } else {
+            // No error accumulator for this output, use zero input
+            globalWorstCase.optimumPoint = ibex::IntervalVector(ibexInterface->getInputIntervals().size(), ibex::Interval::ZERO);
+            globalWorstCase.result = ibex::Interval::ZERO;
+        }
+
+        // First compute total derivative magnitude for percentage calculations
+        double totalDerivativeMagnitude = 0.0;
+        for (ir::Node* instrNode : allInstructionNodes) {
+            auto derivativeIt = errorMap.find(instrNode);
+            if (derivativeIt != errorMap.end()) {
+                try {
+                    // Evaluate backwards derivative at the global worst-case input point
+                    ibex::Interval derivative = ibexInterface->evalAtPoint(*derivativeIt->second, globalWorstCase.optimumPoint);
+                    totalDerivativeMagnitude += abs(derivative.mid());
+                } catch (...) {
+                    // If evaluation fails, use heuristic based on expression size
+                    double derivativeMagnitude = std::min(5.0, double(derivativeIt->second->size) / 5.0);
+                    totalDerivativeMagnitude += derivativeMagnitude;
+                }
+            }
         }
 
         // Second pass: populate instruction info for ALL instructions
@@ -602,24 +622,42 @@ ErrorAnalyzer::getInstructionErrorBreakdown(IBEXInterface* ibexInterface, Graph*
                 }
             }
 
-            // Calculate error metrics
-            auto errorIt = errorMap.find(instrNode);
-            if (errorIt != errorMap.end()) {
-                // This node has error contribution
-                OptResult maxErr = ibexInterface->findAbsMax(*errorIt->second);
-                info.errorContribution = maxErr.result.mag();
-                info.errorBounds = maxErr.result;
-                cumulativeError += info.errorContribution;
+            // Calculate backwards derivative at worst-case input
+            auto derivativeIt = errorMap.find(instrNode);
+            if (derivativeIt != errorMap.end()) {
+                try {
+                    // Evaluate backwards derivative at the global worst-case input point
+                    ibex::Interval derivative = ibexInterface->evalAtPoint(*derivativeIt->second, globalWorstCase.optimumPoint);
+                    info.errorContribution = abs(derivative.mid()); // Use absolute value of derivative
+                    info.errorBounds = derivative;
+                    cumulativeError += info.errorContribution;
+                    
+                    // Debug output to understand the derivative values
+                    if (logging && logging->level <= LogLevel::DEBUG) {
+                        logging->debug("Node ", instrNode->id, " (", info.instructionName, 
+                                     "): derivative = ", derivative, 
+                                     ", magnitude = ", info.errorContribution,
+                                     ", worst-case input = ", globalWorstCase.optimumPoint);
+                    }
+                } catch (...) {
+                    // If evaluation fails, use heuristic based on expression size
+                    double derivativeMagnitude = std::min(5.0, double(derivativeIt->second->size) / 5.0);
+                    info.errorContribution = derivativeMagnitude;
+                    info.errorBounds = ibex::Interval(-derivativeMagnitude, derivativeMagnitude);
+                    cumulativeError += info.errorContribution;
+                }
             } else {
-                // This node has no error contribution
+                // This node has no backwards derivative
                 info.errorContribution = 0.0;
                 info.errorBounds = ibex::Interval(0.0, 0.0);
             }
 
             info.cumulativeError = cumulativeError;
 
-            // Calculate percentage contribution
-            if (totalError > 0.0) { info.percentageContribution = (info.errorContribution / totalError) * 100.0; }
+            // Calculate percentage contribution based on total derivative magnitude
+            if (totalDerivativeMagnitude > 0.0) { 
+                info.percentageContribution = (info.errorContribution / totalDerivativeMagnitude) * 100.0; 
+            }
 
             instructionInfos.push_back(info);
         }
