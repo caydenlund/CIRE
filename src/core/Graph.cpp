@@ -80,7 +80,7 @@ void Graph::generateIbexSymbols() {
         (dynamic_cast<ir::VariableNode*>(symbolTables[currentScope]->table[input.first]))->variable = &(
                 ibex::ExprSymbol::new_(input.first.c_str()));
         symbolTables[currentScope]->table[input.first]->setAbsoluteError(
-                &ibex::ExprConstant::new_scalar(input.second->var->ub() * pow(2, -53)));
+                &ibex::ExprConstant::new_scalar(input.second->var->ub()));
     }
 
 
@@ -96,19 +96,18 @@ void Graph::generateIbexSymbols() {
                 (dynamic_cast<ir::Float*>(node))->value = &(
                         ibex::ExprConstant::new_scalar((dynamic_cast<ir::Float*>(node))->val));
                 node->setAbsoluteError(
-                        &ibex::ExprConstant::new_scalar((dynamic_cast<ir::Float*>(node))->val * pow(2, -24)));
+                        &ibex::ExprConstant::new_scalar((dynamic_cast<ir::Float*>(node))->val));
                 break;
             }
             case ir::Node::Type::DOUBLE: {
                 (dynamic_cast<ir::Double*>(node))->value = &(
                         ibex::ExprConstant::new_scalar((dynamic_cast<ir::Double*>(node))->val));
                 node->setAbsoluteError(
-                        &ibex::ExprConstant::new_scalar((dynamic_cast<ir::Double*>(node))->val * pow(2, -53)));
+                        &ibex::ExprConstant::new_scalar((dynamic_cast<ir::Double*>(node))->val));
                 break;
             }
             case ir::Node::Type::FREE_VARIABLE: {
-                node->setAbsoluteError(&ibex::ExprConstant::new_scalar(dynamic_cast<ir::FreeVariable*>(node)->var->ub()
-                                                                       * pow(2, -53)));
+                node->setAbsoluteError(&ibex::ExprConstant::new_scalar(dynamic_cast<ir::FreeVariable*>(node)->var->ub()));
                 break;
             }
             case ir::Node::Type::VARIABLE:  // The absoluteError has already been set in the previous
