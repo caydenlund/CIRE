@@ -426,11 +426,11 @@ ibex::ExprNode* getDerivativeWRTChildNode(ir::Node* node, int index) {
                 case ir::Node::OpType::TAN:
                     return (ibex::ExprNode*)&(1.0 / sqr(cos(*child->getExprNode())));
                 case ir::Node::OpType::SINH:
-                    return (ibex::ExprNode*)&(exp(*child->getExprNode()) - exp(-*child->getExprNode()) / 2.0);
+                    return (ibex::ExprNode*)&cosh(*child->getExprNode());
                 case ir::Node::OpType::COSH:
-                    return (ibex::ExprNode*)&(exp(*child->getExprNode()) + exp(-*child->getExprNode()) / 2.0);
+                    return (ibex::ExprNode*)&sinh(*child->getExprNode());
                 case ir::Node::OpType::TANH:
-                    return (ibex::ExprNode*)&(sinh(*child->getExprNode()) / cosh(*child->getExprNode()));
+                    return (ibex::ExprNode*)&(1.0 / sqr(cosh(*child->getExprNode())));
                 case ir::Node::OpType::ASIN:
                     return (ibex::ExprNode*)&(1.0 / sqrt(1.0 - sqr(*child->getExprNode())));
                 case ir::Node::OpType::ACOS:
@@ -486,6 +486,25 @@ ibex::ExprNode* getDerivativeWRTChildNode(ir::Node* node, int index) {
             }
             break;
         case ir::Node::Type::TERNARY_OP:
+            switch (dynamic_cast<ir::TernaryOp*>(node)->op) {
+                case ir::Node::OpType::FMA:
+                    // FMA(a, b, c) = a * b + c
+                    if (index == 0) {
+                        // d/da[a*b + c] = b
+                        return (dynamic_cast<ir::TernaryOp*>(node))->middleOperand->getExprNode();
+                    } else if (index == 1) {
+                        // d/db[a*b + c] = a
+                        return (dynamic_cast<ir::TernaryOp*>(node))->leftOperand->getExprNode();
+                    } else if (index == 2) {
+                        // d/dc[a*b + c] = 1
+                        return (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(1);
+                    }
+                default:
+                    if (logging) {
+                        logging->error("Should not be here. Unknown ternary operator or not a ternary operator.");
+                    }
+                    break;
+            }
             break;
         default:
             if (logging) { logging->critical("Unknown node type"); }
