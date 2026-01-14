@@ -114,9 +114,11 @@ void ErrorAnalyzer::derivativeComputing(ir::Node* node) {
 
         ir::Node* operand;
         ir::Node* leftOperand;
+        ir::Node* middleOperand;
         ir::Node* rightOperand;
         ibex::ExprNode* derivThroughNode;
         ibex::ExprNode* derivLeftThroughNode;
+        ibex::ExprNode* derivMiddleThroughNode;
         ibex::ExprNode* derivRightThroughNode;
         ibex::ExprNode* typeCastRndVal;
         switch (node->type) {
@@ -245,7 +247,115 @@ void ErrorAnalyzer::derivativeComputing(ir::Node* node) {
                 numParentsOfNode[rightOperand]++;
                 break;
             case ir::Node::Type::TERNARY_OP:
-                // TODO: Complete this on adding ternary operations
+                // Computing the backward derivative of outVar with respect to node's children
+                leftOperand = dynamic_cast<ir::TernaryOp*>(node)->leftOperand;
+                derivLeftThroughNode = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar],
+                                                                 *getDerivativeWRTChildNode(node, 0))
+                                               .simplify(0);
+                if (node->opRoundType == ir::Node::RoundingType::FL32
+                    && leftOperand->opRoundType == ir::Node::RoundingType::FL64) {
+                    typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
+                            node->roundingAmount[node->opRoundType]);
+                } else {
+                    typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(0);
+                }
+
+                if (contains(bwdDerivatives[leftOperand], outVar)) {
+                    bwdDerivatives[leftOperand][outVar] = (ibex::ExprNode*)&(*bwdDerivatives[leftOperand][outVar]
+                                                                             + *derivLeftThroughNode);
+                } else {
+                    bwdDerivatives[leftOperand][outVar] = &*derivLeftThroughNode;
+                }
+
+                if (contains(typeCastRnd[leftOperand], outVar)) {
+                    typeCastRnd[leftOperand][outVar] = (ibex::ExprNode*)&(*typeCastRnd[leftOperand][outVar]
+                                                                          + *typeCastRndVal);
+                } else {
+                    typeCastRnd[leftOperand][outVar] = &*typeCastRndVal;
+                }
+
+                if (logging && logging->level <= LogLevel::DEBUG) {
+                    std::cout << *node->getExprNode() << " wrt " << *leftOperand->getExprNode() << " : "
+                              << *derivLeftThroughNode << '\n';
+                    std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                              << *leftOperand->getExprNode() << " : " << *bwdDerivatives[leftOperand][outVar] << '\n';
+                }
+
+                middleOperand = dynamic_cast<ir::TernaryOp*>(node)->middleOperand;
+                derivMiddleThroughNode = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar],
+                                                                  *getDerivativeWRTChildNode(node, 1))
+                                                .simplify(0);
+                if (node->opRoundType == ir::Node::RoundingType::FL32
+                    && middleOperand->opRoundType == ir::Node::RoundingType::FL64) {
+                    typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
+                            node->roundingAmount[node->opRoundType]);
+                } else {
+                    typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(0);
+                }
+
+                if (contains(bwdDerivatives[middleOperand], outVar)) {
+                    bwdDerivatives[middleOperand][outVar] = (ibex::ExprNode*)&(*bwdDerivatives[middleOperand][outVar]
+                                                                              + *derivMiddleThroughNode);
+                } else {
+                    bwdDerivatives[middleOperand][outVar] = &*derivMiddleThroughNode;
+                }
+
+                if (contains(typeCastRnd[middleOperand], outVar)) {
+                    typeCastRnd[middleOperand][outVar] = (ibex::ExprNode*)&(*typeCastRnd[middleOperand][outVar]
+                                                                           + *typeCastRndVal);
+                } else {
+                    typeCastRnd[middleOperand][outVar] = &*typeCastRndVal;
+                }
+
+                if (logging && logging->level <= LogLevel::DEBUG) {
+                    std::cout << *node->getExprNode() << " wrt " << *middleOperand->getExprNode() << " : "
+                              << *derivMiddleThroughNode << '\n';
+                    std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                              << *middleOperand->getExprNode() << " : " << *bwdDerivatives[middleOperand][outVar] << '\n';
+                }
+
+                rightOperand = dynamic_cast<ir::TernaryOp*>(node)->rightOperand;
+                derivRightThroughNode = (ibex::ExprNode*)&product(*bwdDerivatives[node][outVar],
+                                                                  *getDerivativeWRTChildNode(node, 2))
+                                                .simplify(0);
+                if (node->opRoundType == ir::Node::RoundingType::FL32
+                    && rightOperand->opRoundType == ir::Node::RoundingType::FL64) {
+                    typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(
+                            node->roundingAmount[node->opRoundType]);
+                } else {
+                    typeCastRndVal = (ibex::ExprNode*)&ibex::ExprConstant::new_scalar(0);
+                }
+
+                if (contains(bwdDerivatives[rightOperand], outVar)) {
+                    bwdDerivatives[rightOperand][outVar] = (ibex::ExprNode*)&(*bwdDerivatives[rightOperand][outVar]
+                                                                              + *derivRightThroughNode);
+                } else {
+                    bwdDerivatives[rightOperand][outVar] = &*derivRightThroughNode;
+                }
+
+                if (contains(typeCastRnd[rightOperand], outVar)) {
+                    typeCastRnd[rightOperand][outVar] = (ibex::ExprNode*)&(*typeCastRnd[rightOperand][outVar]
+                                                                           + *typeCastRndVal);
+                } else {
+                    typeCastRnd[rightOperand][outVar] = &*typeCastRndVal;
+                }
+
+                if (logging && logging->level <= LogLevel::DEBUG) {
+                    std::cout << *node->getExprNode() << " wrt " << *rightOperand->getExprNode() << " : "
+                              << *derivRightThroughNode << '\n';
+                    std::cout << "Derivative so far of " << *outVar->getExprNode() << " wrt "
+                              << *rightOperand->getExprNode() << " : " << *bwdDerivatives[rightOperand][outVar] << '\n';
+                }
+
+                // Add children to nextWorkList
+                nextWorkList.insert(leftOperand);
+                nextWorkList.insert(middleOperand);
+                nextWorkList.insert(rightOperand);
+
+                // Increment number of parents of children that have been processed
+                numParentsOfNode[leftOperand]++;
+                numParentsOfNode[middleOperand]++;
+                numParentsOfNode[rightOperand]++;
                 break;
         }
     }
