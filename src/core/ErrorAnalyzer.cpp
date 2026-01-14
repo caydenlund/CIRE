@@ -380,7 +380,8 @@ void ErrorAnalyzer::propagateError(ir::Node* node, IBEXInterface* ibexInterface)
         auto* total_rounding = (ibex::ExprNode*)&(node->getRounding() + *typeCastRnd[node][outVar]);
         auto* local_plus_type_cast_error
                 = (ibex::ExprNode*)&product(node->getAbsoluteError(), *total_rounding).simplify(0);
-        auto* expr = (ibex::ExprNode*)&product(*bwd_derivative, *local_plus_type_cast_error).simplify(0);
+        // Use absolute value of derivative for worst-case bounds (no cancellation)
+        auto* expr = (ibex::ExprNode*)&product(abs(*bwd_derivative), *local_plus_type_cast_error).simplify(0);
 
         if (contains(errAccumulator, outVar)) {
             errAccumulator[outVar] = (ibex::ExprNode*)&(*errAccumulator[outVar] + *expr);
