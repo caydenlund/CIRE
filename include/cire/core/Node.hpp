@@ -54,7 +54,7 @@ namespace ir {
                 {OpType::SIN, 2.0},  {OpType::COS, 2.0},     {OpType::TAN, 2.0},   {OpType::SINH, 2.0},
                 {OpType::COSH, 2.0}, {OpType::TANH, 2.0},    {OpType::ASIN, 2.0},  {OpType::ACOS, 2.0},
                 {OpType::ATAN, 2.0}, {OpType::LOG, 2.0},     {OpType::SQRT, 1.0},  {OpType::EXP, 2.0},
-                {OpType::FMA, 2.0},  {OpType::FPTRUNC, 0.0}, {OpType::FPEXT, 0.0},
+                {OpType::FMA, 1.0},  {OpType::FPTRUNC, 0.0}, {OpType::FPEXT, 0.0},
         };
 
         enum class RoundingType : std::uint8_t {
