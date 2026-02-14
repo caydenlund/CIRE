@@ -37,7 +37,7 @@ FLEX_TARGET(MyScanner
 
 ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
 
-add_library(Graph SHARED
+add_library(Graph STATIC
         src/interfaces/Logging.cpp
         src/core/Graph.cpp
         src/core/Node.cpp
@@ -50,6 +50,7 @@ add_library(Graph SHARED
 target_link_libraries(Graph PUBLIC nlohmann_json::nlohmann_json)
 
 option(ENABLE_LLVM_FRONTEND "Enable the LLVM frontend" OFF)
+option(LLVM_STATIC_LINKING "Link LLVM libraries statically" OFF)
 
 if(ENABLE_LLVM_FRONTEND)
     # Add LLVM-dependent sources to Graph library
@@ -75,6 +76,48 @@ if(ENABLE_LLVM_FRONTEND)
         message(FATAL_ERROR "Found LLVM ${LLVM_VERSION_MAJOR}, but need LLVM 16 or above")
     endif()
 
+    # Configure static linking if requested
+    if(LLVM_STATIC_LINKING)
+        message(STATUS "Configuring for static LLVM linking")
+        set(LLVM_LINK_LLVM_DYLIB OFF)
+        set(BUILD_SHARED_LIBS OFF)
+
+        # Add system libraries needed when statically linking LLVM
+        find_package(Threads REQUIRED)
+
+        # Try to find static versions of system libraries, fall back to shared if needed
+        set(_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+        set(CMAKE_FIND_LIBRARY_SUFFIXES .a .so)
+
+        find_library(ZLIB_LIB NAMES z libz)
+        find_library(CURSES_LIB NAMES ncurses tinfo)
+
+        # Restore original library suffixes
+        set(CMAKE_FIND_LIBRARY_SUFFIXES ${_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES})
+
+        set(LLVM_SYSTEM_LIBS
+            ${CMAKE_THREAD_LIBS_INIT}
+            ${CMAKE_DL_LIBS}
+            m
+        )
+
+        # Add optional system libraries if found
+        if(ZLIB_LIB)
+            list(APPEND LLVM_SYSTEM_LIBS ${ZLIB_LIB})
+            message(STATUS "Found zlib: ${ZLIB_LIB}")
+        endif()
+
+        if(CURSES_LIB)
+            list(APPEND LLVM_SYSTEM_LIBS ${CURSES_LIB})
+            message(STATUS "Found curses: ${CURSES_LIB}")
+        endif()
+
+        message(STATUS "LLVM static linking enabled - binary will be self-contained")
+    else()
+        message(STATUS "Using dynamic LLVM linking")
+        set(LLVM_SYSTEM_LIBS "")
+    endif()
+
     # Add the AddLLVM CMake module
     include(AddLLVM)
     # Update the include paths to include header directories from LLVM
@@ -91,9 +134,12 @@ if(ENABLE_LLVM_FRONTEND)
     add_library(llvm_util STATIC ${LLVM_UTIL_SRCS})
     add_library(util STATIC ${UTIL_SRCS})
 
+    # util depends on Graph for SourceMapper and other Graph components
+    target_link_libraries(util PUBLIC Graph)
+
     # Link LLVM libraries to Graph for LLVM-dependent sources
     llvm_map_components_to_libnames(graph_llvm_libs support core irreader)
-    target_link_libraries(Graph PUBLIC ${graph_llvm_libs})
+    target_link_libraries(Graph PUBLIC ${graph_llvm_libs} ${LLVM_SYSTEM_LIBS})
 
     #===============================================================================
     # 2. LLVM-TUTOR BUILD CONFIGURATION
@@ -118,12 +164,12 @@ if(ENABLE_LLVM_FRONTEND)
     llvm_map_components_to_libnames(llvm_libs support core irreader transformutils)
     target_link_libraries(CIRE_LLVM
             PUBLIC Graph ibex gmp z gaol soplex ultim gdtoa
-            PRIVATE nlohmann_json::nlohmann_json llvm_util util ${llvm_libs})
+            PRIVATE nlohmann_json::nlohmann_json llvm_util util ${llvm_libs} ${LLVM_SYSTEM_LIBS})
 
     # Building VALIDATOR
     add_executable(VALIDATOR src/bin/VALIDATOR.cpp)
     target_link_libraries(VALIDATOR
-                            PRIVATE llvm_util util ${llvm_libs})
+                            PRIVATE llvm_util util ${llvm_libs} ${LLVM_SYSTEM_LIBS})
 
     # Allow undefined symbols in shared objects on Darwin (this is the default
     # behaviour on Linux)

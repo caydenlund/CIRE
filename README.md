@@ -82,6 +82,22 @@ sudo make install
 
 # Building CIRE
 
+## Quick Start: Docker Build (Recommended for Distribution)
+
+**Don't want to install LLVM and IBEX?** Use Docker to build distributable binaries:
+
+```bash
+# One command to build everything
+./docker-build.sh
+
+# Binaries will be in ./dist/
+# Ready to distribute - no LLVM installation needed by users!
+```
+
+See [DOCKER_BUILD.md](DOCKER_BUILD.md) for complete Docker build documentation.
+
+## Local Build
+
 The CMakeLists.txt file is configured to build the library and the executable in the build directory.
 Make sure the shared library files are in your PATH. If not, set the LD_LIBRARY_PATH environment variable to where your
 shared library files are located.
@@ -105,6 +121,24 @@ cmake -DENABLE_LLVM_FRONTEND=ON                               \
       -DIBEX_INSTALL_DIR=<path/to/ibex>                       \
       ..
 ```
+
+### Static Linking (For Distribution)
+
+To build a self-contained binary that doesn't require users to install LLVM:
+
+```bash
+# Easy way - use the build script
+./build-static.sh
+
+# Or manually
+cmake -DENABLE_LLVM_FRONTEND=ON \
+      -DLLVM_STATIC_LINKING=ON \
+      -DLT_LLVM_INSTALL_DIR=<path to LLVM> \
+      -DIBEX_INSTALL_DIR=<path/to/ibex> \
+      ..
+```
+
+See [STATIC_LINKING.md](STATIC_LINKING.md) for detailed distribution guide.
 
 ## Targets
 

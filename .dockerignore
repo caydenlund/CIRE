@@ -1,0 +1,41 @@
+# Ignore build directories
+build/
+build-*/
+dist/
+.cache/
+
+# Ignore git directory
+.git/
+.gitignore
+
+# Ignore IDE/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore documentation (we'll copy what we need)
+*.md
+!README.md
+
+# Ignore test outputs
+*.log
+*.out
+
+# Ignore package artifacts
+*.tar.gz
+*.zip
+*.deb
+*.rpm
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Keep what we need
+!CMakeLists.txt
+!src/
+!include/
+!benchmarks/CMakeLists.txt

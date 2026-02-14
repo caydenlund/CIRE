@@ -1,0 +1,215 @@
+# Multi-stage Dockerfile for building statically-linked CIRE
+# Based on Ubuntu 20.04 LTS for maximum compatibility
+# This builds LLVM, IBEX, and CIRE from source
+
+# Stage 1: Build LLVM
+FROM ubuntu:20.04 AS llvm-builder
+
+# Avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install base dependencies and add GCC 13 repository
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    wget \
+    ca-certificates \
+    gpg \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test \
+    && apt-get update && apt-get install -y \
+    gcc-13 \
+    g++-13 \
+    ninja-build \
+    git \
+    python3 \
+    libz-dev \
+    libncurses-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set GCC 13 as default
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/gcc 100 && \
+    update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 100
+
+# Install newer CMake from Kitware's repository (LLVM 21 needs 3.20+, Ubuntu 20.04 has 3.16)
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null && \
+    echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null && \
+    apt-get update && \
+    apt-get install -y cmake && \
+    rm -rf /var/lib/apt/lists/*
+
+# Set up build directory
+WORKDIR /build
+
+# LLVM version to build (21.x - latest release, not 22+)
+ARG LLVM_VERSION=21.1.7
+
+# Download and extract LLVM project source
+RUN wget https://github.com/llvm/llvm-project/archive/refs/tags/llvmorg-${LLVM_VERSION}.tar.gz && \
+    tar xzf llvmorg-${LLVM_VERSION}.tar.gz && \
+    mv llvm-project-llvmorg-${LLVM_VERSION} llvm-project && \
+    rm llvmorg-${LLVM_VERSION}.tar.gz
+
+# Build LLVM with static libraries (based on user's working configuration)
+RUN mkdir -p llvm-build && cd llvm-build && \
+    cmake ../llvm-project/llvm \
+        -GNinja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/opt/llvm \
+        -DCMAKE_C_COMPILER=gcc-13 \
+        -DCMAKE_CXX_COMPILER=g++-13 \
+        -DLLVM_ENABLE_DUMP=ON \
+        -DLLVM_ENABLE_ASSERTIONS=ON \
+        -DLLVM_ENABLE_PROJECTS="clang;clang-tools-extra;compiler-rt;lld" \
+        -DLLVM_TARGETS_TO_BUILD="X86" \
+        -DLLVM_PARALLEL_LINK_JOBS=1 \
+        -DLLVM_OPTIMIZED_TABLEGEN=ON \
+        -DLLVM_ENABLE_EH=ON \
+        -DLLVM_ENABLE_RTTI=ON \
+        -DLLVM_BUILD_LLVM_DYLIB=OFF \
+        -DBUILD_SHARED_LIBS=OFF \
+        -DLLVM_INCLUDE_TESTS=OFF \
+        -DLLVM_INCLUDE_EXAMPLES=OFF \
+        -DLLVM_INCLUDE_BENCHMARKS=OFF \
+        && \
+    ninja && \
+    ninja install && \
+    cd .. && rm -rf llvm-build llvm-project
+
+# Stage 2: Build IBEX
+FROM ubuntu:20.04 AS ibex-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install GCC 11 and build dependencies for IBEX (GCC 13 has compatibility issues with IBEX 2.8.9)
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    wget \
+    ca-certificates \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test \
+    && apt-get update && apt-get install -y \
+    gcc-11 \
+    g++-11 \
+    cmake \
+    bison \
+    flex \
+    python2 \
+    && rm -rf /var/lib/apt/lists/* \
+    && ln -s /usr/bin/python2 /usr/bin/python
+
+# Set GCC 11 as default
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 100 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-11 100 && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/gcc 100 && \
+    update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 100
+
+WORKDIR /build
+
+# IBEX version
+ARG IBEX_VERSION=2.8.9
+
+# Download and extract IBEX
+RUN wget https://github.com/ibex-team/ibex-lib/archive/refs/tags/ibex-${IBEX_VERSION}.tar.gz && \
+    tar xzf ibex-${IBEX_VERSION}.tar.gz && \
+    mv ibex-lib-ibex-${IBEX_VERSION} ibex-src && \
+    rm ibex-${IBEX_VERSION}.tar.gz
+
+# Build IBEX with waf
+RUN cd ibex-src && \
+    ./waf configure --prefix=/opt/ibex --lp-lib=soplex && \
+    ./waf build -v && \
+    ./waf install && \
+    cd .. && rm -rf ibex-src
+
+# Stage 3: Build CIRE
+FROM ubuntu:20.04 AS cire-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install GCC 13 and build dependencies for CIRE
+RUN apt-get update && apt-get install -y \
+    software-properties-common \
+    wget \
+    ca-certificates \
+    gpg \
+    && add-apt-repository ppa:ubuntu-toolchain-r/test \
+    && apt-get update && apt-get install -y \
+    gcc-13 \
+    g++-13 \
+    ninja-build \
+    bison \
+    flex \
+    git \
+    libz-dev \
+    libncurses-dev \
+    libgmp-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set GCC 13 as default
+RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-13 100 && \
+    update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-13 100 && \
+    update-alternatives --install /usr/bin/cc cc /usr/bin/gcc 100 && \
+    update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++ 100
+
+# Install newer CMake from Kitware's repository (Ubuntu 20.04 has 3.16, we need 3.22+)
+RUN wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null && \
+    echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null && \
+    apt-get update && \
+    apt-get install -y cmake && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy LLVM and IBEX from previous stages
+COPY --from=llvm-builder /opt/llvm /opt/llvm
+COPY --from=ibex-builder /opt/ibex /opt/ibex
+
+WORKDIR /workspace
+
+# Copy CIRE source code
+COPY . /workspace/cire
+
+# Build CIRE with static linking
+RUN cd cire && \
+    mkdir -p build-static && \
+    cd build-static && \
+    cmake .. \
+        -GNinja \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_COMPILER=gcc-13 \
+        -DCMAKE_CXX_COMPILER=g++-13 \
+        -DENABLE_LLVM_FRONTEND=ON \
+        -DLLVM_STATIC_LINKING=ON \
+        -DLT_LLVM_INSTALL_DIR=/opt/llvm \
+        -DIBEX_INSTALL_DIR=/opt/ibex \
+        && \
+    ninja CIRE_LLVM CIRE && \
+    strip bin/CIRE_LLVM bin/CIRE
+
+# Stage 4: Runtime image (minimal, optional)
+FROM ubuntu:20.04 AS runtime
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install only runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libgmp10 \
+    libz-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy binaries from builder (libGraph is now statically linked)
+COPY --from=cire-builder /workspace/cire/build-static/bin/CIRE_LLVM /usr/local/bin/
+COPY --from=cire-builder /workspace/cire/build-static/bin/CIRE /usr/local/bin/
+
+# Copy IBEX runtime libraries
+COPY --from=ibex-builder /opt/ibex/lib /usr/local/lib/
+
+# Update library cache
+RUN ldconfig
+
+WORKDIR /workspace
+
+ENTRYPOINT ["/usr/local/bin/CIRE_LLVM"]
+
+# Stage 5: Artifact extractor (for getting binaries out)
+FROM scratch AS artifacts
+COPY --from=cire-builder /workspace/cire/build-static/bin/CIRE_LLVM /
+COPY --from=cire-builder /workspace/cire/build-static/bin/CIRE /

@@ -1,0 +1,102 @@
+# Makefile for Docker-based CIRE builds
+# Usage: make -f Makefile.docker <target>
+
+.PHONY: help build-docker extract-binaries clean-docker test-binary runtime-image
+
+# Default LLVM and IBEX versions
+LLVM_VERSION ?= 21.1.7
+IBEX_VERSION ?= 2.8.9
+OUTPUT_DIR ?= ./dist
+IMAGE_NAME := cire-builder
+
+help:
+	@echo "CIRE Docker Build System"
+	@echo ""
+	@echo "Targets:"
+	@echo "  build-docker      - Build Docker image with LLVM, IBEX, and CIRE (takes 30-60 min)"
+	@echo "  extract-binaries  - Extract binaries from Docker image to ./dist"
+	@echo "  runtime-image     - Build minimal runtime Docker image"
+	@echo "  test-binary       - Test the extracted binary"
+	@echo "  clean-docker      - Remove Docker images and build artifacts"
+	@echo "  quick-build       - Build and extract in one step"
+	@echo ""
+	@echo "Environment variables:"
+	@echo "  LLVM_VERSION      - LLVM version to build (default: $(LLVM_VERSION))"
+	@echo "  IBEX_VERSION      - IBEX version to build (default: $(IBEX_VERSION))"
+	@echo "  OUTPUT_DIR        - Output directory (default: $(OUTPUT_DIR))"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make -f Makefile.docker build-docker"
+	@echo "  make -f Makefile.docker quick-build OUTPUT_DIR=./release"
+	@echo "  make -f Makefile.docker runtime-image"
+
+build-docker:
+	@echo "Building Docker image (this will take 30-60 minutes on first build)..."
+	docker build \
+		--target artifacts \
+		--build-arg LLVM_VERSION=$(LLVM_VERSION) \
+		--build-arg IBEX_VERSION=$(IBEX_VERSION) \
+		-f Dockerfile.build \
+		-t $(IMAGE_NAME):latest \
+		.
+	@echo "Build complete!"
+
+extract-binaries:
+	@echo "Extracting binaries to $(OUTPUT_DIR)..."
+	@mkdir -p $(OUTPUT_DIR)
+	$(eval CONTAINER_ID := $(shell docker create $(IMAGE_NAME):latest))
+	docker cp $(CONTAINER_ID):/CIRE_LLVM $(OUTPUT_DIR)/CIRE_LLVM || echo "Warning: CIRE_LLVM not extracted"
+	docker cp $(CONTAINER_ID):/CIRE $(OUTPUT_DIR)/CIRE || echo "Warning: CIRE not extracted"
+	docker rm $(CONTAINER_ID)
+	chmod +x $(OUTPUT_DIR)/* 2>/dev/null || true
+	@echo "Binaries extracted to: $(OUTPUT_DIR)"
+	@ls -lh $(OUTPUT_DIR)/
+
+quick-build: build-docker extract-binaries
+	@echo "Build and extraction complete!"
+	@echo "Binaries are in: $(OUTPUT_DIR)"
+
+runtime-image:
+	@echo "Building minimal runtime image..."
+	docker build \
+		--target runtime \
+		--build-arg LLVM_VERSION=$(LLVM_VERSION) \
+		--build-arg IBEX_VERSION=$(IBEX_VERSION) \
+		-f Dockerfile.build \
+		-t $(IMAGE_NAME):runtime \
+		.
+	@echo "Runtime image built: $(IMAGE_NAME):runtime"
+	@echo ""
+	@echo "To run:"
+	@echo "  docker run --rm -v \$$(pwd):/workspace $(IMAGE_NAME):runtime --help"
+
+test-binary:
+	@echo "Testing extracted binary..."
+	@if [ -f "$(OUTPUT_DIR)/CIRE_LLVM" ]; then \
+		echo "=== Binary Info ==="; \
+		ls -lh $(OUTPUT_DIR)/CIRE_LLVM; \
+		echo ""; \
+		echo "=== Dependencies ==="; \
+		ldd $(OUTPUT_DIR)/CIRE_LLVM 2>/dev/null || echo "ldd not available"; \
+		echo ""; \
+		echo "=== Running --help ==="; \
+		$(OUTPUT_DIR)/CIRE_LLVM --help 2>&1 || echo "Binary test complete"; \
+	else \
+		echo "Error: Binary not found at $(OUTPUT_DIR)/CIRE_LLVM"; \
+		echo "Run 'make extract-binaries' first"; \
+		exit 1; \
+	fi
+
+clean-docker:
+	@echo "Cleaning Docker images and artifacts..."
+	docker rmi $(IMAGE_NAME):latest 2>/dev/null || true
+	docker rmi $(IMAGE_NAME):runtime 2>/dev/null || true
+	rm -rf $(OUTPUT_DIR)
+	@echo "Clean complete"
+
+# Development shortcuts
+.PHONY: dev-build dev-extract
+dev-build: LLVM_VERSION=21.1.7
+dev-build: build-docker
+
+dev-extract: extract-binaries test-binary
