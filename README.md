@@ -82,26 +82,31 @@ sudo make install
 
 # Building CIRE
 
-## Quick Start: Docker Build (Recommended for Distribution)
+## Quick Start: Automated Build Scripts
 
-**Don't want to install LLVM and IBEX?** Use Docker to build distributable binaries:
+### Build everything from scratch (native)
 
 ```bash
-# One command to build everything
-./docker-build.sh
-
-# Binaries will be in ./dist/
-# Ready to distribute - no LLVM installation needed by users!
+./build-static-native.sh
 ```
 
-See [DOCKER_BUILD.md](DOCKER_BUILD.md) for complete Docker build documentation.
+Downloads and builds LLVM, IBEX, and CIRE with static linking.
+Binaries end up in `./build-static-native/cire-build/bin/`.
 
-## Local Build
+Use `--help` to see options like `--skip-llvm` (use existing LLVM), `--clean`, or `--jobs N`.
 
-The CMakeLists.txt file is configured to build the library and the executable in the build directory.
-Make sure the shared library files are in your PATH. If not, set the LD_LIBRARY_PATH environment variable to where your
-shared library files are located.
-Then run the following:
+### Build with Docker
+
+```bash
+./docker-build.sh
+```
+
+Builds in an Ubuntu 20.04 container and extracts binaries to `./dist/`.
+Good for creating portable binaries without installing LLVM/IBEX on your machine.
+
+## Manual Build
+
+If you already have LLVM and IBEX installed:
 
 ```bash
 mkdir build-debug
@@ -110,35 +115,30 @@ cmake .. -DIBEX_INSTALL_DIR=<path/to/ibex>
 make
 ```
 
-## Building the LLVM frontend
-
-To build the LLVM frontend, you need to have a build of LLVM 16 or newer on your system.
-Pass `-DENABLE_LLVM_FRONTEND=ON` to cmake and set `LT_LLVM_INSTALL_DIR` to the directory where LLVM is installed.
+### Building the LLVM Frontend
 
 ```bash
 cmake -DENABLE_LLVM_FRONTEND=ON                               \
       -DLT_LLVM_INSTALL_DIR=<path to LLVM install directory>  \
       -DIBEX_INSTALL_DIR=<path/to/ibex>                       \
       ..
+make CIRE_LLVM
 ```
 
-### Static Linking (For Distribution)
+### Static Linking
 
-To build a self-contained binary that doesn't require users to install LLVM:
+For distribution, statically link LLVM:
 
 ```bash
-# Easy way - use the build script
-./build-static.sh
-
-# Or manually
 cmake -DENABLE_LLVM_FRONTEND=ON \
       -DLLVM_STATIC_LINKING=ON \
       -DLT_LLVM_INSTALL_DIR=<path to LLVM> \
       -DIBEX_INSTALL_DIR=<path/to/ibex> \
       ..
+make CIRE_LLVM
 ```
 
-See [STATIC_LINKING.md](STATIC_LINKING.md) for detailed distribution guide.
+See [STATIC_LINKING.md](STATIC_LINKING.md) for more on distribution.
 
 ## Targets
 
@@ -152,7 +152,8 @@ make CIRE
 
 # Usage
 
-The executable is located in the build-debug directory. Run the following to see CIRE run on an example file
+The executable is located in the build-debug directory.
+Run the following to see CIRE run on an example file
 
 ```bash
 LD_LIBRARY_PATH=/usr/local/lib
