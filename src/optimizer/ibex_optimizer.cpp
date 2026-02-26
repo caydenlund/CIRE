@@ -1,0 +1,268 @@
+#include "ibex_optimizer.hpp"
+#include "graph/node.hpp"
+
+#include <stdexcept>
+#include <iostream>
+
+namespace optimizer {
+
+    void IbexOptimizer::setupSymbols(ConversionContext& ctx) const {
+        // Collect all free variables and error variables from the expression
+        std::set<std::string> freeVars = ctx.expr.freeVars();
+        std::set<std::string> errorVars = ctx.expr.errorVars();
+
+        // Create IBEX symbols for all variables using factory method
+        std::vector<const ibex::ExprSymbol*> symbolVec;
+
+        // Add input variables (from domain)
+        for (const auto& [name, interval] : ctx.domain) {
+            const ibex::ExprSymbol& sym = ibex::ExprSymbol::new_(name.c_str());
+            ctx.symbolTable[name] = &sym;
+            symbolVec.push_back(&sym);
+        }
+
+        // Add error variables (assumed to be in [-1, 1] for simplification)
+        for (const auto& name : errorVars) {
+            const ibex::ExprSymbol& sym = ibex::ExprSymbol::new_(name.c_str());
+            ctx.symbolTable[name] = &sym;
+            symbolVec.push_back(&sym);
+        }
+
+        // Create IBEX array of symbols
+        ctx.symbols.resize(symbolVec.size());
+        for (size_t i = 0; i < symbolVec.size(); ++i) {
+            ctx.symbols.set_ref(i, *symbolVec[i]);
+        }
+    }
+
+    const ibex::ExprNode& IbexOptimizer::convertToIbex(
+            error_expr::ExprId id,
+            ConversionContext& ctx) const {
+        using namespace error_expr;
+
+        const ExprKind& kind = ctx.expr.get(id);
+
+        return std::visit(
+            [&](auto&& node) -> const ibex::ExprNode& {
+                using T = std::decay_t<decltype(node)>;
+
+                if constexpr (std::is_same_v<T, EVarExpr>) {
+                    auto it = ctx.symbolTable.find(node.name);
+                    if (it == ctx.symbolTable.end()) {
+                        throw std::runtime_error("Unknown variable: " + node.name);
+                    }
+                    return *it->second;
+                }
+                else if constexpr (std::is_same_v<T, EErrVar>) {
+                    auto it = ctx.symbolTable.find(node.name);
+                    if (it == ctx.symbolTable.end()) {
+                        throw std::runtime_error("Unknown error variable: " + node.name);
+                    }
+                    return *it->second;
+                }
+                else if constexpr (std::is_same_v<T, EConst>) {
+                    return ibex::ExprConstant::new_scalar(node.value);
+                }
+                else if constexpr (std::is_same_v<T, EEpsilon>) {
+                    // Get unit roundoff for the precision
+                    double u = graph::unitRoundoff(node.prec);
+                    return ibex::ExprConstant::new_scalar(u);
+                }
+                else if constexpr (std::is_same_v<T, EAdd>) {
+                    const ibex::ExprNode& lhs = convertToIbex(node.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertToIbex(node.rhs, ctx);
+                    return lhs + rhs;
+                }
+                else if constexpr (std::is_same_v<T, ESub>) {
+                    const ibex::ExprNode& lhs = convertToIbex(node.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertToIbex(node.rhs, ctx);
+                    return lhs - rhs;
+                }
+                else if constexpr (std::is_same_v<T, EMul>) {
+                    const ibex::ExprNode& lhs = convertToIbex(node.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertToIbex(node.rhs, ctx);
+                    return lhs * rhs;
+                }
+                else if constexpr (std::is_same_v<T, EDiv>) {
+                    const ibex::ExprNode& lhs = convertToIbex(node.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertToIbex(node.rhs, ctx);
+                    return lhs / rhs;
+                }
+                else if constexpr (std::is_same_v<T, ENeg>) {
+                    const ibex::ExprNode& src = convertToIbex(node.src, ctx);
+                    return -src;
+                }
+                else if constexpr (std::is_same_v<T, EAbs>) {
+                    const ibex::ExprNode& src = convertToIbex(node.src, ctx);
+                    return abs(src);
+                }
+                else if constexpr (std::is_same_v<T, EPow>) {
+                    const ibex::ExprNode& base = convertToIbex(node.base, ctx);
+                    // IBEX pow requires integer exponent
+                    return pow(base, node.exp);
+                }
+                else {
+                    throw std::runtime_error("Unknown expression type in convertToIbex");
+                }
+            },
+            kind);
+    }
+
+    OptimizeResult IbexOptimizer::maximize(
+            const error_expr::ErrorExpr& expr,
+            const interval::InputDomain& domain,
+            const OptimizerOpts& opts) const {
+        // Setup conversion context
+        ConversionContext ctx {
+            .expr = expr,
+            .domain = domain,
+        };
+        setupSymbols(ctx);
+
+        // Convert error expression to IBEX
+        const ibex::ExprNode& ibexExpr = convertToIbex(expr.root(), ctx);
+
+        // Build optimization system using SystemFactory
+        ibex::SystemFactory factory;
+
+        // Add all variables to the system
+        for (int i = 0; i < ctx.symbols.size(); ++i) {
+            factory.add_var(ctx.symbols[i]);
+        }
+
+        // Add goal: maximize f(x) = minimize -f(x)
+        factory.add_goal(-ibexExpr);
+
+        // Create system
+        ibex::System system(factory);
+
+        // Setup input intervals
+        ibex::IntervalVector box(ctx.symbols.size());
+        int idx = 0;
+
+        // Set intervals for input variables
+        for (const auto& [name, interval] : domain) {
+            auto it = ctx.symbolTable.find(name);
+            if (it != ctx.symbolTable.end()) {
+                // Find the index of this symbol in the symbols array
+                for (int i = 0; i < ctx.symbols.size(); ++i) {
+                    if (&ctx.symbols[i] == it->second) {
+                        box[i] = ibex::Interval(interval.lo, interval.hi);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Set intervals for error variables (assumed [-1, 1])
+        std::set<std::string> errorVars = expr.errorVars();
+        for (const auto& name : errorVars) {
+            auto it = ctx.symbolTable.find(name);
+            if (it != ctx.symbolTable.end()) {
+                for (int i = 0; i < ctx.symbols.size(); ++i) {
+                    if (&ctx.symbols[i] == it->second) {
+                        box[i] = ibex::Interval(-1.0, 1.0);
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Configure optimizer
+        ibex::DefaultOptimizerConfig optConfig(
+            system,
+            ibex::OptimizerConfig::default_rel_eps_f,  // rel tolerance: 1e-3
+            ibex::OptimizerConfig::default_abs_eps_f,  // abs tolerance: 1e-7
+            ibex::NormalizedSystem::default_eps_h,     // constraint tolerance: 1e-8
+            false,  // rigor (rigorous mode disabled for performance)
+            ibex::DefaultOptimizerConfig::default_inHC4,
+            false,  // in_HC4_flag
+            ibex::DefaultOptimizerConfig::default_random_seed,
+            ibex::OptimizerConfig::default_eps_x
+        );
+
+        // Set timeout if specified
+        if (opts.timeoutSeconds > 0) {
+            optConfig.set_timeout(opts.timeoutSeconds);
+        }
+
+        // Create and run optimizer
+        ibex::Optimizer opt(optConfig);
+
+        if (opts.verbose) {
+            std::cout << "Running IBEX optimizer..." << std::endl;
+            std::cout << "  Variables: " << ctx.symbols.size() << std::endl;
+            std::cout << "  Timeout: " << opts.timeoutSeconds << "s" << std::endl;
+        }
+
+        opt.optimize(box);
+
+        // Extract results
+        OptimizeResult result;
+
+        switch (opt.get_status()) {
+            case ibex::Optimizer::SUCCESS:
+                // Optimizer found a solution
+                // Note: IBEX minimizes, so we negate to get maximum
+                result.upperBound = -opt.get_uplo();  // uplo is the lower bound on minimum
+                result.provedTight = false;  // Conservative: not rigorously proven
+
+                // Extract witness point
+                if (opt.get_loup_point().size() > 0) {
+                    ibex::IntervalVector witnessPoint = opt.get_loup_point();
+                    // Map back to variable names
+                    int varIdx = 0;
+                    for (const auto& [name, interval] : domain) {
+                        auto it = ctx.symbolTable.find(name);
+                        if (it != ctx.symbolTable.end()) {
+                            for (int i = 0; i < ctx.symbols.size(); ++i) {
+                                if (&ctx.symbols[i] == it->second) {
+                                    result.witnessInputs[name] = witnessPoint[i].mid();
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (opts.verbose) {
+                    std::cout << "Optimization SUCCESS: bound = " << result.upperBound << std::endl;
+                    std::cout << "  Time: " << opt.get_time() << "s" << std::endl;
+                }
+                break;
+
+            case ibex::Optimizer::INFEASIBLE:
+                throw std::runtime_error("IBEX: Problem is infeasible (no feasible point exists)");
+
+            case ibex::Optimizer::NO_FEASIBLE_FOUND:
+                throw std::runtime_error("IBEX: No feasible point found");
+
+            case ibex::Optimizer::UNBOUNDED_OBJ:
+                throw std::runtime_error("IBEX: Objective is unbounded");
+
+            case ibex::Optimizer::TIME_OUT:
+                // Return best bound found so far
+                result.upperBound = -opt.get_uplo();
+                result.provedTight = false;
+                if (opts.verbose) {
+                    std::cout << "Optimization TIMEOUT: best bound = " << result.upperBound << std::endl;
+                }
+                break;
+
+            case ibex::Optimizer::UNREACHED_PREC:
+                // Could not reach requested precision, but have a bound
+                result.upperBound = -opt.get_uplo();
+                result.provedTight = false;
+                if (opts.verbose) {
+                    std::cout << "Optimization UNREACHED_PREC: bound = " << result.upperBound << std::endl;
+                }
+                break;
+
+            default:
+                throw std::runtime_error("IBEX: Unknown optimizer status");
+        }
+
+        return result;
+    }
+
+}  // namespace optimizer
