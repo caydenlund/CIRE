@@ -7,6 +7,15 @@
 
 namespace graph {
 
+    std::size_t Shape::numElements() const {
+        if (dims.empty()) return 1;  // scalar
+        std::size_t count = 1;
+        for (std::size_t d : dims) {
+            count *= d;
+        }
+        return count;
+    }
+
     double unitRoundoff(FloatPrec p) {
         switch (p) {
             case FloatPrec::F16:   return std::ldexp(1.0, -11);  // 2^-11 ≈ 4.88e-4

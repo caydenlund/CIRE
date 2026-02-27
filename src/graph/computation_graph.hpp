@@ -22,6 +22,7 @@ namespace graph {
         const Node& getNode(NodeId id) const;
         std::vector<NodeId> children(NodeId id) const;
         std::vector<NodeId> topoOrder() const;
+        const std::vector<Node>& nodes() const { return _nodes; }
         const std::vector<NodeId>& outputs() const { return _outputs; }
 
         [[nodiscard]] NodeId inputNode(const std::string& name) const;
