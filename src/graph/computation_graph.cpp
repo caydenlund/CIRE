@@ -89,24 +89,42 @@ namespace graph {
     }
 
     std::vector<NodeId> ComputationGraph::topoOrder() const {
-        // Kahn's algorithm
+        // Kahn's algorithm for topological sort
+        // Note: children() returns dependencies (inputs), so we compute in-degree based on that
         std::unordered_map<NodeId, int> in_degree;
+
+        // Initialize in-degree for all nodes
         for (const auto& node : _nodes) {
-            if (in_degree.count(node.id) == 0U) in_degree[node.id] = 0;
-            for (NodeId child : children(node.id)) in_degree[child]++;
+            in_degree[node.id] = 0;
         }
 
+        // Compute in-degree: for each node, its dependencies are its "incoming edges"
+        for (const auto& node : _nodes) {
+            in_degree[node.id] = children(node.id).size();
+        }
+
+        // Start with nodes that have no dependencies (in-degree 0)
         std::queue<NodeId> q;
-        for (auto& [id, deg] : in_degree)
+        for (auto& [id, deg] : in_degree) {
             if (deg == 0) q.push(id);
+        }
 
         std::vector<NodeId> order;
         while (!q.empty()) {
             NodeId cur = q.front();
             q.pop();
             order.push_back(cur);
-            for (NodeId child : children(cur))
-                if (--in_degree[child] == 0) q.push(child);
+
+            // Find all nodes that depend on 'cur' and decrement their in-degree
+            for (const auto& node : _nodes) {
+                for (NodeId dep : children(node.id)) {
+                    if (dep == cur) {
+                        if (--in_degree[node.id] == 0) {
+                            q.push(node.id);
+                        }
+                    }
+                }
+            }
         }
         return order;
     }

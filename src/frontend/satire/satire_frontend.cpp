@@ -3,15 +3,14 @@
 #include "lexer.hpp"
 
 #include <fstream>
+#include <iostream>
+#include <sstream>
 #include <stdexcept>
 
 namespace frontend::satire {
 
     graph::ComputationGraph SatireFrontend::parse(const std::filesystem::path& input_path,
                                                    const FrontendOpts& opts) const {
-        // TODO: Implement full SATIRE parser
-        // For now, create a minimal stub that throws an error
-
         if (!std::filesystem::exists(input_path)) {
             throw std::runtime_error("Input file does not exist: " + input_path.string());
         }
@@ -22,24 +21,30 @@ namespace frontend::satire {
             throw std::runtime_error("Failed to open input file: " + input_path.string());
         }
 
-        graph::ComputationGraph g;
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        std::string source = buffer.str();
 
-        // TODO: Implement SATIRE parsing
-        // The SATIRE format looks like:
-        // INPUTS {
-        //     x fl64 : (-10.5, 20.5);
-        //     y fl64 : (-3.7, 60.3);
-        // }
-        // OUTPUTS {
-        //     z fl64;
-        // }
-        // z = x + y;
+        if (opts.verbose) {
+            std::cout << "Parsing SATIRE file: " << input_path << std::endl;
+        }
 
-        throw std::runtime_error(
-            "SATIRE frontend not yet implemented. "
-            "Please use the old codebase or implement the parser.");
+        // Lexer and parser
+        Lexer lexer(source);
+        Parser parser(lexer);
 
-        return g;
+        try {
+            graph::ComputationGraph g = parser.parse();
+
+            if (opts.verbose) {
+                std::cout << "Successfully parsed graph with " << g.nodes().size()
+                         << " nodes and " << g.outputs().size() << " outputs" << std::endl;
+            }
+
+            return g;
+        } catch (const std::exception& e) {
+            throw std::runtime_error("Failed to parse SATIRE file: " + std::string(e.what()));
+        }
     }
 
 }  // namespace frontend::satire
