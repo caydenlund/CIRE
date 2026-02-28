@@ -1,5 +1,6 @@
 #pragma once
 #include "error_expr/error_expr.hpp"
+#include "graph/computation_graph.hpp"
 #include "interval/interval.hpp"
 
 #include <string>
@@ -22,9 +23,12 @@ namespace optimizer {
     public:
         virtual ~Optimizer() = default;
 
-        [[nodiscard]] virtual OptimizeResult maximize(const error_expr::ErrorExpr& expr,
-                                                      const interval::InputDomain& domain,
-                                                      const OptimizerOpts& opts) const
+        [[nodiscard]] virtual OptimizeResult maximize(
+                const error_expr::ErrorExpr& expr,
+                const interval::InputDomain& domain,
+                const graph::ComputationGraph& graph,
+                const std::unordered_map<graph::NodeId, error_expr::ExprId>& symbolicVal,
+                const OptimizerOpts& opts) const
                 = 0;
     };
 }  // namespace optimizer

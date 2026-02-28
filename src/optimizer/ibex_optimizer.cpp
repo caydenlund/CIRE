@@ -47,11 +47,22 @@ namespace optimizer {
                 using T = std::decay_t<decltype(node)>;
 
                 if constexpr (std::is_same_v<T, EVarExpr>) {
+                    // First try the symbol table (for input variables)
                     auto it = ctx.symbolTable.find(node.name);
-                    if (it == ctx.symbolTable.end()) {
-                        throw std::runtime_error("Unknown variable: " + node.name);
+                    if (it != ctx.symbolTable.end()) {
+                        return *it->second;
                     }
-                    return *it->second;
+
+                    // If not found, check if this is a symbolic variable representing a node result
+                    // Find which node this expression ID corresponds to by checking if id matches
+                    for (const auto& [nodeId, exprId] : ctx.symbolicVal) {
+                        if (exprId == id) {
+                            // Found the node - convert it to IBEX
+                            return convertNodeToIbex(nodeId, ctx);
+                        }
+                    }
+
+                    throw std::runtime_error("Unknown variable: " + node.name);
                 }
                 else if constexpr (std::is_same_v<T, EErrVar>) {
                     auto it = ctx.symbolTable.find(node.name);
@@ -108,14 +119,135 @@ namespace optimizer {
             kind);
     }
 
+    const ibex::ExprNode& IbexOptimizer::convertNodeToIbex(
+            graph::NodeId nodeId,
+            ConversionContext& ctx) const {
+        // Check cache first
+        auto it = ctx.nodeCache.find(nodeId);
+        if (it != ctx.nodeCache.end()) {
+            return *it->second;
+        }
+
+        const graph::Node& node = ctx.graph.getNode(nodeId);
+
+        const ibex::ExprNode* result = nullptr;
+
+        std::visit(
+            graph::Overloaded{
+                [&](const graph::InputVarNode& n) {
+                    auto symIt = ctx.symbolTable.find(n.name);
+                    if (symIt == ctx.symbolTable.end()) {
+                        throw std::runtime_error("Unknown input variable: " + n.name);
+                    }
+                    result = symIt->second;
+                },
+                [&](const graph::ConstantNode& n) {
+                    result = &ibex::ExprConstant::new_scalar(n.value);
+                },
+                [&](const graph::AddNode& n) {
+                    const ibex::ExprNode& lhs = convertNodeToIbex(n.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertNodeToIbex(n.rhs, ctx);
+                    result = &(lhs + rhs);
+                },
+                [&](const graph::SubNode& n) {
+                    const ibex::ExprNode& lhs = convertNodeToIbex(n.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertNodeToIbex(n.rhs, ctx);
+                    result = &(lhs - rhs);
+                },
+                [&](const graph::MulNode& n) {
+                    const ibex::ExprNode& lhs = convertNodeToIbex(n.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertNodeToIbex(n.rhs, ctx);
+                    result = &(lhs * rhs);
+                },
+                [&](const graph::DivNode& n) {
+                    const ibex::ExprNode& lhs = convertNodeToIbex(n.lhs, ctx);
+                    const ibex::ExprNode& rhs = convertNodeToIbex(n.rhs, ctx);
+                    result = &(lhs / rhs);
+                },
+                [&](const graph::NegNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &(-src);
+                },
+                [&](const graph::SqrtNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &sqrt(src);
+                },
+                [&](const graph::SinNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &sin(src);
+                },
+                [&](const graph::CosNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &cos(src);
+                },
+                [&](const graph::ExpNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &exp(src);
+                },
+                [&](const graph::LogNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &log(src);
+                },
+                [&](const graph::AbsNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &abs(src);
+                },
+                [&](const graph::TanNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &tan(src);
+                },
+                [&](const graph::AsinNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &asin(src);
+                },
+                [&](const graph::AcosNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &acos(src);
+                },
+                [&](const graph::AtanNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &atan(src);
+                },
+                [&](const graph::SinhNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &sinh(src);
+                },
+                [&](const graph::CoshNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &cosh(src);
+                },
+                [&](const graph::TanhNode& n) {
+                    const ibex::ExprNode& src = convertNodeToIbex(n.src, ctx);
+                    result = &tanh(src);
+                },
+                [&](const graph::FmaNode& n) {
+                    const ibex::ExprNode& a = convertNodeToIbex(n.a, ctx);
+                    const ibex::ExprNode& b = convertNodeToIbex(n.b, ctx);
+                    const ibex::ExprNode& c = convertNodeToIbex(n.c, ctx);
+                    result = &(a * b + c);
+                },
+                [&](const auto&) {
+                    throw std::runtime_error("Unsupported node type in convertNodeToIbex");
+                },
+            },
+            node.kind);
+
+        ctx.nodeCache[nodeId] = result;
+        return *result;
+    }
+
     OptimizeResult IbexOptimizer::maximize(
             const error_expr::ErrorExpr& expr,
             const interval::InputDomain& domain,
+            const graph::ComputationGraph& graph,
+            const std::unordered_map<graph::NodeId, error_expr::ExprId>& symbolicVal,
             const OptimizerOpts& opts) const {
         // Setup conversion context
         ConversionContext ctx {
             .expr = expr,
             .domain = domain,
+            .graph = graph,
+            .symbolicVal = symbolicVal,
         };
         setupSymbols(ctx);
 

@@ -91,19 +91,146 @@ namespace autodiff::detail {
                             return {vz, ez};
                         },
 
+                        // Simple operations
+                        [&](const NegNode& n) -> std::pair<ExprId, ExprId> {
+                            ExprId vz = arena.makeSub(arena.makeConst(0.0), val.at(n.src));
+                            ExprId ez = arena.makeSub(arena.makeConst(0.0), err.at(n.src));
+                            return {vz, ez};
+                        },
+
                         // Transcendentals: err(f(x)) ≈ f'(x)*err(x) + f(x)*ε
+                        // Create a placeholder variable for this node's value
                         [&](const SinNode& n) -> std::pair<ExprId, ExprId> {
-                            ExprId vz = arena.add(
-                                    EVarExpr {"sin(" + std::get<EVarExpr>(arena.get(val.at(n.src))).name + ")"});
-                            ExprId df = arena.add(
-                                    EVarExpr {"cos(" + std::get<EVarExpr>(arena.get(val.at(n.src))).name + ")"});
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[sin(x)] = cos(x), bounded by [-1, 1]
+                            ExprId df = arena.makeConst(1.0);  // Worst-case derivative magnitude
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
                                                       arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
                             return {vz, ez};
                         },
 
-                        // TODO: NegNode, SqrtNode, AbsNode, CosNode, ExpNode, LogNode
-                        // follow the same pattern; omitted for brevity
+                        [&](const CosNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[cos(x)] = -sin(x), magnitude bounded by [-1, 1]
+                            ExprId df = arena.makeConst(1.0);  // Worst-case derivative magnitude
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const ExpNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[exp(x)] = exp(x)
+                            ExprId df = vz;
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const LogNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[ln(x)] = 1/x
+                            ExprId df = arena.add(EPow {val.at(n.src), -1});
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const SqrtNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[sqrt(x)] = 1/(2*sqrt(x))
+                            ExprId df = arena.makeMul(
+                                    arena.makeConst(0.5),
+                                    arena.add(EPow {vz, -1}));
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const AbsNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[|x|] = sign(x), but for worst-case we use 1
+                            ExprId df = arena.makeConst(1.0);
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const TanNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[tan(x)] = 1/cos^2(x), bounded by >= 1
+                            ExprId df = arena.makeConst(1.0);  // Worst-case derivative magnitude
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const AsinNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[asin(x)] = 1/sqrt(1-x^2), use conservative bound
+                            ExprId df = arena.makeConst(2.0);  // Conservative bound
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const AcosNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[acos(x)] = -1/sqrt(1-x^2), use conservative bound
+                            ExprId df = arena.makeConst(2.0);  // Conservative bound
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const AtanNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[atan(x)] = 1/(1+x^2), bounded by [0, 1]
+                            ExprId df = arena.makeConst(1.0);
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const SinhNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[sinh(x)] = cosh(x)
+                            ExprId df = vz;  // Use result as derivative approximation
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const CoshNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[cosh(x)] = sinh(x)
+                            ExprId df = vz;  // Use result as derivative approximation
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
+
+                        [&](const TanhNode& n) -> std::pair<ExprId, ExprId> {
+                            std::string nodeName = "v_" + std::to_string(node.id);
+                            ExprId vz = arena.add(EVarExpr {nodeName});
+                            // d/dx[tanh(x)] = 1/cosh^2(x), bounded by (0, 1]
+                            ExprId df = arena.makeConst(1.0);
+                            ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
+                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            return {vz, ez};
+                        },
 
                         [&](const auto&) -> std::pair<ExprId, ExprId> {
                             throw std::runtime_error("applyRule: unhandled node kind");

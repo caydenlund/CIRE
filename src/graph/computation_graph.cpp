@@ -1,9 +1,11 @@
 #include "computation_graph.hpp"
 
+#include <cmath>
+#include <iomanip>
 #include <ostream>
 #include <queue>
+#include <sstream>
 #include <stdexcept>
-#include <cmath>
 
 namespace graph {
 
@@ -78,6 +80,13 @@ namespace graph {
                            [&](const AbsNode& n) { result = {n.src}; },
                            [&](const SinNode& n) { result = {n.src}; },
                            [&](const CosNode& n) { result = {n.src}; },
+                           [&](const TanNode& n) { result = {n.src}; },
+                           [&](const AsinNode& n) { result = {n.src}; },
+                           [&](const AcosNode& n) { result = {n.src}; },
+                           [&](const AtanNode& n) { result = {n.src}; },
+                           [&](const SinhNode& n) { result = {n.src}; },
+                           [&](const CoshNode& n) { result = {n.src}; },
+                           [&](const TanhNode& n) { result = {n.src}; },
                            [&](const ExpNode& n) { result = {n.src}; },
                            [&](const LogNode& n) { result = {n.src}; },
                            [&](const CastNode& n) { result = {n.src}; },
@@ -138,10 +147,183 @@ namespace graph {
 
     void ComputationGraph::dumpDot(std::ostream& os) const {
         os << "digraph computation_graph {\n";
+        os << "  rankdir=BT;\n";  // Bottom to top (inputs at bottom, outputs at top)
+        os << "  node [fontname=\"Helvetica\"];\n";
+        os << "  edge [fontname=\"Helvetica\"];\n\n";
+
+        // Helper to get precision string
+        auto precStr = [](FloatPrec p) -> std::string {
+            switch (p) {
+                case FloatPrec::F16: return "f16";
+                case FloatPrec::BF16: return "bf16";
+                case FloatPrec::F32: return "f32";
+                case FloatPrec::F64: return "f64";
+                case FloatPrec::F128: return "f128";
+                default: return "?";
+            }
+        };
+
+        // Check if a node is an output
+        auto isOutput = [&](NodeId id) {
+            for (NodeId out : _outputs) {
+                if (out == id) return true;
+            }
+            return false;
+        };
+
+        // Draw nodes
         for (const auto& node : _nodes) {
-            os << "  " << node.id << " [label=\"" << node.id << "\"];\n";
-            for (NodeId child : children(node.id)) os << "  " << node.id << " -> " << child << ";\n";
+            os << "  n" << node.id << " [";
+
+            // Create label based on node type
+            std::string label;
+            std::string shape = "box";
+            std::string color = "black";
+            std::string fillcolor = "white";
+            std::string style = "filled";
+
+            std::visit(Overloaded{
+                [&](const InputVarNode& n) {
+                    label = n.name + "\\n(" + precStr(node.prec) + ")";
+                    shape = "ellipse";
+                    fillcolor = "lightblue";
+                    color = "blue";
+                },
+                [&](const ConstantNode& n) {
+                    std::ostringstream oss;
+                    oss << std::fixed << std::setprecision(4) << n.value;
+                    label = oss.str() + "\\n(" + precStr(node.prec) + ")";
+                    shape = "box";
+                    fillcolor = "lightgray";
+                },
+                [&](const AddNode&) {
+                    label = "+\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightyellow";
+                },
+                [&](const SubNode&) {
+                    label = "-\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightyellow";
+                },
+                [&](const MulNode&) {
+                    label = "*\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightgreen";
+                },
+                [&](const DivNode&) {
+                    label = "/\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightgreen";
+                },
+                [&](const PowNode&) {
+                    label = "pow\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightgreen";
+                },
+                [&](const NegNode&) {
+                    label = "neg\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightyellow";
+                },
+                [&](const SqrtNode&) {
+                    label = "sqrt\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const AbsNode&) {
+                    label = "abs\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const SinNode&) {
+                    label = "sin\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const CosNode&) {
+                    label = "cos\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const ExpNode&) {
+                    label = "exp\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const LogNode&) {
+                    label = "log\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const TanNode&) {
+                    label = "tan\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const AsinNode&) {
+                    label = "asin\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const AcosNode&) {
+                    label = "acos\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const AtanNode&) {
+                    label = "atan\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const SinhNode&) {
+                    label = "sinh\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const CoshNode&) {
+                    label = "cosh\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const TanhNode&) {
+                    label = "tanh\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightpink";
+                },
+                [&](const CastNode& n) {
+                    label = "cast\\n" + precStr(n.from) + "→" + precStr(n.to);
+                    fillcolor = "orange";
+                },
+                [&](const FmaNode&) {
+                    label = "fma\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightcyan";
+                },
+                [&](const ReduceSumNode&) {
+                    label = "reduce_sum\\n(" + precStr(node.prec) + ")";
+                    fillcolor = "lightcyan";
+                },
+            }, node.kind);
+
+            // Mark outputs with double border
+            if (isOutput(node.id)) {
+                style = "filled,bold";
+                color = "red";
+                label += "\\n[OUTPUT]";
+            }
+
+            os << "label=\"" << label << "\", ";
+            os << "shape=" << shape << ", ";
+            os << "color=" << color << ", ";
+            os << "fillcolor=" << fillcolor << ", ";
+            os << "style=\"" << style << "\"";
+            os << "];\n";
         }
+
+        os << "\n";
+
+        // Draw edges
+        for (const auto& node : _nodes) {
+            std::vector<NodeId> deps = children(node.id);
+
+            // For binary operations, label edges with position
+            if (deps.size() == 2) {
+                os << "  n" << deps[0] << " -> n" << node.id << " [label=\"L\"];\n";
+                os << "  n" << deps[1] << " -> n" << node.id << " [label=\"R\"];\n";
+            } else if (deps.size() == 3) {
+                // For ternary operations like FMA
+                os << "  n" << deps[0] << " -> n" << node.id << " [label=\"A\"];\n";
+                os << "  n" << deps[1] << " -> n" << node.id << " [label=\"B\"];\n";
+                os << "  n" << deps[2] << " -> n" << node.id << " [label=\"C\"];\n";
+            } else {
+                // For unary operations or single dependencies
+                for (NodeId child : deps) {
+                    os << "  n" << child << " -> n" << node.id << ";\n";
+                }
+            }
+        }
+
         os << "}\n";
     }
 

@@ -178,6 +178,11 @@ namespace frontend::satire {
                 advance();
             }
 
+            // Optional rounding annotation (rnd16, rnd32, rnd64, etc.) - skip it
+            if (check(TokenType::IDENTIFIER) && _current.text.substr(0, 3) == "rnd") {
+                advance();
+            }
+
             consume(TokenType::ASSIGN, "Expected '=' in assignment");
 
             // Parse expression
@@ -284,7 +289,8 @@ namespace frontend::satire {
         if (check(TokenType::SIN) || check(TokenType::COS) || check(TokenType::TAN) ||
             check(TokenType::SQRT) || check(TokenType::EXP) || check(TokenType::LOG) ||
             check(TokenType::FMA) || check(TokenType::ASIN) || check(TokenType::ACOS) ||
-            check(TokenType::ATAN)) {
+            check(TokenType::ATAN) || check(TokenType::SINH) || check(TokenType::COSH) ||
+            check(TokenType::TANH)) {
 
             TokenType funcType = _current.type;
             advance();
@@ -338,11 +344,19 @@ namespace frontend::satire {
             case TokenType::LOG:
                 return _graph.addNode(graph::LogNode{arg}, graph::FloatPrec::F64);
             case TokenType::TAN:
+                return _graph.addNode(graph::TanNode{arg}, graph::FloatPrec::F64);
             case TokenType::ASIN:
+                return _graph.addNode(graph::AsinNode{arg}, graph::FloatPrec::F64);
             case TokenType::ACOS:
+                return _graph.addNode(graph::AcosNode{arg}, graph::FloatPrec::F64);
             case TokenType::ATAN:
-                // TODO: Add these to the Node types if needed
-                error("Function not yet supported in computation graph");
+                return _graph.addNode(graph::AtanNode{arg}, graph::FloatPrec::F64);
+            case TokenType::SINH:
+                return _graph.addNode(graph::SinhNode{arg}, graph::FloatPrec::F64);
+            case TokenType::COSH:
+                return _graph.addNode(graph::CoshNode{arg}, graph::FloatPrec::F64);
+            case TokenType::TANH:
+                return _graph.addNode(graph::TanhNode{arg}, graph::FloatPrec::F64);
             default:
                 error("Unknown function");
         }

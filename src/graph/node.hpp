@@ -79,6 +79,27 @@ namespace graph {
     struct CosNode {
         NodeId src;
     };
+    struct TanNode {
+        NodeId src;
+    };
+    struct AsinNode {
+        NodeId src;
+    };
+    struct AcosNode {
+        NodeId src;
+    };
+    struct AtanNode {
+        NodeId src;
+    };
+    struct SinhNode {
+        NodeId src;
+    };
+    struct CoshNode {
+        NodeId src;
+    };
+    struct TanhNode {
+        NodeId src;
+    };
     struct ExpNode {
         NodeId src;
     };
@@ -102,7 +123,8 @@ namespace graph {
 
     using NodeKind
             = std::variant<InputVarNode, ConstantNode, AddNode, SubNode, MulNode, DivNode, PowNode, NegNode, SqrtNode,
-                           AbsNode, SinNode, CosNode, ExpNode, LogNode, CastNode, FmaNode, ReduceSumNode>;
+                           AbsNode, SinNode, CosNode, TanNode, AsinNode, AcosNode, AtanNode, SinhNode, CoshNode, TanhNode,
+                           ExpNode, LogNode, CastNode, FmaNode, ReduceSumNode>;
 
     struct Node {
         NodeId id;

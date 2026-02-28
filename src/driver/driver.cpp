@@ -33,7 +33,7 @@ namespace driver {
         std::unique_ptr<optimizer::Optimizer> opt = std::make_unique<optimizer::IbexOptimizer>();
 
         optimizer::OptimizerOpts oopts {.verbose = opts.verbose};
-        optimizer::OptimizeResult result = opt->maximize(ad.expr, domain, oopts);
+        optimizer::OptimizeResult result = opt->maximize(ad.expr, domain, g, ad.symbolicVal, oopts);
 
         // 5. Report
         report::Reporter reporter(std::cout);

@@ -21,6 +21,8 @@ namespace optimizer {
         [[nodiscard]] OptimizeResult maximize(
             const error_expr::ErrorExpr& expr,
             const interval::InputDomain& domain,
+            const graph::ComputationGraph& graph,
+            const std::unordered_map<graph::NodeId, error_expr::ExprId>& symbolicVal,
             const OptimizerOpts& opts) const override;
 
     private:
@@ -28,12 +30,19 @@ namespace optimizer {
         struct ConversionContext {
             const error_expr::ErrorExpr& expr;
             const interval::InputDomain& domain;
+            const graph::ComputationGraph& graph;
+            const std::unordered_map<graph::NodeId, error_expr::ExprId>& symbolicVal;
             std::unordered_map<std::string, const ibex::ExprSymbol*> symbolTable;
+            mutable std::unordered_map<graph::NodeId, const ibex::ExprNode*> nodeCache;
             ibex::Array<const ibex::ExprSymbol> symbols;
         };
 
         const ibex::ExprNode& convertToIbex(
             error_expr::ExprId id,
+            ConversionContext& ctx) const;
+
+        const ibex::ExprNode& convertNodeToIbex(
+            graph::NodeId nodeId,
             ConversionContext& ctx) const;
 
         void setupSymbols(ConversionContext& ctx) const;
