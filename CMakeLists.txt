@@ -83,6 +83,7 @@ if(CIRE_ENABLE_LLVM_FRONTEND)
         PRIVATE ${LLVM_LIBS})
 
     add_executable(CIRE_LLVM src/bin/CIRE_LLVM.cpp)
+    target_compile_definitions(CIRE_LLVM PRIVATE CIRE_LLVM_FRONTEND_ENABLED)
     target_link_libraries(CIRE_LLVM PRIVATE cire_llvm_frontend)
 endif()
 

@@ -29,15 +29,17 @@ namespace autodiff::detail {
 
                         [&](const AddNode& n) -> std::pair<ExprId, ExprId> {
                             ExprId vz = arena.makeAdd(val.at(n.lhs), val.at(n.rhs));
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeAdd(err.at(n.lhs), err.at(n.rhs)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
                         [&](const SubNode& n) -> std::pair<ExprId, ExprId> {
                             ExprId vz = arena.makeSub(val.at(n.lhs), val.at(n.rhs));
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeSub(err.at(n.lhs), err.at(n.rhs)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -45,18 +47,20 @@ namespace autodiff::detail {
                             ExprId vz = arena.makeMul(val.at(n.lhs), val.at(n.rhs));
                             ExprId propagated = arena.makeAdd(arena.makeMul(val.at(n.rhs), err.at(n.lhs)),
                                                               arena.makeMul(val.at(n.lhs), err.at(n.rhs)));
-                            ExprId ez = arena.makeAdd(propagated, arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            ExprId u = arena.makeEpsilon(node.prec);
+                            ExprId ez = arena.makeAdd(propagated, arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
                         [&](const DivNode& n) -> std::pair<ExprId, ExprId> {
-                            // err(x/y) ≈ err(x)/val(y) - val(x)*err(y)/val(y)^2 + val(z)*ε
+                            // err(x/y) ≈ err(x)/val(y) - val(x)*err(y)/val(y)^2 + val(z)*ε*u
                             ExprId vz = arena.makeMul(val.at(n.lhs), arena.add(EPow {val.at(n.rhs), -1}));
                             // simplified: propagated ≈ (err(x) - vz*err(y)) / val(y)
                             ExprId propagated = arena.makeMul(
                                     arena.makeSub(err.at(n.lhs), arena.makeMul(vz, err.at(n.rhs))),
                                     arena.add(EPow {val.at(n.rhs), -1}));
-                            ExprId ez = arena.makeAdd(propagated, arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            ExprId u = arena.makeEpsilon(node.prec);
+                            ExprId ez = arena.makeAdd(propagated, arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -66,8 +70,9 @@ namespace autodiff::detail {
                                 return {val.at(n.src), err.at(n.src)};
                             }
                             // Narrowing: new rounding error
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(err.at(n.src),
-                                                      arena.makeMul(val.at(n.src), arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(val.at(n.src), arena.makeErrVar(errSym(node.id))), u));
                             return {val.at(n.src), ez};
                         },
 
@@ -77,7 +82,8 @@ namespace autodiff::detail {
                             ExprId propagated = arena.makeAdd(arena.makeAdd(arena.makeMul(val.at(n.b), err.at(n.a)),
                                                                             arena.makeMul(val.at(n.a), err.at(n.b))),
                                                               err.at(n.c));
-                            ExprId ez = arena.makeAdd(propagated, arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                            ExprId u = arena.makeEpsilon(node.prec);
+                            ExprId ez = arena.makeAdd(propagated, arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -105,8 +111,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[sin(x)] = cos(x), bounded by [-1, 1]
                             ExprId df = arena.makeConst(1.0);  // Worst-case derivative magnitude
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -115,8 +122,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[cos(x)] = -sin(x), magnitude bounded by [-1, 1]
                             ExprId df = arena.makeConst(1.0);  // Worst-case derivative magnitude
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -125,8 +133,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[exp(x)] = exp(x)
                             ExprId df = vz;
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -135,8 +144,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[ln(x)] = 1/x
                             ExprId df = arena.add(EPow {val.at(n.src), -1});
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -147,8 +157,9 @@ namespace autodiff::detail {
                             ExprId df = arena.makeMul(
                                     arena.makeConst(0.5),
                                     arena.add(EPow {vz, -1}));
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -157,8 +168,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[|x|] = sign(x), but for worst-case we use 1
                             ExprId df = arena.makeConst(1.0);
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -167,8 +179,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[tan(x)] = 1/cos^2(x), bounded by >= 1
                             ExprId df = arena.makeConst(1.0);  // Worst-case derivative magnitude
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -177,8 +190,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[asin(x)] = 1/sqrt(1-x^2), use conservative bound
                             ExprId df = arena.makeConst(2.0);  // Conservative bound
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -187,8 +201,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[acos(x)] = -1/sqrt(1-x^2), use conservative bound
                             ExprId df = arena.makeConst(2.0);  // Conservative bound
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -197,8 +212,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[atan(x)] = 1/(1+x^2), bounded by [0, 1]
                             ExprId df = arena.makeConst(1.0);
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -207,8 +223,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[sinh(x)] = cosh(x)
                             ExprId df = vz;  // Use result as derivative approximation
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -217,8 +234,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[cosh(x)] = sinh(x)
                             ExprId df = vz;  // Use result as derivative approximation
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 
@@ -227,8 +245,9 @@ namespace autodiff::detail {
                             ExprId vz = arena.add(EVarExpr {nodeName});
                             // d/dx[tanh(x)] = 1/cosh^2(x), bounded by (0, 1]
                             ExprId df = arena.makeConst(1.0);
+                            ExprId u = arena.makeEpsilon(node.prec);
                             ExprId ez = arena.makeAdd(arena.makeMul(df, err.at(n.src)),
-                                                      arena.makeMul(vz, arena.makeErrVar(errSym(node.id))));
+                                                      arena.makeMul(arena.makeMul(vz, arena.makeErrVar(errSym(node.id))), u));
                             return {vz, ez};
                         },
 

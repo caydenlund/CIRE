@@ -74,8 +74,6 @@ namespace error_expr {
         std::set<std::string> freeVars() const;
         std::set<std::string> errorVars() const;
 
-        void simplify();
-
         std::string toSollyaString() const;
         std::string toDRealSMT2() const;
 

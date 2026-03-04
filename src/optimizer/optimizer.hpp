@@ -17,6 +17,7 @@ namespace optimizer {
         double upperBound;
         std::unordered_map<std::string, double> witnessInputs;
         bool provedTight {false};
+        double witnessOutputValue {0.0};  // Value of output at witness point
     };
 
     class Optimizer {

@@ -1,8 +1,9 @@
 #include "ibex_optimizer.hpp"
 #include "graph/node.hpp"
 
-#include <stdexcept>
+#include <cmath>
 #include <iostream>
+#include <stdexcept>
 
 namespace optimizer {
 
@@ -303,8 +304,8 @@ namespace optimizer {
         // Configure optimizer
         ibex::DefaultOptimizerConfig optConfig(
             system,
-            ibex::OptimizerConfig::default_rel_eps_f,  // rel tolerance: 1e-3
-            ibex::OptimizerConfig::default_abs_eps_f,  // abs tolerance: 1e-7
+            opts.relTolerance,  // Use user-specified relative tolerance
+            opts.relTolerance * 1e-10,  // Absolute tolerance (much smaller)
             ibex::NormalizedSystem::default_eps_h,     // constraint tolerance: 1e-8
             false,  // rigor (rigorous mode disabled for performance)
             ibex::DefaultOptimizerConfig::default_inHC4,
@@ -353,6 +354,77 @@ namespace optimizer {
                                     break;
                                 }
                             }
+                        }
+                    }
+
+                    // Evaluate output value at witness point using simple forward evaluation
+                    if (!graph.outputs().empty()) {
+                        std::unordered_map<graph::NodeId, double> nodeValues;
+
+                        // Set input values
+                        for (const auto& [name, nodeId] : graph.inputs()) {
+                            if (result.witnessInputs.find(name) != result.witnessInputs.end()) {
+                                nodeValues[nodeId] = result.witnessInputs[name];
+                            }
+                        }
+
+                        // Evaluate in topological order
+                        for (graph::NodeId id : graph.topoOrder()) {
+                            const graph::Node& node = graph.getNode(id);
+
+                            std::visit(
+                                graph::Overloaded{
+                                    [&](const graph::InputVarNode&) {
+                                        // Already set above
+                                    },
+                                    [&](const graph::ConstantNode& n) {
+                                        nodeValues[id] = n.value;
+                                    },
+                                    [&](const graph::AddNode& n) {
+                                        nodeValues[id] = nodeValues[n.lhs] + nodeValues[n.rhs];
+                                    },
+                                    [&](const graph::SubNode& n) {
+                                        nodeValues[id] = nodeValues[n.lhs] - nodeValues[n.rhs];
+                                    },
+                                    [&](const graph::MulNode& n) {
+                                        nodeValues[id] = nodeValues[n.lhs] * nodeValues[n.rhs];
+                                    },
+                                    [&](const graph::DivNode& n) {
+                                        nodeValues[id] = nodeValues[n.lhs] / nodeValues[n.rhs];
+                                    },
+                                    [&](const graph::NegNode& n) {
+                                        nodeValues[id] = -nodeValues[n.src];
+                                    },
+                                    [&](const graph::SqrtNode& n) {
+                                        nodeValues[id] = std::sqrt(nodeValues[n.src]);
+                                    },
+                                    [&](const graph::SinNode& n) {
+                                        nodeValues[id] = std::sin(nodeValues[n.src]);
+                                    },
+                                    [&](const graph::CosNode& n) {
+                                        nodeValues[id] = std::cos(nodeValues[n.src]);
+                                    },
+                                    [&](const graph::ExpNode& n) {
+                                        nodeValues[id] = std::exp(nodeValues[n.src]);
+                                    },
+                                    [&](const graph::LogNode& n) {
+                                        nodeValues[id] = std::log(nodeValues[n.src]);
+                                    },
+                                    [&](const graph::FmaNode& n) {
+                                        nodeValues[id] = nodeValues[n.a] * nodeValues[n.b] + nodeValues[n.c];
+                                    },
+                                    [&](const auto&) {
+                                        // Other node types - set to 0 as fallback
+                                        nodeValues[id] = 0.0;
+                                    },
+                                },
+                                node.kind);
+                        }
+
+                        // Get output value
+                        graph::NodeId outputId = graph.outputs().front();
+                        if (nodeValues.find(outputId) != nodeValues.end()) {
+                            result.witnessOutputValue = nodeValues[outputId];
                         }
                     }
                 }

@@ -80,12 +80,6 @@ namespace error_expr {
         return vars;
     }
 
-    void ErrorExpr::simplify() {
-        // TODO: Implement algebraic simplification
-        // For now, this is a no-op
-        // Could implement constant folding, identity elimination, etc.
-    }
-
     std::string ErrorExpr::toSollyaString() const {
         // Helper lambda for recursive conversion
         std::function<std::string(ExprId)> convert = [&](ExprId id) -> std::string {
