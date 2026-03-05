@@ -1,8 +1,10 @@
 # Multi-stage Dockerfile for CIRE with LLVM
-# Builds CIRE with LLVM toolchain included
+# Builds CIRE, IBEX, and LLVM from scratch
+# This is the base image that cire-explorer builds upon
+#
 # Usage:
 #   docker build -t cire:latest .
-#   docker run --rm cire:latest --help
+#   docker run --rm cire:latest CIRE_LLVM --help
 
 # ============================================================================
 # Stage 1: Build LLVM
@@ -70,6 +72,7 @@ RUN apt-get update && apt-get install -y \
     bison \
     flex \
     python3 \
+    python-is-python3 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -146,7 +149,7 @@ LABEL version="1.0"
 # Install minimal runtime dependencies
 RUN apt-get update && apt-get install -y \
     libgmp10 \
-    libz1g \
+    zlib1g \
     libncurses6 \
     libstdc++6 \
     && rm -rf /var/lib/apt/lists/*
@@ -157,6 +160,7 @@ COPY --from=cire-builder /workspace/cire/build/CIRE_LLVM /usr/local/bin/
 
 # Copy LLVM tools (clang, llvm-dis, opt, etc.)
 COPY --from=llvm-builder /opt/llvm/bin/clang /usr/local/bin/
+COPY --from=llvm-builder /opt/llvm/bin/clang++ /usr/local/bin/
 COPY --from=llvm-builder /opt/llvm/bin/llvm-as /usr/local/bin/
 COPY --from=llvm-builder /opt/llvm/bin/llvm-dis /usr/local/bin/
 COPY --from=llvm-builder /opt/llvm/bin/opt /usr/local/bin/
@@ -198,4 +202,7 @@ CMD ["--help"]
 #
 # Interactive shell:
 #   docker run --rm -it -v $(pwd):/workspace --entrypoint /bin/bash cire:latest
+#
+# Check LLVM version:
+#   docker run --rm --entrypoint clang cire:latest --version
 # ============================================================================
