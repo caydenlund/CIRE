@@ -220,22 +220,15 @@ namespace frontend::satire {
     graph::NodeId Parser::parseAdditive() {
         graph::NodeId left = parseMultiplicative();
 
-        while (match(TokenType::PLUS) || match(TokenType::MINUS)) {
-            TokenType op = _current.type;
-            if (op == TokenType::PLUS || check(TokenType::MINUS)) {
-                op = _current.type;
-            }
-            // We already consumed the token, so check what it was
-            bool isPlus = (_current.type != TokenType::MINUS);  // FIXME: track properly
-
-            // Hacky workaround: re-check
-            Token prevToken = _current;
+        while (check(TokenType::PLUS) || check(TokenType::MINUS)) {
+            bool isPlus = check(TokenType::PLUS);
+            advance();  // consume the operator
             graph::NodeId right = parseMultiplicative();
 
-            if (prevToken.type == TokenType::MINUS || !isPlus) {
-                left = _graph.addNode(graph::SubNode{left, right}, graph::FloatPrec::F64);
-            } else {
+            if (isPlus) {
                 left = _graph.addNode(graph::AddNode{left, right}, graph::FloatPrec::F64);
+            } else {
+                left = _graph.addNode(graph::SubNode{left, right}, graph::FloatPrec::F64);
             }
         }
 

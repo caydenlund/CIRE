@@ -142,7 +142,12 @@ namespace graph {
         if (_outputs.empty()) throw std::runtime_error("Graph has no marked outputs");
         for (NodeId out : _outputs)
             if (out >= _nodes.size()) throw std::runtime_error("Output NodeId out of range");
-        // TODO: cycle detection
+
+        // Cycle detection: verify topological sort includes all nodes
+        std::vector<NodeId> order = topoOrder();
+        if (order.size() != _nodes.size()) {
+            throw std::runtime_error("Graph contains a cycle (topological sort failed)");
+        }
     }
 
     void ComputationGraph::dumpDot(std::ostream& os) const {
