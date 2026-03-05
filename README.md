@@ -1,32 +1,54 @@
-# CIRE: C++ Incremental rigorous error-analyser
+# CIRE: C++ Incremental Rigorous Error Analyser
 
-CIRE is similar to [SATIRE](https://github.com/arnabd88/Satire) but in C++.
-This project was meant to provide an error analysis tool and library for C/C++ programs.
-Ideally it should have all the capabilities of Satire and more.
+CIRE is a rigorous floating-point error analysis tool for C/C++ programs.
+It computes sound upper bounds on numerical errors using interval arithmetic and automatic differentiation.
+Similar to [SATIRE](https://github.com/arnabd88/Satire), but implemented in C++ with additional features.
 
+## Features
 
-# Dependencies
+- **Two frontends**: Analyze LLVM IR (from C/C++) or SATIRE DSL programs
+- **Rigorous bounds**: Sound upper bounds on floating-point errors using IBEX interval arithmetic
+- **Automatic differentiation**: Efficient error propagation through computation graphs
+- **Docker support**: Build and run without installing dependencies locally
+- **Multiple outputs**: Absolute error, relative error, ULPs, and witness inputs
 
-CIRE requires the following softwares installed on your system.
-The tool will not build unless these are installed.
+## Quick Start (Docker)
 
-* ibex-lib >= 2.8.9 [Install Notes](#ibex-installation)
-  * [Github](https://github.com/ibex-team/ibex-lib)
-  * [Original Installation instructions](http://ibex-team.github.io/ibex-lib/install.html)
-* python2.x >= 2.7 (Ibex scripts are currently not compatible with python3)
-* g++ >= 13 (because of IBEX)
-* gcc >= 13 (because of IBEX)
-* bison
-* flex
-* cmake
+The easiest way to use CIRE is with Docker:
 
-### If you want to use the LLVM frontend
+```bash
+# Build the Docker image
+./docker-build.sh
 
-* LLVM >= 16
+# Run on a C file
+docker run --rm -v $(pwd):/workspace cire:latest bash -c \
+  "clang -S -emit-llvm -O0 myfile.c -o myfile.ll && \
+   CIRE_LLVM myfile.ll --domain domain.json --function myfunction"
+```
 
-This version is necessary since the frontend uses the new pass manager by default.
-Use gcc (version 13) to build LLVM to ensure standard libraries are compatible with CIRE and IBEX.
-LLVM 16 has been tested to work.
+See [DOCKER.md](DOCKER.md) for detailed Docker usage and publishing instructions.
+
+## Build Dependencies
+
+CIRE requires the following software installed on your system:
+
+* **ibex-lib >= 2.8.9** - [Install Notes](#ibex-installation)
+  * [GitHub](https://github.com/ibex-team/ibex-lib)
+  * [Installation instructions](http://ibex-team.github.io/ibex-lib/install.html)
+* **CMake >= 3.20**
+* **g++ >= 13** (for IBEX compatibility)
+* **gcc >= 13** (for IBEX compatibility)
+* **Bison**
+* **Flex**
+* **Python 3** (for IBEX build scripts)
+
+### Optional: LLVM frontend
+
+* **LLVM >= 16**
+
+Required to build `CIRE_LLVM` for analyzing LLVM IR from C/C++ programs.
+Use GCC 13+ to build LLVM to ensure standard libraries are compatible with CIRE and IBEX.
+LLVM 16, 17, and 18 have been tested to work.
 
 ## IBEX installation
 
@@ -82,109 +104,214 @@ sudo make install
 
 # Building CIRE
 
-## Quick Start: Automated Build Scripts
+## Docker Build (Recommended)
 
-### Build everything from scratch (native)
-
-```bash
-./build-static-native.sh
-```
-
-Downloads and builds LLVM, IBEX, and CIRE with static linking.
-Binaries end up in `./build-static-native/cire-build/bin/`.
-
-Use `--help` to see options like `--skip-llvm` (use existing LLVM), `--clean`, or `--jobs N`.
-
-### Build with Docker
+The easiest way to build CIRE with all dependencies:
 
 ```bash
 ./docker-build.sh
 ```
 
-Builds in an Ubuntu 20.04 container and extracts binaries to `./dist/`.
-Good for creating portable binaries without installing LLVM/IBEX on your machine.
+This builds CIRE, LLVM, and IBEX in a multi-stage Docker container.
+The final image (~600MB) includes:
+- `CIRE` - SATIRE frontend
+- `CIRE_LLVM` - LLVM IR frontend
+- `clang` - C/C++ compiler
+- LLVM tools (`llvm-dis`, `opt`, etc.)
+
+See [DOCKER.md](DOCKER.md) for advanced Docker usage, publishing, and troubleshooting.
 
 ## Manual Build
 
-If you already have LLVM and IBEX installed:
+If you have IBEX installed on your system:
+
+### 1. Basic build (SATIRE frontend only)
 
 ```bash
-mkdir build-debug
-cd build-debug
-cmake .. -DIBEX_INSTALL_DIR=<path/to/ibex>
+mkdir build
+cd build
+cmake .. -DIBEX_INSTALL_DIR=/path/to/ibex
 make
 ```
 
-### Building the LLVM Frontend
+This builds the `CIRE` binary for analyzing SATIRE DSL programs.
+
+### 2. Build with LLVM frontend
 
 ```bash
-cmake -DENABLE_LLVM_FRONTEND=ON                               \
-      -DLT_LLVM_INSTALL_DIR=<path to LLVM install directory>  \
-      -DIBEX_INSTALL_DIR=<path/to/ibex>                       \
-      ..
-make CIRE_LLVM
+mkdir build
+cd build
+cmake .. \
+  -DCIRE_ENABLE_LLVM_FRONTEND=ON \
+  -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm \
+  -DIBEX_INSTALL_DIR=/path/to/ibex
+make
 ```
 
-### Static Linking
+This builds both `CIRE` and `CIRE_LLVM` binaries.
 
-For distribution, statically link LLVM:
+### 3. Customize build type
 
 ```bash
-cmake -DENABLE_LLVM_FRONTEND=ON \
-      -DLLVM_STATIC_LINKING=ON \
-      -DLT_LLVM_INSTALL_DIR=<path to LLVM> \
-      -DIBEX_INSTALL_DIR=<path/to/ibex> \
-      ..
-make CIRE_LLVM
+# Release build (optimized)
+cmake .. -DCMAKE_BUILD_TYPE=Release -DIBEX_INSTALL_DIR=/path/to/ibex
+
+# Debug build (with debug symbols)
+cmake .. -DCMAKE_BUILD_TYPE=Debug -DIBEX_INSTALL_DIR=/path/to/ibex
 ```
 
-See [STATIC_LINKING.md](STATIC_LINKING.md) for more on distribution.
+## Build Targets
 
-## Targets
-
-### CIRE
-
-Uses the SATIRE DSL frontend.
-```bash
-make CIRE
-```
+- `CIRE` - SATIRE frontend (always built)
+- `CIRE_LLVM` - LLVM IR frontend (requires `-DCIRE_ENABLE_LLVM_FRONTEND=ON`)
+- `cire_core` - Core library (built automatically)
+- `cire_llvm_frontend` - LLVM frontend library (built when LLVM is enabled)
 
 
 # Usage
 
-The executable is located in the build-debug directory.
-Run the following to see CIRE run on an example file
+CIRE has two executables:
+- `CIRE` - For analyzing SATIRE DSL programs
+- `CIRE_LLVM` - For analyzing LLVM IR from C/C++ programs
+
+## Using CIRE_LLVM (LLVM IR Frontend)
+
+### Step 1: Compile C/C++ to LLVM IR
 
 ```bash
-LD_LIBRARY_PATH=/usr/local/lib
-CIRE ./benchmarks/addition/addition.txt
+clang -S -emit-llvm -O1 myfile.c -o myfile.ll
 ```
 
-## LLVM Frontend
+**Note**: Use at least `-O1` to avoid memory allocations.
 
-There are two ways to utilize the LLVM Frontend: as an LLVM pass or as a standalone tool.
-Make sure you run `-O1` or higher to generate LLVM IR to simplify the function, removing all memory operations.
+### Step 2: Create a domain file
+
+Create a JSON file specifying the input ranges for your function arguments:
+
+```json
+{
+  "x": [-1000000, 1000000],
+  "y": [0, 100]
+}
+```
+
+### Step 3: Run CIRE
 
 ```bash
-clang -S -emit-llvm -O1 <path/to/c/file>
+./build/CIRE_LLVM myfile.ll --domain domain.json --function myfunction
 ```
 
-### As an LLVM pass
+### Full example
 
 ```bash
-<path/to/opt> -load-pass-plugin=<path/to/libCIRE_LLVM.so> -passes="cire" --function=<function_name> --input=<path/to/.txt/file> --disable-output <path/to/llvm/ir/file>
+# Create a simple C file
+cat > cube.c << 'EOF'
+double cube(double x) {
+    return x * x * x;
+}
+EOF
+
+# Create domain file
+cat > domain.json << 'EOF'
+{
+  "x": [-1000000, 1000000]
+}
+EOF
+
+# Compile to LLVM IR
+clang -S -emit-llvm -O0 cube.c -o cube.ll
+
+# Run CIRE
+./build/CIRE_LLVM cube.ll --domain domain.json --function cube
 ```
 
-### As a standalone tool
+### Expected output
+
+```
+========================================
+CIRE Error Analysis Report
+========================================
+
+Computation Graph:
+  Nodes: 3
+  Outputs: 1
+
+Error Analysis Results:
+  Absolute Error Bound: 2.2204e+02
+  Relative Error: 2.221e-16
+  Error in ULPs: 1.74
+  (1 ULP at output ≈ 1.280e+02)
+
+  Status: Sound upper bound (not necessarily tight)
+
+  Witness Input (achieving worst case):
+    x = -1.0000e+06
+
+  Output at witness: -1.0000e+18
+
+========================================
+```
+
+## Using CIRE (SATIRE Frontend)
+
+For SATIRE DSL programs:
 
 ```bash
-CIRE_LLVM <path/to/llvm/ir/file> --function=<function_name> --input=<path/to/.txt/file>
+./build/CIRE program.txt --domain domain.json
 ```
 
-## Writing LLVM tests
+The SATIRE frontend uses a custom DSL for specifying computations.
+See the `_/benchmarks` directory for examples.
 
-Steps to comply to make CIRE test script work
-- The test file should have extension .ll
-- The input file should be named "test_input.txt"
-- The function argument names in the .ll and .txt file should match
-- If a there is no corresponding input file, default input values will be assumed.
+## Command-line Options
+
+### CIRE_LLVM
+
+```bash
+CIRE_LLVM <input.ll> --domain <domain.json> --function <name> [OPTIONS]
+
+Required:
+  input.ll              LLVM IR file (.ll or .bc)
+  --domain FILE         JSON file specifying input variable intervals
+  --function NAME       Name of function to analyze
+
+Optional:
+  --emit-graph         Dump computation graph as DOT file
+  --emit-expr          Dump error expression AST
+  -v, --verbose        Verbose output
+  -h, --help           Show help message
+```
+
+### CIRE
+
+```bash
+CIRE <input.txt> --domain <domain.json> [OPTIONS]
+
+Required:
+  input.txt            SATIRE source file
+  --domain FILE        JSON file specifying input variable intervals
+
+Optional:
+  --emit-graph        Dump computation graph as DOT file
+  --emit-expr         Dump error expression AST
+  -v, --verbose       Verbose output
+  -h, --help          Show help message
+```
+
+## Docker Usage
+
+See [DOCKER.md](DOCKER.md) for detailed Docker usage examples, or try the example script:
+
+```bash
+./examples/docker-example.sh
+```
+
+## Testing
+
+Run the SATIRE benchmark tests:
+
+```bash
+./test_satire_benchmarks.sh          # Normal mode (10s timeout)
+./test_satire_benchmarks.sh --fast   # Fast mode (1s timeout)
+./test_satire_benchmarks.sh --extended  # Extended mode (60s timeout)
+```

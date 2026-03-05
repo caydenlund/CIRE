@@ -13,10 +13,10 @@ This allows you to analyze C/C++ programs and LLVM IR files without installing d
 
 ## Quick Start
 
-### Pull from Registry (if published)
+### Pull from Registry
 
 ```bash
-docker pull YOUR_REGISTRY/cire:latest
+docker pull caydenlund/cire:latest
 ```
 
 ### Build Locally
@@ -155,60 +155,7 @@ Build multiple tags:
 ./docker-build.sh --tag latest
 ```
 
-### Publishing to a Container Registry
-
-#### Docker Hub
-
-1. **Authenticate**:
-
-   ```bash
-   docker login
-   ```
-
-2. **Build and push**:
-
-   ```bash
-   ./docker-build.sh \
-     --registry YOUR_DOCKERHUB_USERNAME \
-     --tag latest \
-     --push
-   ```
-
-#### Other Registries (Harbor, GitLab, AWS ECR, etc.)
-
-1. **Authenticate to your registry**:
-
-   ```bash
-   # Generic
-   docker login YOUR_REGISTRY_URL
-
-   # AWS ECR example
-   aws ecr get-login-password --region us-east-1 | \
-     docker login --username AWS --password-stdin YOUR_ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
-
-   # GitLab example
-   docker login registry.gitlab.com -u YOUR_USERNAME -p YOUR_TOKEN
-   ```
-
-2. **Build and push**:
-
-   ```bash
-   ./docker-build.sh \
-     --registry YOUR_REGISTRY_URL/YOUR_USERNAME \
-     --tag latest \
-     --push
-   ```
-
 ## Advanced Usage
-
-### Multi-Architecture Builds
-
-Build for multiple platforms (requires buildx):
-
-```bash
-docker buildx create --use
-docker buildx build --platform linux/amd64,linux/arm64 -t cire:latest --push .
-```
 
 ### Custom LLVM/IBEX Versions
 
@@ -225,16 +172,6 @@ Then rebuild:
 docker build --build-arg LLVM_VERSION=19.1.0 -t cire:llvm19 .
 ```
 
-### Optimizing Build Time
-
-Use BuildKit cache mounts:
-
-```bash
-DOCKER_BUILDKIT=1 docker build \
-  --cache-from cire:latest \
-  -t cire:latest .
-```
-
 ### Extracting Binaries
 
 To extract the compiled binaries without the full runtime:
@@ -245,32 +182,6 @@ docker create --name temp cire-builder
 docker cp temp:/workspace/cire/build/CIRE_LLVM ./
 docker cp temp:/workspace/cire/build/CIRE ./
 docker rm temp
-```
-
-## Troubleshooting
-
-### Build fails with "out of memory"
-
-Increase Docker's memory limit or reduce parallel jobs in the Dockerfile:
-
-```dockerfile
--DLLVM_PARALLEL_LINK_JOBS=1
-```
-
-### Container can't find libraries
-
-Make sure the `LD_LIBRARY_PATH` is set correctly. Check with:
-
-```bash
-docker run --rm cire:latest bash -c 'echo $LD_LIBRARY_PATH'
-```
-
-### Permission issues with mounted volumes
-
-If running on Linux, you may need to match the container user to your host user:
-
-```bash
-docker run --rm -v $(pwd):/workspace --user $(id -u):$(id -g) cire:latest ...
 ```
 
 ## Container Details
@@ -284,25 +195,3 @@ docker run --rm -v $(pwd):/workspace --user $(id -u):$(id -g) cire:latest ...
 - `llvm-dis` - LLVM disassembler
 - `opt` - LLVM optimizer
 - `llc` - LLVM static compiler
-
-### Image Size
-
-The final runtime image is approximately **500MB - 800MB** depending on the LLVM version.
-
-Multi-stage build breakdown:
-- LLVM builder: ~10GB (discarded)
-- IBEX builder: ~500MB (discarded)
-- CIRE builder: ~1GB (discarded)
-- Final runtime: ~600MB
-
-### Base Image
-
-Ubuntu 22.04 LTS (Jammy Jellyfish)
-
-## License
-
-Same as CIRE project license.
-
-## Support
-
-For issues with the Docker container, please open an issue on the CIRE repository.
