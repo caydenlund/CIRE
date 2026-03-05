@@ -5,8 +5,10 @@
 #include "optimizer/ibex_optimizer.hpp"
 #include "report/reporter.hpp"
 
+#include <cstdio>
 #include <iostream>
 #include <memory>
+#include <optional>
 
 namespace driver {
     bool run(const DriverOpts& opts, const frontend::Frontend& fe) {
@@ -21,8 +23,10 @@ namespace driver {
 
         if (opts.emitGraph) g.dumpDot(std::cout);
 
-        // 2. Load input domain
-        interval::InputDomain domain = interval::parseDomainFile(opts.domainFile);
+        // 2. Load input domain (json file or var=[l,u])
+        std::vector<std::string> inputVarNames;
+        for (const auto& [name, _] : g.inputs()) inputVarNames.push_back(name);
+        interval::InputDomain domain = interval::parseDomainArgs(opts.domainArgs, opts.defaultDomain, inputVarNames);
 
         // 3. Symbolic autodiff → error expression
         autodiff::AutodiffResult ad = autodiff::analyze(g);

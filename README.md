@@ -184,7 +184,7 @@ clang -S -emit-llvm -O1 myfile.c -o myfile.ll
 
 **Note**: Use at least `-O1` to avoid memory allocations.
 
-### Step 2: Create a domain file
+### Step 2: Create a domain file (optional)
 
 Create a JSON file specifying the input ranges for your function arguments:
 
@@ -197,9 +197,19 @@ Create a JSON file specifying the input ranges for your function arguments:
 
 ### Step 3: Run CIRE
 
+If you created a JSON file specifying the input ranges:
+
 ```bash
 ./build/CIRE_LLVM myfile.ll --domain domain.json --function myfunction
 ```
+
+Otherwise, you can supply them as command-line arguments:
+
+
+```bash
+./build/CIRE_LLVM myfile.ll --default-domain [-1e6,1e6] -d y=[0,100] --function myfunction
+```
+
 
 ### Full example
 
@@ -223,6 +233,9 @@ clang -S -emit-llvm -O0 cube.c -o cube.ll
 
 # Run CIRE
 ./build/CIRE_LLVM cube.ll --domain domain.json --function cube
+
+# Or, omitting the domain file:
+./build/CIRE_LLVM cube.ll -d x=[-1e6,1e6] --function cube
 ```
 
 ### Expected output

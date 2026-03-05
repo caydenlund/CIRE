@@ -3,11 +3,13 @@
 #include "frontend/frontend.hpp"
 
 #include <string>
+#include <vector>
 
 namespace driver {
     struct DriverOpts {
         std::string inputFile;
-        std::string domainFile;
+        std::vector<std::string> domainArgs;  // Hybrid: file, or var=[l,u]
+        std::optional<std::string> defaultDomain;
         std::string targetFunction;  // LLVM only
         bool emitGraph {false};
         bool emitExpr {false};
