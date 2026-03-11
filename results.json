@@ -1,90 +1,45 @@
 {
-  "filename": "/tmp/test_complex.ll",
-  "function": "polynomial",
+  "filename": "/tmp/test_cube.ll",
+  "function": "cube",
   "input_domains": {
-    "x": [
+    "arg_0": [
       -2.0,
       1.0
     ]
   },
   "results": {
-    "absolute_error_bound": 7.094405055138485e-15,
+    "absolute_error_bound": 1.8763568394002497e-15,
     "computation_graph": {
-      "nodes": 11,
+      "nodes": 3,
       "outputs": 1
     },
-    "error_in_ulps": 7.987589990684261,
-    "output_at_witness": -5.0,
+    "error_in_ulps": 1.0562949953421308,
+    "output_at_witness": -8.0,
     "per_instruction_errors": [
       {
-        "error_contribution": 1.7763568394002505e-15,
-        "instruction_name": "%2",
-        "instruction_type": "fmul",
-        "ir_representation": "%2 = fmul %1, %0",
-        "node_id": 2,
-        "percentage_contribution": 25.038841532083563,
-        "source_location": null
-      },
-      {
-        "error_contribution": 1.7763568394002505e-15,
-        "instruction_name": "%4",
-        "instruction_type": "fmul",
-        "ir_representation": "%4 = fmul %2, %3",
-        "node_id": 4,
-        "percentage_contribution": 25.038841532083563,
-        "source_location": null
-      },
-      {
-        "error_contribution": 1.3322676295501878e-15,
-        "instruction_name": "%6",
-        "instruction_type": "fmul",
-        "ir_representation": "%6 = fmul %1, %5",
-        "node_id": 6,
-        "percentage_contribution": 18.779131149062675,
-        "source_location": null
-      },
-      {
-        "error_contribution": 6.661338147750939e-16,
-        "instruction_name": "%8",
-        "instruction_type": "fadd",
-        "ir_representation": "%8 = fadd %7, %0",
-        "node_id": 8,
-        "percentage_contribution": 9.389565574531337,
-        "source_location": null
-      },
-      {
-        "error_contribution": 5.551115123125783e-16,
-        "instruction_name": "%10",
-        "instruction_type": "fadd",
-        "ir_representation": "%10 = fadd %8, %9",
-        "node_id": 10,
-        "percentage_contribution": 7.824637978776113,
-        "source_location": null
-      },
-      {
-        "error_contribution": 4.440892098500626e-16,
+        "error_contribution": 8.881784197001252e-16,
         "instruction_name": "%1",
         "instruction_type": "fmul",
         "ir_representation": "%1 = fmul %0, %0",
         "node_id": 1,
-        "percentage_contribution": 6.259710383020891,
+        "percentage_contribution": 47.33526166504761,
         "source_location": null
       },
       {
-        "error_contribution": 4.440892098500626e-16,
-        "instruction_name": "%7",
-        "instruction_type": "fadd",
-        "ir_representation": "%7 = fadd %4, %6",
-        "node_id": 7,
-        "percentage_contribution": 6.259710383020891,
+        "error_contribution": 8.881784197001252e-16,
+        "instruction_name": "%2",
+        "instruction_type": "fmul",
+        "ir_representation": "%2 = fmul %0, %1",
+        "node_id": 2,
+        "percentage_contribution": 47.33526166504761,
         "source_location": null
       }
     ],
-    "relative_error": 1.418881011027697e-15,
+    "relative_error": 2.345446049250312e-16,
     "status": "sound_upper_bound",
-    "ulp_at_output": 8.881784197001252e-16,
+    "ulp_at_output": 1.7763568394002505e-15,
     "witness_input": {
-      "x": -2.0
+      "arg_0": -2.0
     }
   }
 }

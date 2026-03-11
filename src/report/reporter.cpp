@@ -80,17 +80,15 @@ namespace report {
             _out << "----------------------------------------\n\n";
 
             // Print table header
-            _out << std::left << std::setw(12) << "Node"
-                 << std::setw(10) << "Type"
+            _out << std::left << std::setw(40) << "Instruction"
                  << std::right << std::setw(18) << "Error Contrib"
                  << std::setw(12) << "Percentage"
                  << "\n";
-            _out << std::string(52, '-') << "\n";
+            _out << std::string(70, '-') << "\n";
 
             // Print each instruction's error contribution
             for (const auto& inst : perInstructionErrors) {
-                _out << std::left << std::setw(12) << inst.instructionName
-                     << std::setw(10) << inst.instructionType
+                _out << std::left << std::setw(40) << inst.irRepresentation
                      << std::scientific << std::setprecision(4) << std::right << std::setw(18)
                      << inst.errorContribution
                      << std::fixed << std::setprecision(2) << std::setw(11)
