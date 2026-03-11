@@ -14,6 +14,9 @@ namespace driver {
         bool emitGraph {false};
         bool emitExpr {false};
         bool verbose {false};
+        std::string jsonOutputFile {"results.json"};
+        bool jsonToStdout {false};
+        bool showAllInstructions {false};
     };
 
     bool run(const DriverOpts& opts, const frontend::Frontend& fe);

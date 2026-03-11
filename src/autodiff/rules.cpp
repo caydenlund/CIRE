@@ -22,8 +22,8 @@ namespace autodiff::detail {
                             return {arena.makeVar(n.name), arena.makeConst(0.0)};
                         },
 
-                        [&](const graph::ConstantNode&) -> std::pair<error_expr::ExprId, error_expr::ExprId> {
-                            return {arena.makeConst(0.0), arena.makeConst(0.0)};
+                        [&](const graph::ConstantNode& n) -> std::pair<error_expr::ExprId, error_expr::ExprId> {
+                            return {arena.makeConst(n.value), arena.makeConst(0.0)};
                         },
 
                         [&](const graph::AddNode& n) -> std::pair<error_expr::ExprId, error_expr::ExprId> {

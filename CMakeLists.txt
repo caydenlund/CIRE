@@ -24,6 +24,11 @@ FetchContent_Declare(CLI11
     GIT_TAG        v2.4.1)
 FetchContent_MakeAvailable(CLI11)
 
+FetchContent_Declare(json
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(json)
+
 # ---------------------------------------------------------------
 # cire_core: everything except the two binaries and LLVM frontend
 # ---------------------------------------------------------------
@@ -43,6 +48,7 @@ add_library(cire_core STATIC
 target_include_directories(cire_core PUBLIC src/)
 target_link_libraries(cire_core PUBLIC
     CLI11::CLI11
+    nlohmann_json::nlohmann_json
     ibex
     gmp
     z

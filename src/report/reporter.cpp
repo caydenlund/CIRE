@@ -2,6 +2,9 @@
 
 #include <cmath>
 #include <iomanip>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 namespace report {
 
@@ -20,7 +23,8 @@ namespace report {
 
     void Reporter::print(const graph::ComputationGraph& graph,
                         const error_expr::ErrorExpr& expr,
-                        const optimizer::OptimizeResult& result) const {
+                        const optimizer::OptimizeResult& result,
+                        const std::vector<InstructionErrorInfo>& perInstructionErrors) const {
         _out << "========================================\n";
         _out << "CIRE Error Analysis Report\n";
         _out << "========================================\n\n";
@@ -69,7 +73,116 @@ namespace report {
             }
         }
 
+        // Print per-instruction error contributions
+        if (!perInstructionErrors.empty()) {
+            _out << "\n----------------------------------------\n";
+            _out << "Per-Instruction Error Contributions:\n";
+            _out << "----------------------------------------\n\n";
+
+            // Print table header
+            _out << std::left << std::setw(12) << "Node"
+                 << std::setw(10) << "Type"
+                 << std::right << std::setw(18) << "Error Contrib"
+                 << std::setw(12) << "Percentage"
+                 << "\n";
+            _out << std::string(52, '-') << "\n";
+
+            // Print each instruction's error contribution
+            for (const auto& inst : perInstructionErrors) {
+                _out << std::left << std::setw(12) << inst.instructionName
+                     << std::setw(10) << inst.instructionType
+                     << std::scientific << std::setprecision(4) << std::right << std::setw(18)
+                     << inst.errorContribution
+                     << std::fixed << std::setprecision(2) << std::setw(11)
+                     << inst.percentageContribution << "%"
+                     << "\n";
+            }
+
+            _out << "\nTop contributors shown. Total instructions with error: "
+                 << perInstructionErrors.size() << "\n";
+        }
+
         _out << "\n========================================\n";
+    }
+
+    void Reporter::printJSON(const JSONReportData& data) const {
+        json j;
+
+        // Basic metadata
+        j["filename"] = data.filename;
+        j["function"] = data.function;
+
+        // Input domains
+        json domains;
+        for (const auto& [varName, interval] : data.inputDomains) {
+            domains[varName] = {interval.lo, interval.hi};
+        }
+        j["input_domains"] = domains;
+
+        // Results section
+        json results;
+        results["absolute_error_bound"] = data.result.upperBound;
+
+        // Compute relative error and ULPs if we have the output value
+        if (data.result.witnessOutputValue != 0.0) {
+            double relativeError = data.result.upperBound / std::abs(data.result.witnessOutputValue);
+            double ulp = ulpAt(data.result.witnessOutputValue);
+            double ulps = data.result.upperBound / ulp;
+
+            results["relative_error"] = relativeError;
+            results["error_in_ulps"] = ulps;
+            results["ulp_at_output"] = ulp;
+        } else {
+            results["relative_error"] = nullptr;
+            results["error_in_ulps"] = nullptr;
+            results["ulp_at_output"] = nullptr;
+        }
+
+        results["status"] = data.result.provedTight ? "proved_tight" : "sound_upper_bound";
+
+        // Witness input
+        json witness;
+        for (const auto& [name, value] : data.result.witnessInputs) {
+            witness[name] = value;
+        }
+        results["witness_input"] = witness;
+        results["output_at_witness"] = data.result.witnessOutputValue;
+
+        // Computation graph info
+        json graphInfo;
+        graphInfo["nodes"] = data.graph.nodes().size();
+        graphInfo["outputs"] = data.graph.outputs().size();
+        results["computation_graph"] = graphInfo;
+
+        // Per-instruction errors
+        json instructionErrors = json::array();
+        for (const auto& instErr : data.perInstructionErrors) {
+            json inst;
+            inst["node_id"] = instErr.nodeId;
+            inst["instruction_name"] = instErr.instructionName;
+            inst["instruction_type"] = instErr.instructionType;
+            inst["error_contribution"] = instErr.errorContribution;
+            inst["percentage_contribution"] = instErr.percentageContribution;
+            inst["ir_representation"] = instErr.irRepresentation;
+
+            if (instErr.sourceLocation.has_value()) {
+                json loc;
+                loc["file"] = instErr.sourceLocation->file;
+                loc["line"] = instErr.sourceLocation->line;
+                loc["column"] = instErr.sourceLocation->col;
+                inst["source_location"] = loc;
+            } else {
+                inst["source_location"] = nullptr;
+            }
+
+            instructionErrors.push_back(inst);
+        }
+        results["per_instruction_errors"] = instructionErrors;
+
+        j["results"] = results;
+
+        // Write formatted JSON to output
+        _out << j.dump(2) << "\n";
     }
 
 }  // namespace report

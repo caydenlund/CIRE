@@ -28,6 +28,10 @@ namespace graph {
         [[nodiscard]] NodeId inputNode(const std::string& name) const;
         const std::unordered_map<std::string, NodeId>& inputs() const { return _input_index; }
 
+        // --- metadata ---
+        void setFunctionName(std::string name) { _functionName = std::move(name); }
+        const std::string& getFunctionName() const { return _functionName; }
+
         // --- validation ---
         void validate() const;
 
@@ -38,5 +42,6 @@ namespace graph {
         std::vector<Node> _nodes;
         std::vector<NodeId> _outputs;
         std::unordered_map<std::string, NodeId> _input_index;
+        std::string _functionName;
     };
 }  // namespace graph

@@ -317,6 +317,9 @@ namespace frontend::llvm_ir {
                 std::cout << "Parsing LLVM function: " << targetFunc->getName().str() << std::endl;
             }
 
+            // Store the function name in the graph
+            graph.setFunctionName(targetFunc->getName().str());
+
             // Create conversion context
             ConversionContext ctx(graph);
 

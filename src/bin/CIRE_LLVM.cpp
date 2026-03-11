@@ -14,7 +14,10 @@ int main(int argc, char** argv) {
                    "  <file>      - JSON domain file\n"
                    "  <var>=[l,u] - Domain for specific variable");
     app.add_option("--default-domain", opts.defaultDomain, "Default domain for all variables [l,u]");
-    app.add_option("--function", opts.targetFunction, "Name of function to analyze")->required();
+    app.add_option("--function", opts.targetFunction, "Name of function to analyze (inferred if omitted)");
+    app.add_option("-o,--output", opts.jsonOutputFile, "JSON output file (default: results.json)");
+    app.add_flag("--stdout", opts.jsonToStdout, "Print JSON to stdout instead of file");
+    app.add_flag("--show-all-instructions", opts.showAllInstructions, "Include zero-error instructions in JSON");
     app.add_flag("--emit-graph", opts.emitGraph, "Dump computation graph as DOT");
     app.add_flag("--emit-expr", opts.emitExpr, "Dump error expression AST");
     app.add_flag("-v,--verbose", opts.verbose, "Verbose output");
