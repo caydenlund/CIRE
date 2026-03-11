@@ -25,8 +25,7 @@ FetchContent_Declare(CLI11
 FetchContent_MakeAvailable(CLI11)
 
 FetchContent_Declare(json
-    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+    URL https://github.com/nlohmann/json/releases/download/v3.11.3/json.tar.xz)
 FetchContent_MakeAvailable(json)
 
 # ---------------------------------------------------------------
