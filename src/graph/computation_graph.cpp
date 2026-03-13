@@ -59,6 +59,11 @@ namespace graph {
         return _nodes[id];
     }
 
+    Node& ComputationGraph::getNode(NodeId id) {
+        if (id >= _nodes.size()) throw std::out_of_range("Invalid NodeId");
+        return _nodes[id];
+    }
+
     NodeId ComputationGraph::inputNode(const std::string& name) const {
         auto it = _input_index.find(name);
         if (it == _input_index.end()) throw std::runtime_error("Unknown input variable: " + name);

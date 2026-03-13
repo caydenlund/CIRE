@@ -118,9 +118,18 @@ namespace driver {
     }
 
     // Helper: Generate IR-like representation for a node
-    static std::string generateIRRepresentation(const graph::Node& node) {
+    static std::string generateIRRepresentation(const graph::Node& node, const graph::ComputationGraph& graph) {
         std::ostringstream oss;
-        oss << "%" << node.id << " = " << nodeKindToString(node.kind);
+
+        // Use LLVM instruction name if available, otherwise fall back to node ID
+        std::string nodeName = node.llvmName.empty() ? ("%" + std::to_string(node.id)) : node.llvmName;
+        oss << nodeName << " = " << nodeKindToString(node.kind);
+
+        // Helper lambda to get name for a node ID
+        auto getNodeName = [&](graph::NodeId id) -> std::string {
+            const auto& n = graph.getNode(id);
+            return n.llvmName.empty() ? ("%" + std::to_string(id)) : n.llvmName;
+        };
 
         // Add operand information
         std::visit(
@@ -137,7 +146,7 @@ namespace driver {
                                    std::is_same_v<T, graph::MulNode> ||
                                    std::is_same_v<T, graph::DivNode> ||
                                    std::is_same_v<T, graph::PowNode>) {
-                    oss << " %" << n.lhs << ", %" << n.rhs;
+                    oss << " " << getNodeName(n.lhs) << ", " << getNodeName(n.rhs);
                 }
                 else if constexpr (std::is_same_v<T, graph::NegNode> ||
                                    std::is_same_v<T, graph::SqrtNode> ||
@@ -147,10 +156,10 @@ namespace driver {
                                    std::is_same_v<T, graph::TanNode> ||
                                    std::is_same_v<T, graph::ExpNode> ||
                                    std::is_same_v<T, graph::LogNode>) {
-                    oss << " %" << n.src;
+                    oss << " " << getNodeName(n.src);
                 }
                 else if constexpr (std::is_same_v<T, graph::FmaNode>) {
-                    oss << " %" << n.a << ", %" << n.b << ", %" << n.c;
+                    oss << " " << getNodeName(n.a) << ", " << getNodeName(n.b) << ", " << getNodeName(n.c);
                 }
             },
             node.kind);
@@ -295,11 +304,13 @@ namespace driver {
                 // Build instruction error info
                 report::InstructionErrorInfo info;
                 info.nodeId = node.id;
-                info.instructionName = "%" + std::to_string(node.id);
+                // Use LLVM name if available, otherwise use node ID
+                info.instructionName = node.llvmName.empty() ? ("%" + std::to_string(node.id)) : node.llvmName;
                 info.instructionType = nodeKindToString(node.kind);
                 info.errorContribution = errorContribution;
                 info.percentageContribution = percentage;
-                info.irRepresentation = generateIRRepresentation(node);
+                // Use actual LLVM IR if available, otherwise generate synthetic representation
+                info.irRepresentation = node.llvmIR.empty() ? generateIRRepresentation(node, g) : node.llvmIR;
                 info.sourceLocation = node.loc;
 
                 perInstructionErrors.push_back(info);

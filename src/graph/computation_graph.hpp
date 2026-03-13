@@ -20,6 +20,7 @@ namespace graph {
 
         // --- querying ---
         const Node& getNode(NodeId id) const;
+        Node& getNode(NodeId id);  // Mutable accessor
         std::vector<NodeId> children(NodeId id) const;
         std::vector<NodeId> topoOrder() const;
         const std::vector<Node>& nodes() const { return _nodes; }

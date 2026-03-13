@@ -132,6 +132,8 @@ namespace graph {
         FloatPrec prec;
         Shape shape;
         std::optional<DebugLoc> loc;
+        std::string llvmName;  // Original LLVM instruction name (e.g., "%mul", "%add")
+        std::string llvmIR;    // Full LLVM IR string (e.g., "%mul = fmul double %x, %x")
     };
 
     /// Utility for std::visit with multiple lambdas

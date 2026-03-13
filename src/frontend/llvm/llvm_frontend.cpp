@@ -6,12 +6,16 @@
 #include "graph/node.hpp"
 
 #include <llvm/IR/Constants.h>
+#include <llvm/IR/DebugInfoMetadata.h>
+#include <llvm/IR/DebugLoc.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/Module.h>
+#include <llvm/IR/ModuleSlotTracker.h>
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include <iostream>
 #include <map>
@@ -58,12 +62,49 @@ namespace frontend::llvm_ir {
         }
     }
 
+    // Helper function to extract debug location from LLVM instruction
+    static std::optional<graph::DebugLoc> extractDebugLoc(llvm::Instruction* inst) {
+        if (!inst) return std::nullopt;
+
+        const llvm::DebugLoc& debugLoc = inst->getDebugLoc();
+        if (!debugLoc) return std::nullopt;
+
+        graph::DebugLoc loc;
+        loc.line = debugLoc.getLine();
+        loc.col = debugLoc.getCol();
+
+        if (auto* scope = llvm::dyn_cast_or_null<llvm::DIScope>(debugLoc.getScope())) {
+            loc.file = scope->getFilename().str();
+        }
+
+        return loc;
+    }
+
+    // Helper function to extract LLVM IR string representation
+    static std::string extractIRString(llvm::Instruction* inst, llvm::Module* module) {
+        if (!inst) return "";
+
+        std::string str;
+        llvm::raw_string_ostream rso(str);
+
+        // Use ModuleSlotTracker to preserve original SSA names
+        if (module) {
+            llvm::ModuleSlotTracker MST(module, true);
+            inst->print(rso, MST);
+        } else {
+            inst->print(rso);
+        }
+
+        return rso.str();
+    }
+
     // Helper class to manage the conversion context
     struct ConversionContext {
         graph::ComputationGraph& graph;
+        llvm::Module* module;  // Module for extracting IR strings
         std::map<llvm::Value*, graph::NodeId> valueMap;  // Map LLVM values to graph nodes
 
-        explicit ConversionContext(graph::ComputationGraph& g) : graph(g) {}
+        ConversionContext(graph::ComputationGraph& g, llvm::Module* m) : graph(g), module(m) {}
     };
 
     // Get or create node for LLVM value
@@ -273,10 +314,35 @@ namespace frontend::llvm_ir {
             // Map the instruction to the created node
             ctx.valueMap[&inst] = nodeId;
 
-            // If instruction has a name, we could track it (optional)
-            if (!inst.getName().empty()) {
-                // Could add to a symbol table here if needed
+            // Store LLVM instruction metadata
+            auto& node = ctx.graph.getNode(nodeId);
+
+            // Extract full LLVM IR representation first
+            node.llvmIR = extractIRString(&inst, ctx.module);
+
+            // Get instruction name (e.g., "%mul", "%add")
+            std::string instName = inst.getName().str();
+            if (!instName.empty()) {
+                node.llvmName = "%" + instName;
+            } else if (!node.llvmIR.empty()) {
+                // For unnamed instructions, extract the name from the IR string
+                // IR format is typically "  %0 = instruction ..." or "  %123 = ..."
+                size_t percentPos = node.llvmIR.find('%');
+                if (percentPos != std::string::npos) {
+                    size_t equalPos = node.llvmIR.find('=', percentPos);
+                    if (equalPos != std::string::npos) {
+                        std::string extractedName = node.llvmIR.substr(percentPos, equalPos - percentPos);
+                        // Trim whitespace
+                        size_t lastNonSpace = extractedName.find_last_not_of(" \t");
+                        if (lastNonSpace != std::string::npos) {
+                            node.llvmName = extractedName.substr(0, lastNonSpace + 1);
+                        }
+                    }
+                }
             }
+
+            // Extract debug location if available
+            node.loc = extractDebugLoc(&inst);
         }
     }
 
@@ -321,7 +387,7 @@ namespace frontend::llvm_ir {
             graph.setFunctionName(targetFunc->getName().str());
 
             // Create conversion context
-            ConversionContext ctx(graph);
+            ConversionContext ctx(graph, module.get());
 
             // Parse inputs (function arguments)
             parseInputs(*targetFunc, ctx);
