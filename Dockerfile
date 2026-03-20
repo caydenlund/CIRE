@@ -27,8 +27,8 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /build
 
-# LLVM version to build
-ARG LLVM_VERSION=18.1.8
+# LLVM version to build (matches FPChecker requirement)
+ARG LLVM_VERSION=19.1.7
 
 # Download and extract LLVM
 RUN wget https://github.com/llvm/llvm-project/releases/download/llvmorg-${LLVM_VERSION}/llvm-project-${LLVM_VERSION}.src.tar.xz && \
@@ -166,8 +166,12 @@ COPY --from=llvm-builder /opt/llvm/bin/llvm-dis /usr/local/bin/
 COPY --from=llvm-builder /opt/llvm/bin/opt /usr/local/bin/
 COPY --from=llvm-builder /opt/llvm/bin/llc /usr/local/bin/
 
-# Copy LLVM libraries (needed for runtime)
+# Copy LLVM libraries and resource directory (needed for runtime and clang headers)
 COPY --from=llvm-builder /opt/llvm/lib /opt/llvm/lib
+
+# Create symlink for clang resource directory so clang can find builtin headers
+RUN mkdir -p /usr/local/lib && \
+    ln -s /opt/llvm/lib/clang /usr/local/lib/clang
 
 # Copy IBEX runtime libraries
 COPY --from=ibex-builder /opt/ibex/lib /opt/ibex/lib
