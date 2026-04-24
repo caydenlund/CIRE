@@ -8,7 +8,7 @@
 
 namespace optimizer {
     struct OptimizerOpts {
-        double timeoutSeconds {300.0};
+        double timeoutSeconds {30.0};
         double relTolerance {1e-6};
         bool verbose {false};
     };

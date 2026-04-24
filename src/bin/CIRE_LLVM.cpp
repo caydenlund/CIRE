@@ -20,6 +20,7 @@ int main(int argc, char** argv) {
     app.add_flag("--show-all-instructions", opts.showAllInstructions, "Include zero-error instructions in JSON");
     app.add_flag("--emit-graph", opts.emitGraph, "Dump computation graph as DOT");
     app.add_flag("--emit-expr", opts.emitExpr, "Dump error expression AST");
+    app.add_option("-t,--timeout", opts.timeoutSeconds, "Optimizer timeout in seconds (default: 30)");
     app.add_flag("-v,--verbose", opts.verbose, "Verbose output");
 
     CLI11_PARSE(app, argc, argv);

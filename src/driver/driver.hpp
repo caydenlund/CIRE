@@ -17,6 +17,7 @@ namespace driver {
         std::string jsonOutputFile {"results.json"};
         bool jsonToStdout {false};
         bool showAllInstructions {false};
+        double timeoutSeconds {30.0};
     };
 
     bool run(const DriverOpts& opts, const frontend::Frontend& fe);

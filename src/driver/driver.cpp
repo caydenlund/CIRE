@@ -192,7 +192,10 @@ namespace driver {
         // 4. Select optimizer
         std::unique_ptr<optimizer::Optimizer> opt = std::make_unique<optimizer::IbexOptimizer>();
 
-        optimizer::OptimizerOpts oopts {.verbose = opts.verbose};
+        optimizer::OptimizerOpts oopts {
+            .timeoutSeconds = opts.timeoutSeconds,
+            .verbose = opts.verbose
+        };
         optimizer::OptimizeResult result = opt->maximize(ad.expr, domain, g, ad.symbolicVal, oopts);
 
         // 5. Compute per-node error contributions
