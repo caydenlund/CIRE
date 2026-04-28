@@ -18,15 +18,13 @@ The easiest way to use CIRE is with Docker:
 
 ```bash
 # Build the Docker image
-./docker-build.sh
+docker build -t cire .
 
 # Run on a C file
-docker run --rm -v $(pwd):/workspace cire:latest bash -c \
+docker run --rm -v $(pwd):/workspace cire bash -c \
   "clang -S -emit-llvm -O0 myfile.c -o myfile.ll && \
    CIRE_LLVM myfile.ll --domain domain.json --function myfunction"
 ```
-
-See [DOCKER.md](DOCKER.md) for detailed Docker usage and publishing instructions.
 
 ## Build Dependencies
 
@@ -109,7 +107,7 @@ sudo make install
 The easiest way to build CIRE with all dependencies:
 
 ```bash
-./docker-build.sh
+docker build -t cire .
 ```
 
 This builds CIRE, LLVM, and IBEX in a multi-stage Docker container.
@@ -118,8 +116,6 @@ The final image (~600MB) includes:
 - `CIRE_LLVM` - LLVM IR frontend
 - `clang` - C/C++ compiler
 - LLVM tools (`llvm-dis`, `opt`, etc.)
-
-See [DOCKER.md](DOCKER.md) for advanced Docker usage, publishing, and troubleshooting.
 
 ## Manual Build
 
@@ -313,18 +309,11 @@ Optional:
 
 ## Docker Usage
 
-See [DOCKER.md](DOCKER.md) for detailed Docker usage examples, or try the example script:
+After building the Docker image, you can run CIRE on your files by mounting your workspace:
 
 ```bash
-./examples/docker-example.sh
-```
-
-## Testing
-
-Run the SATIRE benchmark tests:
-
-```bash
-./test_satire_benchmarks.sh          # Normal mode (10s timeout)
-./test_satire_benchmarks.sh --fast   # Fast mode (1s timeout)
-./test_satire_benchmarks.sh --extended  # Extended mode (60s timeout)
+# Example: Analyze a C function
+docker run --rm -v $(pwd):/workspace cire bash -c \
+  "clang -S -emit-llvm -O1 myfile.c -o myfile.ll && \
+   CIRE_LLVM myfile.ll -d x=[-1e6,1e6] --function myfunction"
 ```

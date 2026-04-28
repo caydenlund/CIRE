@@ -1,1 +1,0 @@
-The benchmark script runs the fpbench benchmarks and is useful to test whether CIRE is in working condition.
