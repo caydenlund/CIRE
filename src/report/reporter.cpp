@@ -40,18 +40,20 @@ namespace report {
              << result.upperBound << "\n";
 
         // Compute and print relative error and ULPs if we have the output value
-        if (result.witnessOutputValue != 0.0) {
-            double relativeError = result.upperBound / std::abs(result.witnessOutputValue);
-            double ulp = ulpAt(result.witnessOutputValue);
-            double ulps = result.upperBound / ulp;
+        // TODO: Handle this
+        // if (result.witnessOutputValue != 0.0) {
+        //     double relativeError = result.upperBound / std::abs(result.witnessOutputValue);
+        //     double ulp = ulpAt(result.witnessOutputValue);
+        //     double ulps = result.upperBound / ulp;
 
-            _out << "  Relative Error: " << std::scientific << std::setprecision(3)
-                 << relativeError << "\n";
-            _out << "  Error in ULPs: " << std::fixed << std::setprecision(2)
-                 << ulps << "\n";
-            _out << "  (1 ULP at output ≈ " << std::scientific << std::setprecision(3)
-                 << ulp << ")\n";
-        }
+        //     _out << "  Relative Error: " << std::scientific << std::setprecision(3)
+        //          << relativeError << "\n";
+        //     _out << "  Error in ULPs: " << std::fixed << std::setprecision(2)
+        //          << ulps << "\n";
+        //     _out << "  (1 ULP at output ≈ " << std::scientific << std::setprecision(3)
+        //          << ulp << ")\n";
+        //     _out << "  NOTE: Relative + ULPs are based purely on witness output\n";
+        // }
 
         if (result.provedTight) {
             _out << "\n  Status: Proved tight\n";
@@ -122,19 +124,20 @@ namespace report {
         results["absolute_error_bound"] = data.result.upperBound;
 
         // Compute relative error and ULPs if we have the output value
-        if (data.result.witnessOutputValue != 0.0) {
-            double relativeError = data.result.upperBound / std::abs(data.result.witnessOutputValue);
-            double ulp = ulpAt(data.result.witnessOutputValue);
-            double ulps = data.result.upperBound / ulp;
+        // TODO: Handle this
+        // if (data.result.witnessOutputValue != 0.0) {
+        //     double relativeError = data.result.upperBound / std::abs(data.result.witnessOutputValue);
+        //     double ulp = ulpAt(data.result.witnessOutputValue);
+        //     double ulps = data.result.upperBound / ulp;
 
-            results["relative_error"] = relativeError;
-            results["error_in_ulps"] = ulps;
-            results["ulp_at_output"] = ulp;
-        } else {
-            results["relative_error"] = nullptr;
-            results["error_in_ulps"] = nullptr;
-            results["ulp_at_output"] = nullptr;
-        }
+        //     results["relative_error"] = relativeError;
+        //     results["error_in_ulps"] = ulps;
+        //     results["ulp_at_output"] = ulp;
+        // } else {
+        //     results["relative_error"] = nullptr;
+        //     results["error_in_ulps"] = nullptr;
+        //     results["ulp_at_output"] = nullptr;
+        // }
 
         results["status"] = data.result.provedTight ? "proved_tight" : "sound_upper_bound";
 
