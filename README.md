@@ -68,7 +68,7 @@ cd ibex-2.8.9
 ./waf install
 ```
 
-**In case the waflib configuration fails** for some reason, you may need to install one or more of the libraries listed below, 
+**In case the waflib configuration fails** for some reason, you may need to install one or more of the libraries listed below,
 that are archived in IBEX, manually and use the CMake build instead:
 * Mathlib
 * GAOL
@@ -286,7 +286,7 @@ Required:
 
 Optional:
   --detailed           Print computation expression and IBEX optimization details
-  --emit-graph         Dump computation graph as DOT file
+  --output-graph FILE  Write annotated computation graph DOT file
   --emit-expr          Dump error expression AST
   -v, --verbose        Verbose output
   -h, --help           Show help message
@@ -303,7 +303,7 @@ Required:
 
 Optional:
   --detailed          Print computation expression and IBEX optimization details
-  --emit-graph        Dump computation graph as DOT file
+  --output-graph FILE  Write annotated computation graph DOT file
   --emit-expr         Dump error expression AST
   -v, --verbose       Verbose output
   -h, --help          Show help message

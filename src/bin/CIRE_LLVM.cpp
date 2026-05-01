@@ -19,7 +19,8 @@ int main(int argc, char** argv) {
     app.add_flag("--stdout", opts.jsonToStdout, "Print JSON to stdout instead of file");
     app.add_flag("--show-all-instructions", opts.showAllInstructions, "Include zero-error instructions in JSON");
     app.add_flag("--detailed", opts.detailed, "Print computation expression and IBEX optimization details");
-    app.add_flag("--emit-graph", opts.emitGraph, "Dump computation graph as DOT");
+    app.add_option("--output-graph", opts.outputGraphFile,
+                   "Write annotated computation graph as DOT to the given file");
     app.add_flag("--emit-expr", opts.emitExpr, "Dump error expression AST");
     app.add_option("-t,--timeout", opts.timeoutSeconds, "Optimizer timeout in seconds (default: 30)");
     app.add_flag("-v,--verbose", opts.verbose, "Verbose output");
