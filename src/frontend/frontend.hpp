@@ -8,7 +8,6 @@
 namespace frontend {
     struct FrontendOpts {
         bool verbose {false};
-        bool emitGraph {false};
         std::string targetFunction;  // LLVM only
     };
 

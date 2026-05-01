@@ -2,6 +2,7 @@
 
 #include "frontend/frontend.hpp"
 
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -11,7 +12,7 @@ namespace driver {
         std::vector<std::string> domainArgs;  // Hybrid: file, or var=[l,u]
         std::optional<std::string> defaultDomain;
         std::string targetFunction;  // LLVM only
-        bool emitGraph {false};
+        std::string outputGraphFile;
         bool emitExpr {false};
         bool verbose {false};
         std::string jsonOutputFile {"results.json"};

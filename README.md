@@ -285,7 +285,7 @@ Required:
   --function NAME       Name of function to analyze
 
 Optional:
-  --emit-graph         Dump computation graph as DOT file
+  --output-graph FILE  Write annotated computation graph DOT file
   --emit-expr          Dump error expression AST
   -v, --verbose        Verbose output
   -h, --help           Show help message
@@ -301,7 +301,7 @@ Required:
   --domain FILE        JSON file specifying input variable intervals
 
 Optional:
-  --emit-graph        Dump computation graph as DOT file
+  --output-graph FILE  Write annotated computation graph DOT file
   --emit-expr         Dump error expression AST
   -v, --verbose       Verbose output
   -h, --help          Show help message
