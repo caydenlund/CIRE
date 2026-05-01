@@ -2,10 +2,33 @@
 #include "graph/node.hpp"
 
 #include <cmath>
+#include <iomanip>
 #include <iostream>
+#include <sstream>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace optimizer {
+    namespace {
+        std::string formatOptionValue(double value) {
+            std::ostringstream oss;
+            oss << std::scientific << std::setprecision(10) << value;
+            return oss.str();
+        }
+
+        std::string formatOptionValue(bool value) {
+            return value ? "true" : "false";
+        }
+
+        std::string formatOptionValue(int value) {
+            return std::to_string(value);
+        }
+
+        void addOption(std::vector<OptimizerOption>& options, std::string name, std::string value) {
+            options.push_back(OptimizerOption{std::move(name), std::move(value)});
+        }
+    }
 
     void IbexOptimizer::setupSymbols(ConversionContext& ctx) const {
         // Collect all free variables and error variables from the expression
@@ -264,7 +287,11 @@ namespace optimizer {
         }
 
         // Add goal: maximize f(x) = minimize -f(x)
-        factory.add_goal(-ibexExpr);
+        const ibex::ExprNode& ibexGoalExpr = -ibexExpr;
+        factory.add_goal(ibexGoalExpr);
+
+        std::ostringstream expression;
+        expression << ibexGoalExpr;
 
         // Create system
         ibex::System system(factory);
@@ -309,7 +336,7 @@ namespace optimizer {
             ibex::NormalizedSystem::default_eps_h,     // constraint tolerance: 1e-8
             false,  // rigor (rigorous mode disabled for performance)
             ibex::DefaultOptimizerConfig::default_inHC4,
-            false,  // in_HC4_flag
+            false,  // kkt
             ibex::DefaultOptimizerConfig::default_random_seed,
             ibex::OptimizerConfig::default_eps_x
         );
@@ -322,6 +349,21 @@ namespace optimizer {
         // Create and run optimizer
         ibex::Optimizer opt(optConfig);
 
+        std::vector<OptimizerOption> optimizerOptions;
+        addOption(optimizerOptions, "rel_eps_f", formatOptionValue(optConfig.get_rel_eps_f()));
+        addOption(optimizerOptions, "abs_eps_f", formatOptionValue(optConfig.get_abs_eps_f()));
+        addOption(optimizerOptions, "eps_h", formatOptionValue(optConfig.get_eps_h()));
+        addOption(optimizerOptions, "rigor", formatOptionValue(optConfig.with_rigor()));
+        addOption(optimizerOptions, "inHC4", formatOptionValue(optConfig.with_inHC4()));
+        addOption(optimizerOptions, "kkt", formatOptionValue(optConfig.with_kkt()));
+        addOption(optimizerOptions, "random_seed", formatOptionValue(optConfig.get_random_seed()));
+        addOption(optimizerOptions, "eps_x", formatOptionValue(optConfig.get_eps_x()));
+        addOption(optimizerOptions, "timeout", formatOptionValue(optConfig.get_timeout()));
+        addOption(optimizerOptions, "trace", formatOptionValue(optConfig.get_trace()));
+        addOption(optimizerOptions, "extended_cov", formatOptionValue(optConfig.with_extended_cov()));
+        addOption(optimizerOptions, "anticipated_upper_bounding",
+                  formatOptionValue(optConfig.with_anticipated_upper_bounding()));
+
         if (opts.verbose) {
             std::cout << "Running IBEX optimizer..." << std::endl;
             std::cout << "  Variables: " << ctx.symbols.size() << std::endl;
@@ -332,6 +374,9 @@ namespace optimizer {
 
         // Extract results
         OptimizeResult result;
+        result.optimizerName = "ibex";
+        result.optimizationExpression = expression.str();
+        result.optimizerOptions = std::move(optimizerOptions);
 
         switch (opt.get_status()) {
             case ibex::Optimizer::SUCCESS:

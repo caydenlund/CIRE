@@ -360,7 +360,7 @@ namespace driver {
 
             // Also print text report to stdout
             report::Reporter textReporter(std::cout);
-            textReporter.print(g, ad.expr, result, perInstructionErrors);
+            textReporter.print(g, ad.expr, result, perInstructionErrors, opts.detailed);
         }
 
         return true;

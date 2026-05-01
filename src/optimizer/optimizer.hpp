@@ -5,6 +5,7 @@
 
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 namespace optimizer {
     struct OptimizerOpts {
@@ -13,11 +14,19 @@ namespace optimizer {
         bool verbose {false};
     };
 
+    struct OptimizerOption {
+        std::string name;
+        std::string value;
+    };
+
     struct OptimizeResult {
         double upperBound;
         std::unordered_map<std::string, double> witnessInputs;
         bool provedTight {false};
         double witnessOutputValue {0.0};  // Value of output at witness point
+        std::string optimizerName;
+        std::string optimizationExpression;
+        std::vector<OptimizerOption> optimizerOptions;
     };
 
     class Optimizer {

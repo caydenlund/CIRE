@@ -3,10 +3,165 @@
 #include <cmath>
 #include <iomanip>
 #include <nlohmann/json.hpp>
+#include <sstream>
+#include <unordered_map>
 
 using json = nlohmann::json;
 
 namespace report {
+    namespace {
+        std::string floatPrecToString(graph::FloatPrec prec) {
+            switch (prec) {
+                case graph::FloatPrec::F16: return "f16";
+                case graph::FloatPrec::BF16: return "bf16";
+                case graph::FloatPrec::F32: return "f32";
+                case graph::FloatPrec::F64: return "f64";
+                case graph::FloatPrec::F128: return "f128";
+            }
+            return "unknown";
+        }
+
+        std::string formatConstant(double value) {
+            std::ostringstream oss;
+            oss << std::setprecision(17) << value;
+            return oss.str();
+        }
+
+        std::string parenthesizeBinary(const std::string& lhs, const std::string& op, const std::string& rhs) {
+            return "(" + lhs + " " + op + " " + rhs + ")";
+        }
+
+        std::string formatFunctionCall(const std::string& name, const std::string& arg) {
+            return name + "(" + arg + ")";
+        }
+
+        std::string formatComputationExpression(
+                graph::NodeId id,
+                const graph::ComputationGraph& graph,
+                std::unordered_map<graph::NodeId, std::string>& cache) {
+            auto cached = cache.find(id);
+            if (cached != cache.end()) {
+                return cached->second;
+            }
+
+            const graph::Node& node = graph.getNode(id);
+            std::string expression = std::visit(
+                graph::Overloaded{
+                    [](const graph::InputVarNode& n) {
+                        return n.name;
+                    },
+                    [](const graph::ConstantNode& n) {
+                        return formatConstant(n.value);
+                    },
+                    [&](const graph::AddNode& n) {
+                        return parenthesizeBinary(formatComputationExpression(n.lhs, graph, cache), "+",
+                                                  formatComputationExpression(n.rhs, graph, cache));
+                    },
+                    [&](const graph::SubNode& n) {
+                        return parenthesizeBinary(formatComputationExpression(n.lhs, graph, cache), "-",
+                                                  formatComputationExpression(n.rhs, graph, cache));
+                    },
+                    [&](const graph::MulNode& n) {
+                        return parenthesizeBinary(formatComputationExpression(n.lhs, graph, cache), "*",
+                                                  formatComputationExpression(n.rhs, graph, cache));
+                    },
+                    [&](const graph::DivNode& n) {
+                        return parenthesizeBinary(formatComputationExpression(n.lhs, graph, cache), "/",
+                                                  formatComputationExpression(n.rhs, graph, cache));
+                    },
+                    [&](const graph::PowNode& n) {
+                        return "pow(" + formatComputationExpression(n.lhs, graph, cache) + ", " +
+                               formatComputationExpression(n.rhs, graph, cache) + ")";
+                    },
+                    [&](const graph::NegNode& n) {
+                        return "(-" + formatComputationExpression(n.src, graph, cache) + ")";
+                    },
+                    [&](const graph::SqrtNode& n) {
+                        return formatFunctionCall("sqrt", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::AbsNode& n) {
+                        return formatFunctionCall("abs", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::SinNode& n) {
+                        return formatFunctionCall("sin", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::CosNode& n) {
+                        return formatFunctionCall("cos", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::TanNode& n) {
+                        return formatFunctionCall("tan", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::AsinNode& n) {
+                        return formatFunctionCall("asin", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::AcosNode& n) {
+                        return formatFunctionCall("acos", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::AtanNode& n) {
+                        return formatFunctionCall("atan", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::SinhNode& n) {
+                        return formatFunctionCall("sinh", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::CoshNode& n) {
+                        return formatFunctionCall("cosh", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::TanhNode& n) {
+                        return formatFunctionCall("tanh", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::ExpNode& n) {
+                        return formatFunctionCall("exp", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::LogNode& n) {
+                        return formatFunctionCall("log", formatComputationExpression(n.src, graph, cache));
+                    },
+                    [&](const graph::CastNode& n) {
+                        return "cast_" + floatPrecToString(n.from) + "_to_" + floatPrecToString(n.to) + "(" +
+                               formatComputationExpression(n.src, graph, cache) + ")";
+                    },
+                    [&](const graph::FmaNode& n) {
+                        return "fma(" + formatComputationExpression(n.a, graph, cache) + ", " +
+                               formatComputationExpression(n.b, graph, cache) + ", " +
+                               formatComputationExpression(n.c, graph, cache) + ")";
+                    },
+                    [&](const graph::ReduceSumNode& n) {
+                        std::string expr = "reduce_sum(" + formatComputationExpression(n.src, graph, cache);
+                        if (n.axis.has_value()) {
+                            expr += ", axis=" + std::to_string(*n.axis);
+                        }
+                        expr += ")";
+                        return expr;
+                    },
+                },
+                node.kind);
+
+            cache[id] = expression;
+            return expression;
+        }
+
+        std::string formatComputationExpression(const graph::ComputationGraph& graph) {
+            if (graph.outputs().empty()) {
+                return "";
+            }
+
+            std::unordered_map<graph::NodeId, std::string> cache;
+
+            if (graph.outputs().size() == 1) {
+                return formatComputationExpression(graph.outputs().front(), graph, cache);
+            }
+
+            std::ostringstream oss;
+            oss << "(";
+            for (std::size_t i = 0; i < graph.outputs().size(); ++i) {
+                if (i > 0) {
+                    oss << ", ";
+                }
+                oss << formatComputationExpression(graph.outputs()[i], graph, cache);
+            }
+            oss << ")";
+            return oss.str();
+        }
+    }
 
     // Helper function to compute ULP at a given magnitude
     static double ulpAt(double value) {
@@ -24,7 +179,8 @@ namespace report {
     void Reporter::print(const graph::ComputationGraph& graph,
                         const error_expr::ErrorExpr& expr,
                         const optimizer::OptimizeResult& result,
-                        const std::vector<InstructionErrorInfo>& perInstructionErrors) const {
+                        const std::vector<InstructionErrorInfo>& perInstructionErrors,
+                        bool detailed) const {
         _out << "========================================\n";
         _out << "CIRE Error Analysis Report\n";
         _out << "========================================\n\n";
@@ -75,6 +231,11 @@ namespace report {
             }
         }
 
+        if (detailed) {
+            printComputationExpression(graph);
+            printOptimizerDetails(result);
+        }
+
         // Print per-instruction error contributions
         if (!perInstructionErrors.empty()) {
             _out << "\n----------------------------------------\n";
@@ -103,6 +264,27 @@ namespace report {
         }
 
         _out << "\n========================================\n";
+    }
+
+    void Reporter::printComputationExpression(const graph::ComputationGraph& graph) const {
+        _out << "\nComputation Expression:\n";
+        const std::string expression = formatComputationExpression(graph);
+        _out << "  " << (expression.empty() ? "<none>" : expression) << "\n";
+    }
+
+    void Reporter::printOptimizerDetails(const optimizer::OptimizeResult& result) const {
+        _out << "\nIBEX Optimization Details:\n";
+        _out << "  Goal expression:\n";
+        _out << "    "
+             << (result.optimizationExpression.empty() ? "<unavailable>" : result.optimizationExpression)
+             << "\n";
+        _out << "  Options:\n";
+        for (const auto& option : result.optimizerOptions) {
+            _out << "    " << option.name << " = " << option.value << "\n";
+        }
+        if (result.optimizerOptions.empty()) {
+            _out << "    <none recorded>\n";
+        }
     }
 
     void Reporter::printJSON(const JSONReportData& data) const {
@@ -140,6 +322,22 @@ namespace report {
         // }
 
         results["status"] = data.result.provedTight ? "proved_tight" : "sound_upper_bound";
+
+        results["computation_expression"] = formatComputationExpression(data.graph);
+
+        json optimizerInfo;
+        optimizerInfo["name"] = data.result.optimizerName;
+        optimizerInfo["optimization_expression"] = data.result.optimizationExpression;
+
+        json optimizerOptions = json::array();
+        for (const auto& option : data.result.optimizerOptions) {
+            json optionInfo;
+            optionInfo["name"] = option.name;
+            optionInfo["value"] = option.value;
+            optimizerOptions.push_back(optionInfo);
+        }
+        optimizerInfo["options"] = optimizerOptions;
+        results["optimizer"] = optimizerInfo;
 
         // Witness input
         json witness;

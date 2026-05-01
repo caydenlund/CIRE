@@ -285,6 +285,7 @@ Required:
   --function NAME       Name of function to analyze
 
 Optional:
+  --detailed           Print computation expression and IBEX optimization details
   --emit-graph         Dump computation graph as DOT file
   --emit-expr          Dump error expression AST
   -v, --verbose        Verbose output
@@ -301,6 +302,7 @@ Required:
   --domain FILE        JSON file specifying input variable intervals
 
 Optional:
+  --detailed          Print computation expression and IBEX optimization details
   --emit-graph        Dump computation graph as DOT file
   --emit-expr         Dump error expression AST
   -v, --verbose       Verbose output
