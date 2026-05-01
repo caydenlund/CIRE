@@ -1,5 +1,6 @@
 #include "reporter.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <nlohmann/json.hpp>
@@ -180,7 +181,8 @@ namespace report {
                         const error_expr::ErrorExpr& expr,
                         const optimizer::OptimizeResult& result,
                         const std::vector<InstructionErrorInfo>& perInstructionErrors,
-                        bool detailed) const {
+                        bool detailed,
+                        const interval::InputDomain& inputDomains) const {
         _out << "========================================\n";
         _out << "CIRE Error Analysis Report\n";
         _out << "========================================\n\n";
@@ -215,6 +217,45 @@ namespace report {
             _out << "\n  Status: Proved tight\n";
         } else {
             _out << "\n  Status: Sound upper bound (not necessarily tight)\n";
+        }
+
+        // Print input domains in frontend input order, if available.
+        if (!inputDomains.empty()) {
+            _out << "\n  Input Domains:\n";
+
+            std::vector<std::pair<graph::NodeId, std::string>> orderedInputs;
+            orderedInputs.reserve(graph.inputs().size());
+            for (const auto& [name, nodeId] : graph.inputs()) {
+                if (inputDomains.find(name) != inputDomains.end()) {
+                    orderedInputs.emplace_back(nodeId, name);
+                }
+            }
+            std::sort(orderedInputs.begin(), orderedInputs.end(),
+                      [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+
+            std::vector<std::string> printedNames;
+            printedNames.reserve(inputDomains.size());
+
+            for (const auto& [_, name] : orderedInputs) {
+                const interval::Interval& interval = inputDomains.at(name);
+                printedNames.push_back(name);
+                _out << "    " << name << " = [" << std::scientific << std::setprecision(10)
+                     << interval.lo << ", " << interval.hi << "]\n";
+            }
+
+            std::vector<std::pair<std::string, interval::Interval>> extraDomains;
+            for (const auto& [name, interval] : inputDomains) {
+                if (std::find(printedNames.begin(), printedNames.end(), name) == printedNames.end()) {
+                    extraDomains.emplace_back(name, interval);
+                }
+            }
+            std::sort(extraDomains.begin(), extraDomains.end(),
+                      [](const auto& lhs, const auto& rhs) { return lhs.first < rhs.first; });
+
+            for (const auto& [name, interval] : extraDomains) {
+                _out << "    " << name << " = [" << std::scientific << std::setprecision(10)
+                     << interval.lo << ", " << interval.hi << "]\n";
+            }
         }
 
         // Print witness inputs if available

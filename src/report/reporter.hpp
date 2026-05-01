@@ -35,7 +35,8 @@ namespace report {
         void print(const graph::ComputationGraph& graph, const error_expr::ErrorExpr& expr,
                    const optimizer::OptimizeResult& result,
                    const std::vector<InstructionErrorInfo>& perInstructionErrors = {},
-                   bool detailed = false) const;
+                   bool detailed = false,
+                   const interval::InputDomain& inputDomains = interval::InputDomain {}) const;
 
         void printOptimizerDetails(const optimizer::OptimizeResult& result) const;
         void printComputationExpression(const graph::ComputationGraph& graph) const;
