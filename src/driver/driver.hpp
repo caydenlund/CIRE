@@ -13,7 +13,6 @@ namespace driver {
         std::optional<std::string> defaultDomain;
         std::string targetFunction;  // LLVM only
         std::string outputGraphFile;
-        bool emitExpr {false};
         bool verbose {false};
         std::string jsonOutputFile {"results.json"};
         bool jsonToStdout {false};

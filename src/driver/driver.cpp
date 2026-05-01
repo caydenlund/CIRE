@@ -549,8 +549,6 @@ namespace driver {
         // 3. Symbolic autodiff → error expression
         autodiff::AutodiffResult ad = autodiff::analyze(g);
 
-        if (opts.emitExpr) ad.expr.dumpAST(std::cout);
-
         // 4. Select optimizer
         std::unique_ptr<optimizer::Optimizer> opt = std::make_unique<optimizer::IbexOptimizer>();
 

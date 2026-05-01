@@ -277,36 +277,46 @@ See the `_/benchmarks` directory for examples.
 ### CIRE_LLVM
 
 ```bash
-CIRE_LLVM <input.ll> --domain <domain.json> --function <name> [OPTIONS]
+CIRE: Rigorous FP Error Analyser (LLVM IR frontend)
+Usage: ./CIRE/build/CIRE_LLVM [OPTIONS] input
 
-Required:
-  input.ll              LLVM IR file (.ll or .bc)
-  --domain FILE         JSON file specifying input variable intervals
-  --function NAME       Name of function to analyze
+Positionals:
+  input TEXT:FILE REQUIRED    LLVM IR file (.ll or .bc)
 
-Optional:
-  --detailed           Print computation expression and IBEX optimization details
-  --output-graph FILE  Write annotated computation graph DOT file
-  --emit-expr          Dump error expression AST
-  -v, --verbose        Verbose output
-  -h, --help           Show help message
+Options:
+  -h,--help                   Print this help message and exit
+  -d,--domain TEXT ...        Domain specification (repeatable):
+                                <file>      - JSON domain file
+                                <var>=[l,u] - Domain for specific variable
+  --default-domain TEXT       Default domain for all variables [l,u]
+  --function TEXT             Name of function to analyze (inferred if omitted)
+  -o,--output TEXT            JSON output file (default: results.json)
+  --stdout                    Print JSON to stdout instead of file
+  --show-all-instructions     Include zero-error instructions in JSON
+  --detailed                  Print computation expression and IBEX optimization details
+  --output-graph TEXT         Write annotated computation graph as DOT to the given file
+  -t,--timeout FLOAT          Optimizer timeout in seconds (default: 30)
+  -v,--verbose                Verbose output
 ```
 
 ### CIRE
 
 ```bash
-CIRE <input.txt> --domain <domain.json> [OPTIONS]
+CIRE: Rigorous FP Error Analyser (SATIRE frontend)
+Usage: ./CIRE/build/CIRE [OPTIONS] input
 
-Required:
-  input.txt            SATIRE source file
-  --domain FILE        JSON file specifying input variable intervals
+Positionals:
+  input TEXT:FILE REQUIRED    SATIRE source file
 
-Optional:
-  --detailed          Print computation expression and IBEX optimization details
-  --output-graph FILE  Write annotated computation graph DOT file
-  --emit-expr         Dump error expression AST
-  -v, --verbose       Verbose output
-  -h, --help          Show help message
+Options:
+  -h,--help                   Print this help message and exit
+  -d,--domain TEXT ...        Domain specification (repeatable):
+                                <file>      - JSON domain file
+                                <var>=[l,u] - Domain for specific variable
+  --default-domain TEXT       Default domain for all variables [l,u]
+  --detailed                  Print computation expression and IBEX optimization details
+  --output-graph TEXT         Write annotated computation graph as DOT to the given file
+  -v,--verbose                Verbose output
 ```
 
 ## Docker Usage
