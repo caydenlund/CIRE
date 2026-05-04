@@ -555,6 +555,27 @@ namespace driver {
         optimizer::OptimizerOpts oopts {.timeoutSeconds = opts.timeoutSeconds, .verbose = opts.verbose};
         optimizer::OptimizeResult result = opt->maximize(ad.expr, domain, g, ad.symbolicVal, oopts);
 
+        if (g.outputs().size() == 1) {
+            try {
+                error_expr::ErrorExpr minAbsRoundedExpr = ad.expr;
+                error_expr::ExprId outputValue = ad.symbolicVal.at(g.outputs().front());
+                minAbsRoundedExpr.setRoot(minAbsRoundedExpr.makeNeg(minAbsRoundedExpr.makeAbs(outputValue)));
+
+                optimizer::OptimizeResult minAbsResult =
+                        opt->maximize(minAbsRoundedExpr, domain, g, ad.symbolicVal, oopts);
+                double minAbsRoundedBound = -minAbsResult.upperBound;
+                double minAbsTrueBound = minAbsRoundedBound - result.upperBound;
+                if (std::isfinite(minAbsTrueBound) && minAbsTrueBound > 0.0) {
+                    result.minAbsTrueBound = minAbsTrueBound;
+                    result.relErrorBound = result.upperBound / minAbsTrueBound;
+                }
+            } catch (const std::exception& e) {
+                if (opts.verbose) {
+                    std::cerr << "Relative error bound unavailable: " << e.what() << "\n";
+                }
+            }
+        }
+
         // 5. Compute per-node error contributions
         std::vector<report::InstructionErrorInfo> allInstructionErrors;
         std::vector<report::InstructionErrorInfo> perInstructionErrors;
