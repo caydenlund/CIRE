@@ -18,6 +18,7 @@ namespace driver {
         bool jsonToStdout {false};
         bool showAllInstructions {false};
         bool detailed {false};
+        bool relativeErrorOptimizerFallback {false};
         double timeoutSeconds {30.0};
     };
 

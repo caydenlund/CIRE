@@ -24,6 +24,7 @@ namespace optimizer {
         double upperBound;
         std::optional<double> relErrorBound;
         std::optional<double> minAbsTrueBound;
+        std::string relativeErrorBoundMethod;
         std::unordered_map<std::string, double> witnessInputs;
         bool provedTight {false};
         double witnessOutputValue {0.0};  // Value of output at witness point

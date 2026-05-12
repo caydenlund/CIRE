@@ -22,6 +22,8 @@ int main(int argc, char** argv) {
     app.add_option("--output-graph", opts.outputGraphFile,
                    "Write annotated computation graph as DOT to the given file");
     app.add_option("-t,--timeout", opts.timeoutSeconds, "Optimizer timeout in seconds (default: 30)");
+    app.add_flag("--relative-error-optimizer-fallback", opts.relativeErrorOptimizerFallback,
+                 "Try the optimizer if interval evaluation cannot prove a relative error denominator");
     app.add_flag("-v,--verbose", opts.verbose, "Verbose output");
 
     CLI11_PARSE(app, argc, argv);

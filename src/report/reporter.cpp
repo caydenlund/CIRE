@@ -201,9 +201,11 @@ namespace report {
                  << *result.relErrorBound << "\n";
             _out << "  Min |true| Bound: " << std::scientific << std::setprecision(10)
                  << *result.minAbsTrueBound << "\n";
-            _out << "  Relative bound method: absolute error bound / (min |rounded| bound - absolute error bound)\n";
+            if (!result.relativeErrorBoundMethod.empty()) {
+                _out << "  Relative bound method: " << result.relativeErrorBoundMethod << "\n";
+            }
         } else {
-            _out << "  Relative Error Bound: unavailable (min |rounded| bound - absolute error bound may be zero)\n";
+            _out << "  Relative Error Bound: unavailable (could not prove the output is bounded away from zero)\n";
         }
 
         if (result.provedTight) {
@@ -347,6 +349,11 @@ namespace report {
             results["min_abs_true_bound"] = *data.result.minAbsTrueBound;
         } else {
             results["min_abs_true_bound"] = nullptr;
+        }
+        if (!data.result.relativeErrorBoundMethod.empty()) {
+            results["relative_error_bound_method"] = data.result.relativeErrorBoundMethod;
+        } else {
+            results["relative_error_bound_method"] = nullptr;
         }
 
         results["status"] = data.result.provedTight ? "proved_tight" : "sound_upper_bound";

@@ -5,6 +5,8 @@
 #include "optimizer/ibex_optimizer.hpp"
 #include "report/reporter.hpp"
 
+#include <ibex.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -14,6 +16,7 @@
 #include <memory>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <unordered_map>
 #include <utility>
 
@@ -404,6 +407,170 @@ namespace driver {
         return nodeValues;
     }
 
+    static ibex::Interval evaluateOutputInterval(const graph::ComputationGraph& graph,
+                                                 const interval::InputDomain& domain, graph::NodeId outputNode) {
+        std::unordered_map<graph::NodeId, ibex::Interval> nodeValues;
+
+        auto valueOf = [&](graph::NodeId id) -> const ibex::Interval& {
+            auto it = nodeValues.find(id);
+            if (it == nodeValues.end()) {
+                throw std::runtime_error("Internal error: missing interval value for node " + std::to_string(id));
+            }
+            return it->second;
+        };
+
+        for (graph::NodeId id : graph.topoOrder()) {
+            const graph::Node& node = graph.getNode(id);
+            ibex::Interval value = std::visit(
+                    graph::Overloaded {
+                            [&](const graph::InputVarNode& n) -> ibex::Interval {
+                                auto it = domain.find(n.name);
+                                if (it == domain.end()) {
+                                    throw std::runtime_error("No domain specified for input variable '" + n.name + "'");
+                                }
+                                return ibex::Interval(it->second.lo, it->second.hi);
+                            },
+                            [&](const graph::ConstantNode& n) -> ibex::Interval { return ibex::Interval(n.value); },
+                            [&](const graph::AddNode& n) -> ibex::Interval { return valueOf(n.lhs) + valueOf(n.rhs); },
+                            [&](const graph::SubNode& n) -> ibex::Interval { return valueOf(n.lhs) - valueOf(n.rhs); },
+                            [&](const graph::MulNode& n) -> ibex::Interval { return valueOf(n.lhs) * valueOf(n.rhs); },
+                            [&](const graph::DivNode& n) -> ibex::Interval { return valueOf(n.lhs) / valueOf(n.rhs); },
+                            [&](const graph::PowNode& n) -> ibex::Interval {
+                                return ibex::pow(valueOf(n.lhs), valueOf(n.rhs));
+                            },
+                            [&](const graph::NegNode& n) -> ibex::Interval { return -valueOf(n.src); },
+                            [&](const graph::SqrtNode& n) -> ibex::Interval { return ibex::sqrt(valueOf(n.src)); },
+                            [&](const graph::AbsNode& n) -> ibex::Interval { return ibex::abs(valueOf(n.src)); },
+                            [&](const graph::SinNode& n) -> ibex::Interval { return ibex::sin(valueOf(n.src)); },
+                            [&](const graph::CosNode& n) -> ibex::Interval { return ibex::cos(valueOf(n.src)); },
+                            [&](const graph::TanNode& n) -> ibex::Interval { return ibex::tan(valueOf(n.src)); },
+                            [&](const graph::AsinNode& n) -> ibex::Interval { return ibex::asin(valueOf(n.src)); },
+                            [&](const graph::AcosNode& n) -> ibex::Interval { return ibex::acos(valueOf(n.src)); },
+                            [&](const graph::AtanNode& n) -> ibex::Interval { return ibex::atan(valueOf(n.src)); },
+                            [&](const graph::SinhNode& n) -> ibex::Interval { return ibex::sinh(valueOf(n.src)); },
+                            [&](const graph::CoshNode& n) -> ibex::Interval { return ibex::cosh(valueOf(n.src)); },
+                            [&](const graph::TanhNode& n) -> ibex::Interval { return ibex::tanh(valueOf(n.src)); },
+                            [&](const graph::ExpNode& n) -> ibex::Interval { return ibex::exp(valueOf(n.src)); },
+                            [&](const graph::LogNode& n) -> ibex::Interval { return ibex::log(valueOf(n.src)); },
+                            [&](const graph::CastNode& n) -> ibex::Interval { return valueOf(n.src); },
+                            [&](const graph::FmaNode& n) -> ibex::Interval {
+                                return valueOf(n.a) * valueOf(n.b) + valueOf(n.c);
+                            },
+                            [&](const graph::ReduceSumNode& n) -> ibex::Interval { return valueOf(n.src); },
+                    },
+                    node.kind);
+
+            nodeValues[id] = value;
+        }
+
+        return valueOf(outputNode);
+    }
+
+    static std::optional<double> lowerBoundAbs(const ibex::Interval& value) {
+        if (value.is_empty()) return std::nullopt;
+        if (value.contains(0.0)) return 0.0;
+
+        double lowerBound = std::min(std::abs(value.lb()), std::abs(value.ub()));
+        if (!std::isfinite(lowerBound)) return std::nullopt;
+        return lowerBound;
+    }
+
+    static bool applyIntervalRelativeErrorBound(const graph::ComputationGraph& graph,
+                                                const interval::InputDomain& domain,
+                                                optimizer::OptimizeResult& result) {
+        if (graph.outputs().size() != 1 || !std::isfinite(result.upperBound) || result.upperBound < 0.0) {
+            return false;
+        }
+
+        ibex::Interval outputInterval = evaluateOutputInterval(graph, domain, graph.outputs().front());
+        std::optional<double> minAbsTrueBound = lowerBoundAbs(outputInterval);
+        if (!minAbsTrueBound.has_value() || *minAbsTrueBound <= 0.0) { return false; }
+
+        result.minAbsTrueBound = *minAbsTrueBound;
+        result.relErrorBound = result.upperBound / *minAbsTrueBound;
+        result.relativeErrorBoundMethod = "absolute error bound / interval lower bound on |true output|";
+        return true;
+    }
+
+    static error_expr::ExprId cloneExprNode(const error_expr::ErrorExpr& src, error_expr::ExprId id,
+                                            error_expr::ErrorExpr& dst,
+                                            std::unordered_map<error_expr::ExprId, error_expr::ExprId>& clonedIds) {
+        auto clonedIt = clonedIds.find(id);
+        if (clonedIt != clonedIds.end()) return clonedIt->second;
+
+        const error_expr::ExprKind& kind = src.get(id);
+        error_expr::ExprId cloned = std::visit(
+                [&](const auto& node) -> error_expr::ExprId {
+                    using T = std::decay_t<decltype(node)>;
+
+                    if constexpr (std::is_same_v<T, error_expr::EVarExpr>) {
+                        return dst.makeVar(node.name);
+                    } else if constexpr (std::is_same_v<T, error_expr::EErrVar>) {
+                        return dst.makeErrVar(node.name);
+                    } else if constexpr (std::is_same_v<T, error_expr::EConst>) {
+                        return dst.makeConst(node.value);
+                    } else if constexpr (std::is_same_v<T, error_expr::EEpsilon>) {
+                        return dst.makeEpsilon(node.prec);
+                    } else if constexpr (std::is_same_v<T, error_expr::EAdd>) {
+                        return dst.makeAdd(cloneExprNode(src, node.lhs, dst, clonedIds),
+                                           cloneExprNode(src, node.rhs, dst, clonedIds));
+                    } else if constexpr (std::is_same_v<T, error_expr::ESub>) {
+                        return dst.makeSub(cloneExprNode(src, node.lhs, dst, clonedIds),
+                                           cloneExprNode(src, node.rhs, dst, clonedIds));
+                    } else if constexpr (std::is_same_v<T, error_expr::EMul>) {
+                        return dst.makeMul(cloneExprNode(src, node.lhs, dst, clonedIds),
+                                           cloneExprNode(src, node.rhs, dst, clonedIds));
+                    } else if constexpr (std::is_same_v<T, error_expr::EDiv>) {
+                        return dst.add(error_expr::EDiv {cloneExprNode(src, node.lhs, dst, clonedIds),
+                                                         cloneExprNode(src, node.rhs, dst, clonedIds)});
+                    } else if constexpr (std::is_same_v<T, error_expr::ENeg>) {
+                        return dst.makeNeg(cloneExprNode(src, node.src, dst, clonedIds));
+                    } else if constexpr (std::is_same_v<T, error_expr::EAbs>) {
+                        return dst.makeAbs(cloneExprNode(src, node.src, dst, clonedIds));
+                    } else if constexpr (std::is_same_v<T, error_expr::EPow>) {
+                        return dst.add(error_expr::EPow {cloneExprNode(src, node.base, dst, clonedIds), node.exp});
+                    } else {
+                        throw std::runtime_error("Unknown expression type in cloneExprNode");
+                    }
+                },
+                kind);
+
+        clonedIds[id] = cloned;
+        return cloned;
+    }
+
+    static bool applyOptimizerRelativeErrorBound(const autodiff::AutodiffResult& ad,
+                                                 const graph::ComputationGraph& graph,
+                                                 const interval::InputDomain& domain, const optimizer::Optimizer& opt,
+                                                 const optimizer::OptimizerOpts& oopts,
+                                                 optimizer::OptimizeResult& result) {
+        if (graph.outputs().size() != 1 || !std::isfinite(result.upperBound) || result.upperBound < 0.0) {
+            return false;
+        }
+
+        error_expr::ExprId outputValue = ad.symbolicVal.at(graph.outputs().front());
+
+        error_expr::ErrorExpr minAbsExpr;
+        std::unordered_map<error_expr::ExprId, error_expr::ExprId> clonedIds;
+        error_expr::ExprId clonedOutputValue = cloneExprNode(ad.expr, outputValue, minAbsExpr, clonedIds);
+        minAbsExpr.setRoot(minAbsExpr.makeNeg(minAbsExpr.makeAbs(clonedOutputValue)));
+
+        std::unordered_map<graph::NodeId, error_expr::ExprId> clonedSymbolicVal;
+        for (const auto& [nodeId, exprId] : ad.symbolicVal) {
+            auto clonedIt = clonedIds.find(exprId);
+            if (clonedIt != clonedIds.end()) { clonedSymbolicVal[nodeId] = clonedIt->second; }
+        }
+
+        optimizer::OptimizeResult minAbsResult = opt.maximize(minAbsExpr, domain, graph, clonedSymbolicVal, oopts);
+        double minAbsTrueBound = -minAbsResult.upperBound;
+        if (!std::isfinite(minAbsTrueBound) || minAbsTrueBound <= 0.0) { return false; }
+
+        result.minAbsTrueBound = minAbsTrueBound;
+        result.relErrorBound = result.upperBound / minAbsTrueBound;
+        result.relativeErrorBoundMethod = "absolute error bound / optimizer lower bound on |true output|";
+        return true;
+    }
+
     static void writeAnalysisGraphDot(std::ostream& os, const graph::ComputationGraph& graph,
                                       const optimizer::OptimizeResult& result,
                                       const std::vector<report::InstructionErrorInfo>& allInstructionErrors,
@@ -557,22 +724,15 @@ namespace driver {
 
         if (g.outputs().size() == 1) {
             try {
-                error_expr::ErrorExpr minAbsRoundedExpr = ad.expr;
-                error_expr::ExprId outputValue = ad.symbolicVal.at(g.outputs().front());
-                minAbsRoundedExpr.setRoot(minAbsRoundedExpr.makeNeg(minAbsRoundedExpr.makeAbs(outputValue)));
-
-                optimizer::OptimizeResult minAbsResult =
-                        opt->maximize(minAbsRoundedExpr, domain, g, ad.symbolicVal, oopts);
-                double minAbsRoundedBound = -minAbsResult.upperBound;
-                double minAbsTrueBound = minAbsRoundedBound - result.upperBound;
-                if (std::isfinite(minAbsTrueBound) && minAbsTrueBound > 0.0) {
-                    result.minAbsTrueBound = minAbsTrueBound;
-                    result.relErrorBound = result.upperBound / minAbsTrueBound;
+                bool hasRelativeBound = applyIntervalRelativeErrorBound(g, domain, result);
+                if (!hasRelativeBound && opts.relativeErrorOptimizerFallback) {
+                    hasRelativeBound = applyOptimizerRelativeErrorBound(ad, g, domain, *opt, oopts, result);
+                }
+                if (!hasRelativeBound && opts.verbose) {
+                    std::cerr << "Relative error bound unavailable: could not prove output is bounded away from zero\n";
                 }
             } catch (const std::exception& e) {
-                if (opts.verbose) {
-                    std::cerr << "Relative error bound unavailable: " << e.what() << "\n";
-                }
+                if (opts.verbose) { std::cerr << "Relative error bound unavailable: " << e.what() << "\n"; }
             }
         }
 

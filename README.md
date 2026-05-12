@@ -296,6 +296,8 @@ Options:
   --detailed                  Print computation expression and IBEX optimization details
   --output-graph TEXT         Write annotated computation graph as DOT to the given file
   -t,--timeout FLOAT          Optimizer timeout in seconds (default: 30)
+  --relative-error-optimizer-fallback
+                              Try the optimizer if interval evaluation cannot prove a relative error denominator
   -v,--verbose                Verbose output
 ```
 
@@ -316,6 +318,8 @@ Options:
   --default-domain TEXT       Default domain for all variables [l,u]
   --detailed                  Print computation expression and IBEX optimization details
   --output-graph TEXT         Write annotated computation graph as DOT to the given file
+  --relative-error-optimizer-fallback
+                              Try the optimizer if interval evaluation cannot prove a relative error denominator
   -v,--verbose                Verbose output
 ```
 
